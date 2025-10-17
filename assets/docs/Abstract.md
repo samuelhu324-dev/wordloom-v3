@@ -245,7 +245,7 @@ git push origin v0.4.0
 
 随手提交：
 git add -A
-git commit -m "feat(frontend): merge Home Admin & Bulk Edit into unified panel"
+git commit -m
 
 | 类型       | 说明           |
 | -------- | ------------ |
@@ -255,4 +255,57 @@ git commit -m "feat(frontend): merge Home Admin & Bulk Edit into unified panel"
 | doc      | 写文档          |
 | chore    | 杂项、小维护       |
 | style    | 改前端样式        |
+
+# Git Cheat Sheet · Wordloom
+
+## 开工三步
+git switch main
+git pull --rebase origin main
+git switch -c feat/<task-name>   # 动词+主题，如 feat/bulk-insert-ui
+
+## 开发提交流
+git status
+git add -p         # 选择性暂存（推荐）
+git add .          # 全量暂存
+git commit -m "feat: <what & why>"
+git push -u origin <branch>   # 首次推送建立跟踪
+
+## 合并回主线（推荐线性历史）
+# 在功能分支
+git fetch origin
+git rebase origin/main
+# 解决冲突：编辑→git add <file>→git rebase --continue
+
+# 切回主分支并确保最新
+git switch main
+git pull --rebase origin main
+git merge --ff-only <branch>
+git push origin main
+
+# 清理
+git branch -d <branch>
+git push origin --delete <branch>   # 可选，删远端
+
+## 查看与历史
+git branch -a
+git log --oneline --graph --decorate --all
+git show <commit>
+git blame <file>
+
+## 暂存（改到一半先收起来）
+git stash
+git pull --rebase origin main
+git stash pop
+
+## 标签（里程碑/发布点）
+git tag -a v0.9-bulk -m "Bulk Insert UI overhaul"
+git push origin v0.9-bulk
+
+## 常见故障
+# 1) cannot pull with rebase: You have unstaged changes
+git add . && git commit -m "save work"   # 或 git stash / git restore .
+# 2) push 被拒（非快进）
+git pull --rebase origin <branch> && git push
+# 3) 不小心复制了“Switched to ...”当命令
+#   仅输入以 git 开头的命令；那行是提示不是命令。
 
