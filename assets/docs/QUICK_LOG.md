@@ -100,16 +100,132 @@ Question Dolved - 12~13
 24.  一切顺畅，准备将streamlit换为更强的前端
 25.  GIFmaker:默认生成位置问题，第二是点开目录问题
 
-## 2025-10-17~ | New Trial + 1
+## 2025-10-17 | New Trial + 1
 1. 以后把每次chat的聊天内容提前生成文本日志和Quick Log做对比
 2. 设计结构化日志 + 校验 进行断言 - 合并进WordloomToolkit里（把断言脚本及时落地）
 3. 关于回滚文件与安全返回点：
 4. 前端设计
 5. 学习相关术语与英语，以及及时把Git落实到框架上
-6. Wordloom/
+6. Git学习完毕进入实操阶段，记得每次弄完commit以及发布新的CHANGELOG
+7. 版本号追加
+Wordloom/
 │
 ├─ VERSION                     ← 全局版本号
 ├─ WordloomBackend/api/VERSION  ← 后端版本
 ├─ WordloomFrontend/streamlit/VERSION ← 前端版本
 └─ assets/VERSION               ← 资源版本
+8. 启动Git LFS，管理大量的gif, image, 和视频文件
+9. 准备pre-commit钩子，用于工程级别的遗忘操作：)(确实很正常)
+10. CI/CD可以等以后再开发
+11. 把版本发布的py合并到toolkit里面，另外以后做pre-commit后放到pre-push里面
+
+## 2025-10-17~ | Frontend development
+
+### streamlit 模块与抽象化
+
+1. 第一批文件发送
+推荐分批顺序（每批 1–3 个文件即可）：
+Home.py
+repo.py + models.py（如果有 text_utils.py 一起）
+pages/0_🏡_Home_Admin.py
+pages/3_🧩_Bulk_Insert_plus_status.py
+pages/2_📚_Insert.py
+pages/1_📑_From_Page.py
+gif_maker.py（确认缩略图/占位的调用点）
+你就按这个顺序一批一批贴过来或上传文件，我读完一批就回你一批可直接替换的改造补丁。
+
+2. 第二批文件发送
+第 2 批：数据访问抽象（今天就铺好路，将来切 API 不会痛）
+目标：让前端只认识“数据服务层”，不要认识 SQLite 细节。
+抽象层落点
+以 WordloomFrontend/streamlit/repo.py 为门面，models.py 定义数据结构，text_utils.py 做辅助。先适配本地 app.db，等你后端 API 稳定后，只改这一层的实现即可。
+最小契约
+搜索、分页、按出处聚合、插入/更新/删除、批量导入（行迭代 + 事务），全部在这层封装。
+
+3. 第三批文件发送
+
+第 3 批：路径与样式的一次性“止血”
+目标：防止“搬家就全崩”的相对路径问题 + 统一样式入口。
+路径
+沿用你现有的 assets/static/... 组织；前端组件里统一从相对根引用。你仓库里有 fix_md_paths.py（用于文档），前端也会放一个 url_for_asset() 小工具，避免硬编码。
+样式
+加一个 styles/base.css（或保留现状），让字体、颜色、行距等在一处管控；不强制换你已有字体/配色，只做“可配置”。
+
+4. 第四批文件发送
+目标：给你“跑一遍就能心安”的最小测试与烟囱脚本。
+健康检查脚本：启动后端（如需）、检查前端关键页能否加载、抽样读写是否成功。
+演示数据夹具：一小份“英文↔中文”样例，便于回归。
+目录树导出：你工具箱里已有 tools/WordloomToolkit 与 tree_runner.py，保持使用。
+
+### 弃船上岸方案
+1. 做到第一批末尾，结果Streamlit已经无法兼容大多数页面功能，出现多次重复读取和白屏。所以现在目标是直接升级换代。
+2. 项目骨架
+src/
+  app/
+    layout.tsx                # 全局布局 + 字体
+    page.tsx                  # 主页，可做导航/最近源
+    admin/
+      page.tsx                # Home Admin
+    from/
+      [source]/
+        page.tsx              # From Page（按 source）
+    insert/
+      page.tsx
+    bulk/
+      page.tsx
+    api/                      # 仅限 next/server actions（可选）
+  components/
+    ui/                       # shadcn 组件
+    common/
+      Toolbar.tsx
+      EntryCard.tsx
+      EditDialog.tsx
+      ConfirmDialog.tsx
+    admin/
+      SearchForm.tsx
+      ResultsList.tsx
+    from/
+      SentenceList.tsx
+  lib/
+    api.ts                    # axios 实例，拦截器
+    queryClient.ts            # TanStack Query 客户端
+    repo.ts                   # 对后端的“服务层”：统一封装 entries/sources
+    schema.ts                 # zod 校验（与后端对齐）
+    fonts.ts                  # 本地字体注册
+    config.ts                 # WL_API_BASE 从环境读取
+  types/
+    openapi.d.ts              # openapi-typescript 生成
+  styles/
+    globals.css
+    tokens.css                # 颜色/字号/间距变量
+3. 批次
+批次 A（当天可跑通）
+
+初始化 Next.js 项（如上）。
+实现 /from/[source] 的 只读列表（无编辑）。
+接上 listSources，下拉选择跳转到 /from/{source}。
+👉 至此你就能抛弃 Streamlit 的 From Page 只读了。
+
+批次 B（交互落地）
+加入 EditDialog / ConfirmDialog，完成 编辑/删除/插入。
+列表 缓存失效策略：invalidateQueries(["from", source])。
+边界：接口失败 toast，字段校验 zod。
+👉 From Page 全面替换完成。
+
+批次 C（Admin 搜索）
+/admin：搜索表单 + 结果列表（分页可后做）。
+行内编辑弹窗、删除确认。
+批量替换先做伪接口（服务端已有就对接，没有就下批补）。
+👉 你最常用的 Home Admin 也换完。
+
+批次 D（Bulk Insert / 工具）
+/insert、/bulk 基础功能。
+统一 Source 自动补全。
+GIF Maker 迁移（可推迟）。
+
+4. 关于中文输入法与VScode的不兼容问题调整，不完全成功，但是比之前好了
+5. 关于里程碑
+![alt text](image-1.png) 
+6. 现在对三项基本功能进行大幅度改造：正式将Home Admin与From Page进行合并，这是一个值得庆祝的日子！
+![alt text](image-2.png)
 7. 

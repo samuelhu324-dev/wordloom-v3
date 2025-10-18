@@ -57,23 +57,29 @@ class Article(Base):
 # ---------- DB 连接（过渡：仍直连 app.db） ----------
 def _resolve_sqlite_url() -> str:
     """
-    优先环境变量 STREAMLIT_DB；否则寻找本目录/父目录下的 app.db；都没找到则使用当前目录的 app.db（会自动创建）。
+    优先 .env 中的 WL_SQLITE_PATH，其次 STREAMLIT_DB；
+    再否则：在当前/父目录及 storage/ 下寻找 app.db；都没有则在当前目录创建。
     """
+    from pathlib import Path
+    import os
+
+    wl_path = os.getenv("WL_SQLITE_PATH")
+    if wl_path:
+        p = Path(wl_path).expanduser().resolve()
+        return f"sqlite:///{p.as_posix()}"
+
     env_path = os.getenv("STREAMLIT_DB")
     if env_path:
         p = Path(env_path).expanduser().resolve()
         return f"sqlite:///{p.as_posix()}"
+
     cwd = Path.cwd()
-    candidates = [
-        cwd / "app.db",
-        cwd.parent / "app.db",
-        cwd / "storage" / "app.db",
-    ]
+    candidates = [cwd / "app.db", cwd.parent / "app.db", cwd / "storage" / "app.db"]
     for p in candidates:
         if p.exists():
             return f"sqlite:///{p.as_posix()}"
-    # 回退：当前目录生成 app.db
     return f"sqlite:///{(cwd / 'app.db').as_posix()}"
+
 
 DATABASE_URL = _resolve_sqlite_url()
 

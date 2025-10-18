@@ -1,7 +1,10 @@
+.gitattributes
 .gitignore
 CHANGELOG.md
+pr_demo.txt
 TREE.md
 TREE.txt
+VERSION
     assets/
         docs/
             2025-10-01-03_DEV_LOG.md
@@ -9,9 +12,15 @@ TREE.txt
             2025-10-14-16_DEV_LOG.md
             Abstract.md
             fix_md_paths.py
+            image-1.png
             image.png
+            OTHERS.md
             palette.png
+            QUICK_LOG.html
+            QUICK_LOG.jpeg
             QUICK_LOG.md
+            QUICK_LOG.pdf
+            QUICK_LOG.png
             Template.md
             Template.md.bak
         static/
@@ -131,6 +140,7 @@ TREE.txt
             README.md
             requirements.txt
             run_backend.bat
+            VERSION
             __init__.py
             app/
                 database.py
@@ -151,6 +161,343 @@ TREE.txt
             storage/
                 app.db
     WordloomFrontend/
+        version_utils.py
+        next/
+            .env.local
+            .gitignore
+            Fix-NodePath.ps1
+            next-env.d.ts
+            next.config.mjs
+            package-lock.json
+            package.json
+            postcss.config.js
+            tailwind.config.js
+            tsconfig.json
+            .next/
+                app-build-manifest.json
+                build-manifest.json
+                fallback-build-manifest.json
+                package.json
+                react-loadable-manifest.json
+                trace
+                cache/
+                    swc/
+                        plugins/
+                            v7_windows_x86_64_0.106.15/
+                    webpack/
+                        client-development/
+                            0.pack.gz
+                            1.pack.gz
+                            10.pack.gz
+                            11.pack.gz
+                            12.pack.gz
+                            13.pack.gz
+                            14.pack.gz
+                            15.pack.gz
+                            2.pack.gz
+                            3.pack.gz
+                            4.pack.gz
+                            5.pack.gz
+                            6.pack.gz
+                            7.pack.gz
+                            8.pack.gz
+                            9.pack.gz
+                            index.pack.gz
+                            index.pack.gz.old
+                        client-development-fallback/
+                            0.pack.gz
+                            1.pack.gz
+                            index.pack.gz
+                            index.pack.gz.old
+                        server-development/
+                            0.pack.gz
+                            1.pack.gz
+                            10.pack.gz
+                            11.pack.gz
+                            12.pack.gz
+                            13.pack.gz
+                            14.pack.gz
+                            15.pack.gz
+                            16.pack.gz
+                            17.pack.gz
+                            2.pack.gz
+                            3.pack.gz
+                            4.pack.gz
+                            5.pack.gz
+                            6.pack.gz
+                            7.pack.gz
+                            8.pack.gz
+                            9.pack.gz
+                            index.pack.gz
+                            index.pack.gz.old
+                server/
+                    app-paths-manifest.json
+                    interception-route-rewrite-manifest.js
+                    middleware-build-manifest.js
+                    middleware-manifest.json
+                    middleware-react-loadable-manifest.js
+                    next-font-manifest.js
+                    next-font-manifest.json
+                    pages-manifest.json
+                    server-reference-manifest.js
+                    server-reference-manifest.json
+                    webpack-runtime.js
+                    _error.js
+                    app/
+                        page.js
+                        page_client-reference-manifest.js
+                        admin/
+                            page.js
+                            page_client-reference-manifest.js
+                        from/
+                            page.js
+                            page_client-reference-manifest.js
+                        insert/
+                            page.js
+                            page_client-reference-manifest.js
+                        _not-found/
+                            page.js
+                            page_client-reference-manifest.js
+                    pages/
+                        _app.js
+                        _document.js
+                        _error.js
+                    vendor-chunks/
+                        @swc.js
+                        @tanstack.js
+                        next.js
+                static/
+                    chunks/
+                        app-pages-internals.js
+                        main-app.js
+                        main.js
+                        polyfills.js
+                        react-refresh.js
+                        webpack.js
+                        _app-pages-browser_src_components_common_EditDialog_tsx.js
+                        _error.js
+                        app/
+                            layout.js
+                            page.js
+                            admin/
+                                page.js
+                            from/
+                                page.js
+                            insert/
+                                page.js
+                            _not-found/
+                                page.js
+                        fallback/
+                            amp.js
+                            main.js
+                            react-refresh.js
+                            webpack.js
+                            pages/
+                                _app.js
+                                _error.js
+                        pages/
+                            _app.js
+                            _error.js
+                    css/
+                        app/
+                            layout.css
+                    development/
+                        _buildManifest.js
+                        _ssgManifest.js
+                    webpack/
+                        01054d48a6fcb024.webpack.hot-update.json
+                        012af6c4d0702656.webpack.hot-update.json
+                        099c490e8d25b7c2.webpack.hot-update.json
+                        127a518a9e59eb42.webpack.hot-update.json
+                        210ae3e68164dfb7.webpack.hot-update.json
+                        27e9b9dafd412a98.webpack.hot-update.json
+                        2b3e6fd8eba99407.webpack.hot-update.json
+                        2bae38359488acd1.webpack.hot-update.json
+                        2d232911734338c8.webpack.hot-update.json
+                        3ab1a094d1979fab.webpack.hot-update.json
+                        3d7c9038b03a9d41.webpack.hot-update.json
+                        429bb610e14ed5c1.webpack.hot-update.json
+                        59b5d492254d5d8f.webpack.hot-update.json
+                        5a46029b91c77469.webpack.hot-update.json
+                        633457081244afec._.hot-update.json
+                        6ad87e85e01d94cd.webpack.hot-update.json
+                        6cadd37e05dbd93f.webpack.hot-update.json
+                        7867b3fb7c4916f7.webpack.hot-update.json
+                        8899643d1e675f26.webpack.hot-update.json
+                        8a77bba85f68aa10.webpack.hot-update.json
+                        8eb4e1515a6645ab.webpack.hot-update.json
+                        9ab298705ad1e305.webpack.hot-update.json
+                        9bfab86477437a15.webpack.hot-update.json
+                        9d4b38a730b7ace1.webpack.hot-update.json
+                        9faefa96bc31e635.webpack.hot-update.json
+                        a0a02dd98994ef0f.webpack.hot-update.json
+                        a11b4ef8d8b5e8dd.webpack.hot-update.json
+                        a787ea78409f8b9f.webpack.hot-update.json
+                        a7d55568c881df60.webpack.hot-update.json
+                        ae75611a496cd504.webpack.hot-update.json
+                        b19fc7e8df06e9c9.webpack.hot-update.json
+                        bd7ac66454dbe53d.webpack.hot-update.json
+                        c948b3d8f46a677e.webpack.hot-update.json
+                        cab73757a987d0c6.webpack.hot-update.json
+                        cec254ecc0b7c370.webpack.hot-update.json
+                        d4da61ba6e3ac2bc.webpack.hot-update.json
+                        d7625caf5efff4f4.webpack.hot-update.json
+                        d95ac2202e66025c.webpack.hot-update.json
+                        dd914035cdf3b551.webpack.hot-update.json
+                        e40286e2bcee543d.webpack.hot-update.json
+                        ed409e0c914d40ce.webpack.hot-update.json
+                        edefc593fb021c0a.webpack.hot-update.json
+                        f2830dd990bf6860.webpack.hot-update.json
+                        f2aa2de937dd9f5b.webpack.hot-update.json
+                        f3b08304b9dd355d.webpack.hot-update.json
+                        f7b53ce3b03ac10c.webpack.hot-update.json
+                        fadc569921d80861.webpack.hot-update.json
+                        webpack.01054d48a6fcb024.hot-update.js
+                        webpack.012af6c4d0702656.hot-update.js
+                        webpack.099c490e8d25b7c2.hot-update.js
+                        webpack.127a518a9e59eb42.hot-update.js
+                        webpack.210ae3e68164dfb7.hot-update.js
+                        webpack.27e9b9dafd412a98.hot-update.js
+                        webpack.2b3e6fd8eba99407.hot-update.js
+                        webpack.2bae38359488acd1.hot-update.js
+                        webpack.2d232911734338c8.hot-update.js
+                        webpack.3ab1a094d1979fab.hot-update.js
+                        webpack.3d7c9038b03a9d41.hot-update.js
+                        webpack.429bb610e14ed5c1.hot-update.js
+                        webpack.59b5d492254d5d8f.hot-update.js
+                        webpack.5a46029b91c77469.hot-update.js
+                        webpack.6ad87e85e01d94cd.hot-update.js
+                        webpack.6cadd37e05dbd93f.hot-update.js
+                        webpack.7867b3fb7c4916f7.hot-update.js
+                        webpack.8899643d1e675f26.hot-update.js
+                        webpack.8a77bba85f68aa10.hot-update.js
+                        webpack.8eb4e1515a6645ab.hot-update.js
+                        webpack.9ab298705ad1e305.hot-update.js
+                        webpack.9bfab86477437a15.hot-update.js
+                        webpack.9d4b38a730b7ace1.hot-update.js
+                        webpack.9faefa96bc31e635.hot-update.js
+                        webpack.a0a02dd98994ef0f.hot-update.js
+                        webpack.a11b4ef8d8b5e8dd.hot-update.js
+                        webpack.a787ea78409f8b9f.hot-update.js
+                        webpack.a7d55568c881df60.hot-update.js
+                        webpack.ae75611a496cd504.hot-update.js
+                        webpack.b19fc7e8df06e9c9.hot-update.js
+                        webpack.bd7ac66454dbe53d.hot-update.js
+                        webpack.c948b3d8f46a677e.hot-update.js
+                        webpack.cab73757a987d0c6.hot-update.js
+                        webpack.cec254ecc0b7c370.hot-update.js
+                        webpack.d4da61ba6e3ac2bc.hot-update.js
+                        webpack.d7625caf5efff4f4.hot-update.js
+                        webpack.d95ac2202e66025c.hot-update.js
+                        webpack.dd914035cdf3b551.hot-update.js
+                        webpack.e40286e2bcee543d.hot-update.js
+                        webpack.ed409e0c914d40ce.hot-update.js
+                        webpack.edefc593fb021c0a.hot-update.js
+                        webpack.f2830dd990bf6860.hot-update.js
+                        webpack.f2aa2de937dd9f5b.hot-update.js
+                        webpack.f3b08304b9dd355d.hot-update.js
+                        webpack.f7b53ce3b03ac10c.hot-update.js
+                        webpack.fadc569921d80861.hot-update.js
+                        app/
+                            layout.01054d48a6fcb024.hot-update.js
+                            layout.012af6c4d0702656.hot-update.js
+                            layout.099c490e8d25b7c2.hot-update.js
+                            layout.127a518a9e59eb42.hot-update.js
+                            layout.210ae3e68164dfb7.hot-update.js
+                            layout.27e9b9dafd412a98.hot-update.js
+                            layout.2b3e6fd8eba99407.hot-update.js
+                            layout.2bae38359488acd1.hot-update.js
+                            layout.2d232911734338c8.hot-update.js
+                            layout.3ab1a094d1979fab.hot-update.js
+                            layout.3d7c9038b03a9d41.hot-update.js
+                            layout.429bb610e14ed5c1.hot-update.js
+                            layout.59b5d492254d5d8f.hot-update.js
+                            layout.5a46029b91c77469.hot-update.js
+                            layout.6ad87e85e01d94cd.hot-update.js
+                            layout.7867b3fb7c4916f7.hot-update.js
+                            layout.8899643d1e675f26.hot-update.js
+                            layout.8a77bba85f68aa10.hot-update.js
+                            layout.8eb4e1515a6645ab.hot-update.js
+                            layout.9ab298705ad1e305.hot-update.js
+                            layout.9bfab86477437a15.hot-update.js
+                            layout.9d4b38a730b7ace1.hot-update.js
+                            layout.9faefa96bc31e635.hot-update.js
+                            layout.a11b4ef8d8b5e8dd.hot-update.js
+                            layout.a787ea78409f8b9f.hot-update.js
+                            layout.a7d55568c881df60.hot-update.js
+                            layout.ae75611a496cd504.hot-update.js
+                            layout.b19fc7e8df06e9c9.hot-update.js
+                            layout.bd7ac66454dbe53d.hot-update.js
+                            layout.c948b3d8f46a677e.hot-update.js
+                            layout.cab73757a987d0c6.hot-update.js
+                            layout.cec254ecc0b7c370.hot-update.js
+                            layout.d4da61ba6e3ac2bc.hot-update.js
+                            layout.d7625caf5efff4f4.hot-update.js
+                            layout.d95ac2202e66025c.hot-update.js
+                            layout.e40286e2bcee543d.hot-update.js
+                            layout.ed409e0c914d40ce.hot-update.js
+                            layout.edefc593fb021c0a.hot-update.js
+                            layout.f3b08304b9dd355d.hot-update.js
+                            page.9d4b38a730b7ace1.hot-update.js
+                            page.cab73757a987d0c6.hot-update.js
+                            page.ed409e0c914d40ce.hot-update.js
+                            page.f2aa2de937dd9f5b.hot-update.js
+                            admin/
+                                page.8899643d1e675f26.hot-update.js
+                                page.a787ea78409f8b9f.hot-update.js
+                                page.fadc569921d80861.hot-update.js
+                            from/
+                                page.2b3e6fd8eba99407.hot-update.js
+                                page.6ad87e85e01d94cd.hot-update.js
+                                page.a11b4ef8d8b5e8dd.hot-update.js
+                                page.a7d55568c881df60.hot-update.js
+                                page.ae75611a496cd504.hot-update.js
+                                page.c948b3d8f46a677e.hot-update.js
+                                page.f2aa2de937dd9f5b.hot-update.js
+                types/
+                    package.json
+                    app/
+                        layout.ts
+                        page.ts
+                        admin/
+                            page.ts
+                        from/
+                            page.ts
+                        insert/
+                            page.ts
+            app/
+                layout.tsx
+                page.tsx
+                admin/
+                    page.tsx
+                from/
+                    page.tsx
+                insert/
+                    page.tsx
+            public/
+            src/
+                components/
+                    admin/
+                        AdminEditBridge.tsx
+                    common/
+                        EditDialog.tsx
+                        LatestList.tsx
+                        Pagination.tsx
+                        SkeletonList.tsx
+                    from/
+                        InlineEditor.tsx
+                    providers/
+                        QueryProvider.tsx
+                    ui/
+                lib/
+                    queryClient.ts
+                    repo.ts
+                    utils.ts
+                styles/
+                    globals.css
+                    tokens.css
+                types/
+                    .gitkeep
         streamlit/
             .env
             .gitignore
@@ -167,8 +514,10 @@ TREE.txt
             models.py
             README_GH.md
             repo.py
-            schema_frontend_app.sql
+            repo_legacy.py
+            repo_shim_legacy.py
             text_utils.py
+            VERSION
             demos/
             pages/
                 0_🏡_Home_Admin.py

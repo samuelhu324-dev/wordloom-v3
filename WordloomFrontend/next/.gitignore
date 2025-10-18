@@ -1,0 +1,9 @@
+# Next workspace
+node_modules
+.next
+out
+# Local env
+.env*
+# Editor
+.vscode
+.DS_Store

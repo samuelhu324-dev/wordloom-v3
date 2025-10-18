@@ -1,17 +1,58 @@
-# 0_🏡_Home_Admin.py — Search + Bulk Replace (Sticky) + Inline Edit/Delete + Source Filter  [API版]
-from app import API_BASE
-import re, base64, pathlib, requests
+# -*- coding: utf-8 -*-
+"""
+0_🏡_Home_Admin.py — Search + Bulk Replace + Inline Edit/Delete + Source Filter
+框架无关版：统一走 DataService（_svc），若不可用则回退到 legacy shim。
+不改你现有交互，只把直连 client 的调用替换为 _svc，并容错不同返回结构。
+"""
+from __future__ import annotations
+
+import os, re, base64, pathlib, requests
 from datetime import datetime, timedelta, date
-from typing import List, Optional
+from typing import List, Optional, Dict, Any, Iterable, Tuple
+
 import streamlit as st
 import pandas as pd
 
-from repo import client  # ApiClient：search / update_entry / delete_entry / insert_sentence / create_article / get_article_sentences / find_matches / bulk_replace
+# ---------------- 数据服务入口：优先新 repo，失败则回退到 shim ----------------
+try:
+    from repo import get_data_service
+    _svc = get_data_service()
+except Exception:
+    from repo_shim_legacy import get_data_service  # 我们之前创建的 shim
+    _svc = get_data_service()
+
+API_BASE = os.getenv("WL_API_BASE", "http://127.0.0.1:8000")
+
+# ---- 统一获取搜索结果：优先 DataService，失败回退 REST ----
+def _fetch_rows(q: str, limit: int, offset: int = 0):
+    # 1) 尝试服务层
+    try:
+        if hasattr(_svc, 'search'):
+            data = _svc.search(q=q, limit=int(limit), offset=int(offset))
+            # 兼容 dict(list) / list 两种返回
+            if isinstance(data, dict):
+                return data.get('items', [])
+            return data or []
+    except Exception:
+        pass
+    # 2) 回退 REST
+    try:
+        r = requests.get(f"{API_BASE}/entries/search", params={
+            'q': q, 'limit': int(limit), 'offset': int(offset)
+        }, timeout=10)
+        r.raise_for_status()
+        j = r.json()
+        if isinstance(j, dict):
+            return j.get('items', [])
+        return j if isinstance(j, list) else []
+    except Exception as e:
+        st.error(f"Search failed: {e}")
+        return []
 
 st.set_page_config(page_title='Home Admin (Merged Sticky)', page_icon='🏡', layout='wide')
-st.title('🏡 Home Admin — Search + Bulk Replace（API）')
+st.title('🏡 Home Admin — Search + Bulk Replace')
 
-# ========== Typography（与原版一致） ==========
+# ---------------- 样式（保持你原样式） ----------------
 def _emit_font_css(embed_ok: bool, font_b64: Optional[str] = None, is_variable: bool = False, use_cdn: bool = False):
     css_common = """
     :root { --font-en-serif:"Constantia","Palatino Linotype","Palatino","Georgia",serif; --font-zh-serif:"Noto Serif SC","Source Han Serif SC","SimSun","霞鹜文楷","KaiTi",serif; --num-col-width:2.4rem; --num-gap:0.5rem; }
@@ -49,7 +90,7 @@ try:
 except Exception:
     _emit_font_css(False, None, is_variable=False, use_cdn=True)
 
-# ===== 工具函数 =====
+# ---------------- 工具函数 ----------------
 def _fmt_ts(ts):
     if ts is None: return ""
     if hasattr(ts, "strftime"): return ts.strftime("%Y-%m-%d %H:%M:%S")
@@ -69,21 +110,54 @@ def _highlight_keywords(text, keywords, case_sensitive=False, regex_mode=False):
     return "".join(parts)
 
 def _colorize_brackets(text): return re.sub(r'\[([^\[\]]+)\]', r"[<span class='brk'>\1</span>]", text or "")
+
 def _render_text(text, keywords, case_sensitive=False, regex_mode=False):
     return _highlight_keywords(_colorize_brackets(text), keywords, case_sensitive, regex_mode)
 
-def _all_source_names(limit: int = 500) -> list[str]:
-    # 通过后端 /sources 获取（若你的路由不同，请改成实际路径）
+def _list_sources_via_service(limit: int = 500) -> list[str]:
+    """优先走服务层；没有实现就回退空列表。"""
     try:
-        r = requests.get(f"{API_BASE}/sources", params={"limit":limit}, timeout=10)
-        r.raise_for_status()
-        data = r.json()
-        # 兼容返回 [{'name':...}] 或 ['name', ...]
-        if isinstance(data, list) and data and isinstance(data[0], dict):
-            return sorted({d.get("name","") for d in data if d.get("name")})
-        return sorted({str(x) for x in data if x})
+        names = _svc.list_sources()
+        return sorted({n for n in names if n})[:limit]
     except Exception:
         return []
+
+def _all_source_names(limit: int = 500) -> list[str]:
+    """统一获取出处列表（优先 DataService，兜底 API）"""
+    try:
+        names = _list_sources_via_service(limit)
+        if names:
+            return names
+        r = requests.get(f"{API_BASE}/sources", params={"limit": limit}, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        if isinstance(data, list):
+            if data and isinstance(data[0], dict):
+                return sorted({d.get("name", "") for d in data if d.get("name")})
+            return sorted({str(x) for x in data if x})
+        return []
+    except Exception:
+        return []
+
+def _as_fields(row: Any) -> Dict[str, Any]:
+    """兼容 dict / tuple 两种返回结构，统一取出字段"""
+    if isinstance(row, dict):
+        return {
+            "id": row.get("id") or row.get("entry_id"),
+            "src": row.get("src") or row.get("src_text") or row.get("source_text"),
+            "tgt": row.get("tgt") or row.get("tgt_text") or row.get("target_text"),
+            "source_name": row.get("source_name") or row.get("source") or "",
+            "created_at": row.get("created_at") or row.get("ts") or "",
+        }
+    # 元组/列表：尽量按 (id, src, tgt, source_name?, ts?) 解析
+    if isinstance(row, (list, tuple)) and row:
+        rid = row[0] if len(row) > 0 else None
+        src = row[1] if len(row) > 1 else ""
+        tgt = row[2] if len(row) > 2 else ""
+        sname = row[3] if len(row) > 3 else ""
+        ts = row[4] if len(row) > 4 else ""
+        return {"id": rid, "src": src, "tgt": tgt, "source_name": sname, "created_at": ts}
+    return {"id": None, "src": "", "tgt": "", "source_name": "", "created_at": ""}
 
 # ===== 选项卡 =====
 tab_search, tab_bulk = st.tabs(["🔎 Search", "🛠️ Bulk Replace"])
@@ -125,18 +199,21 @@ with tab_search:
     if not effective_source and src_sel and src_sel != "(Any)": effective_source = src_sel
 
     if go:
-        rows = client.search(q, ls or None, lt or None, limit=int(limit), date_from=date_from, date_to=date_to)
+        rows = _fetch_rows(q=q, limit=int(limit), offset=0)
+
         shown = 0
-        for i, row in enumerate(rows, start=1):
-            _id, src, tgt = row[0], row[1], row[2]
-            sname = row[3] if len(row) > 3 else ""
+        for row in rows:
+            f = _as_fields(row)
+            _id, src, tgt, sname = f["id"], f["src"], f["tgt"], f["source_name"]
 
             # 源过滤（客户端侧）
             if effective_source:
                 if src_exact:
-                    if sname != effective_source: continue
+                    if sname != effective_source: 
+                        continue
                 else:
-                    if effective_source.lower() not in (sname or "").lower(): continue
+                    if effective_source.lower() not in (sname or "").lower(): 
+                        continue
 
             src_h = _render_text(src, q, case_sensitive, regex_mode)
             tgt_h = _render_text(tgt, q, case_sensitive, regex_mode)
@@ -168,24 +245,37 @@ with tab_search:
                     b1, _ = st.columns([1,1])
                     with b1:
                         if st.button("Save", key=f"save_{_id}"):
-                            payload = {"src": new_src.strip() or src, "tgt": new_tgt.strip() or tgt, "source_name": (new_source_name or "").strip()}
-                            client.update_entry(_id, **payload)
-                            st.success("Saved.")
+                            payload = {"src": new_src.strip() or src, "tgt": new_tgt.strip() or tgt, "source_name": (new_source_name or '').strip()}
+                            try:
+                                _svc.update_item(int(_id), payload)
+                                st.success("Saved.")
+                            except Exception as e:
+                                st.error(f"Save failed: {e}")
 
-            if ins_clicked or clone_clicked:
+            # ---- 插入 / 克隆：仅当服务层支持文章接口时显示 ----
+            supports_articles = all(hasattr(_svc, n) for n in ("create_article","get_article_sentences","insert_sentence"))
+            if (ins_clicked or clone_clicked) and supports_articles:
                 with st.expander(("Insert AFTER" if ins_clicked else "Clone & Insert AFTER"), expanded=True):
                     art_title = st.text_input("Article title", value=sname or "", key=f"art_title_{_id}")
                     aid = None
                     if art_title.strip():
-                        # 若无则创建后返回 id
-                        a = client.create_article(art_title.strip(), source_name=art_title.strip())
-                        aid = int(a) if isinstance(a, int) else int(getattr(a, "id", a[0]))
-                    if aid:
-                        # 估计插入位置（取当前文章已有条目数）
                         try:
-                            seq = client.get_article_sentences(aid)
-                            ids = [(r["id"] if isinstance(r, dict) else r[0]) for r in seq]
-                            pos_default = len(ids)
+                            a = _svc.create_article(art_title.strip(), source_name=art_title.strip())
+                            # 兼容不同返回：可能是 id / 对象 / (id, ...)
+                            if isinstance(a, int):
+                                aid = a
+                            elif isinstance(a, (list, tuple)) and a:
+                                aid = int(a[0])
+                            else:
+                                aid = int(getattr(a, "id", 0))
+                        except Exception as e:
+                            st.error(f"Create article failed: {e}")
+
+                    if aid:
+                        try:
+                            seq = _svc.get_article_sentences(int(aid))
+                            ids = [(r["id"] if isinstance(r, dict) else (r[0] if isinstance(r, (list, tuple)) else None)) for r in seq]
+                            pos_default = len([x for x in ids if isinstance(x, int)])
                         except Exception:
                             pos_default = 0
                         ins_pos = st.number_input("Insert after position (1-based)", min_value=0, value=pos_default, step=1, key=f"ins_pos_{_id}")
@@ -198,8 +288,11 @@ with tab_search:
                                 if not zh_new.strip() or not en_new.strip():
                                     st.error("Both zh and en are required.")
                                 else:
-                                    new_id = client.insert_sentence(aid, ins_pos, zh_new, en_new, ls="zh", lt="en")
-                                    st.success(f"Inserted new entry #{new_id} at position {ins_pos+1}.")
+                                    try:
+                                        new_id = _svc.insert_sentence(int(aid), int(ins_pos), zh_new, en_new, ls="zh", lt="en")
+                                        st.success(f"Inserted new entry #{new_id} at position {ins_pos+1}.")
+                                    except Exception as e:
+                                        st.error(f"Insert failed: {e}")
                         else:  # clone
                             clone_id = st.text_input("Entry ID to clone", key=f"clone_id_{_id}")
                             if st.button("Clone & Insert", key=f"clone_go_{_id}"):
@@ -208,19 +301,24 @@ with tab_search:
                                 except Exception:
                                     st.error("Please enter a valid integer entry ID.")
                                 else:
-                                    # 直接取当前行内容克隆最稳
-                                    new_id = client.insert_sentence(aid, ins_pos, src, tgt)
-                                    st.success(f"Cloned #{cid} → new #{new_id} at pos {ins_pos+1}.")
-                    else:
-                        st.info("Provide a valid article title to insert into.")
+                                    try:
+                                        new_id = _svc.insert_sentence(int(aid), int(ins_pos), src, tgt)
+                                        st.success(f"Cloned #{cid} → new #{new_id} at pos {ins_pos+1}.")
+                                    except Exception as e:
+                                        st.error(f"Clone failed: {e}")
+            elif (ins_clicked or clone_clicked) and not supports_articles:
+                st.info("当前数据通道不支持文章插入/克隆接口。")
 
             if del_clicked:
                 with st.expander("Confirm delete?", expanded=True):
                     st.warning("This will delete the entry permanently.")
                     c1, _ = st.columns(2)
                     if c1.button("Delete", key=f"del_yes_{_id}"):
-                        client.delete_entry(_id)
-                        st.success(f"Deleted #{_id}.")
+                        try:
+                            _svc.delete_item(int(_id))
+                            st.success(f"Deleted #{_id}.")
+                        except Exception as e:
+                            st.error(f"Delete failed: {e}")
             st.markdown("---")
 
 # ---------------- BULK REPLACE ----------------
@@ -251,21 +349,35 @@ with tab_bulk:
         date_from2, date_to2 = df2.isoformat(), dt2.isoformat()
 
     if prev_btn:
-        preview_rows = client.find_matches(keyword=kw, scope=scope, source_name=src_name_filter or None,
-                                           date_from=date_from2, date_to=date_to2, limit=int(limit2),
-                                           regex_mode=regex_mode2, case_sensitive=case_sensitive2, strict_word=strict_word)
-        for _id, src, tgt, sname, ts in preview_rows:
-            st.markdown(f"<div class='row'><span class='num'>#{_id}</span><span class='src'>{_render_text(src, kw, case_sensitive2, regex_mode2)}</span></div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='row'><span class='num ghost'>#{_id}</span><span class='tgt'>{_render_text(tgt, kw, case_sensitive2, regex_mode2)}</span></div>", unsafe_allow_html=True)
-            st.markdown(f"<span class='source'>{sname}</span>", unsafe_allow_html=True)
-            st.markdown(f"<span class='ts'>{_fmt_ts(ts)}</span>", unsafe_allow_html=True)
-            st.markdown("---")
+        if hasattr(_svc, "find_matches"):
+            try:
+                preview_rows = _svc.find_matches(keyword=kw, scope=scope, source_name=src_name_filter or None,
+                                                 date_from=date_from2, date_to=date_to2, limit=int(limit2),
+                                                 regex_mode=regex_mode2, case_sensitive=case_sensitive2, strict_word=strict_word)
+                for r in preview_rows:
+                    f = _as_fields(r)
+                    _id, src, tgt, sname, ts = f["id"], f["src"], f["tgt"], f["source_name"], f["created_at"]
+                    st.markdown(f"<div class='row'><span class='num'>#{_id}</span><span class='src'>{_render_text(src, kw, case_sensitive2, regex_mode2)}</span></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='row'><span class='num ghost'>#{_id}</span><span class='tgt'>{_render_text(tgt, kw, case_sensitive2, regex_mode2)}</span></div>", unsafe_allow_html=True)
+                    st.markdown(f"<span class='source'>{sname}</span>", unsafe_allow_html=True)
+                    st.markdown(f"<span class='ts'>{_fmt_ts(ts)}</span>", unsafe_allow_html=True)
+                    st.markdown('---')
+            except Exception as e:
+                st.error(f"Preview failed: {e}")
+        else:
+            st.warning("当前数据通道不支持预览（find_matches）。")
 
     confirm = st.checkbox("I previewed and confirm this change", value=True, key="bulk_confirm")
     if st.button("⚡ Run replace", type="primary", disabled=not confirm, key="bulk_run"):
-        changed = client.bulk_replace(keyword=kw, replacement=repl, scope=scope,
-                                      source_name=src_name_filter or None,
-                                      date_from=date_from2, date_to=date_to2,
-                                      regex_mode=regex_mode2, case_sensitive=case_sensitive2,
-                                      strict_word=strict_word, first_only=first_only)
-        st.success(f"✅ Done! Updated {changed} rows.")
+        if hasattr(_svc, "bulk_replace"):
+            try:
+                changed = _svc.bulk_replace(keyword=kw, replacement=repl, scope=scope,
+                                            source_name=src_name_filter or None,
+                                            date_from=date_from2, date_to=date_to2,
+                                            regex_mode=regex_mode2, case_sensitive=case_sensitive2,
+                                            strict_word=strict_word, first_only=first_only)
+                st.success(f"✅ Done! Updated {changed} rows.")
+            except Exception as e:
+                st.error(f"Replace failed: {e}")
+        else:
+            st.warning("当前数据通道不支持批量替换（bulk_replace）。")

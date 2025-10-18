@@ -256,6 +256,12 @@ git commit -m
 | chore    | 杂项、小维护       |
 | style    | 改前端样式        |
 
+feat/insert-validation
+fix/api-path-sync
+refactor/db-models
+style/homepage-layout
+doc/dev-log
+
 # Git Cheat Sheet · Wordloom
 
 ## 开工三步
@@ -269,6 +275,9 @@ git add -p         # 选择性暂存（推荐）
 git add .          # 全量暂存
 git commit -m "feat: <what & why>"
 git push -u origin <branch>   # 首次推送建立跟踪
+
+每天收工前，执行一次
+git add . && git commit -m "checkpoint: <今天的内容>"
 
 ## 合并回主线（推荐线性历史）
 # 在功能分支
@@ -301,6 +310,9 @@ git stash pop
 git tag -a v0.9-bulk -m "Bulk Insert UI overhaul"
 git push origin v0.9-bulk
 
+git tag -a v0.4.0 -m "0.4.0: New unified admin panel + path fixes"
+git push origin v0.4.0
+
 ## 常见故障
 # 1) cannot pull with rebase: You have unstaged changes
 git add . && git commit -m "save work"   # 或 git stash / git restore .
@@ -308,4 +320,4 @@ git add . && git commit -m "save work"   # 或 git stash / git restore .
 git pull --rebase origin <branch> && git push
 # 3) 不小心复制了“Switched to ...”当命令
 #   仅输入以 git 开头的命令；那行是提示不是命令。
-
+markdown是一种轻量级的标记语言，他的核心是
