@@ -1,0 +1,13 @@
+services:
+  db:
+    container_name: wordloompg
+    image: postgres:16
+    restart: unless-stopped
+    ports:
+      - "5444:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pgpass
+      POSTGRES_DB: wordloompg
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data

@@ -1,0 +1,55 @@
+/* src/styles/wordloom-themes.css (V3) */
+:root{
+  --bg:#fff; --fg:#111; --muted:#666; --border:#e6e6e6; --surface:#fafafa;
+  --accent:#5B8CFF; --accent-2:#5E60CE; --pattern-opacity:.06;
+  --card-bg: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  --card-border: color-mix(in srgb, var(--accent) 25%, var(--border));
+}
+html,body{background-color:var(--bg);} body{color:var(--fg);background:var(--surface);}
+.loom-theme{--surface: color-mix(in srgb, #ffeff7 65%, #fff 35%);} 
+
+/* themes (7) */
+.theme-sky      { --bg:#fbfdff; --fg:#0f172a; --muted:#5b6478; --border:#e6eef9; --surface:#f4f9ff; --accent:#3b82f6; --accent-2:#06b6d4; --pattern-opacity:.09; --card-bg:color-mix(in srgb,#3b82f6 7%,#f4f9ff); --card-border:color-mix(in srgb,#3b82f6 28%,#e6eef9);}
+.theme-indigo   { --bg:#f9f8ff; --fg:#0b1021; --muted:#65638a; --border:#ecebfb; --surface:#f4f2ff; --accent:#6366f1; --accent-2:#a78bfa; --pattern-opacity:.09; --card-bg:color-mix(in srgb,#6366f1 7%,#f4f2ff); --card-border:color-mix(in srgb,#6366f1 28%,#ecebfb);}
+.theme-maroon   { --bg:#fff8f9; --fg:#250b0f; --muted:#715058; --border:#f4dfe4; --surface:#fff1f3; --accent:#b91c1c; --accent-2:#e11d48; --pattern-opacity:.085; --card-bg:color-mix(in srgb,#b91c1c 6%,#fff1f3); --card-border:color-mix(in srgb,#b91c1c 28%,#f4dfe4);}
+.theme-lavender { --bg:#fdfbff; --fg:#201826; --muted:#6f6777; --border:#efe7fb; --surface:#f8f5ff; --accent:#8b5cf6; --accent-2:#d946ef; --pattern-opacity:.085; --card-bg:color-mix(in srgb,#8b5cf6 6%,#f8f5ff); --card-border:color-mix(in srgb,#8b5cf6 28%,#efe7fb);}
+.theme-forest   { --bg:#f7fdf9; --fg:#0e1b13; --muted:#4b6255; --border:#ddf3e5; --surface:#effaf3; --accent:#059669; --accent-2:#10b981; --pattern-opacity:.085; --card-bg:color-mix(in srgb,#059669 6%,#effaf3); --card-border:color-mix(in srgb,#059669 28%,#ddf3e5);}
+.theme-sunset   { --bg:#fffaf6; --fg:#23140b; --muted:#806254; --border:#ffe2cf; --surface:#fff3e8; --accent:#f97316; --accent-2:#ef4444; --pattern-opacity:.085; --card-bg:color-mix(in srgb,#f97316 6%,#fff3e8); --card-border:color-mix(in srgb,#f97316 28%,#ffe2cf);}
+.theme-ocean    { --bg:#f6fbfc; --fg:#0a1720; --muted:#4a6473; --border:#dff1f6; --surface:#eef7fb; --accent:#0ea5e9; --accent-2:#14b8a6; --pattern-opacity:.1;  --card-bg:color-mix(in srgb,#0ea5e9 7%,#eef7fb); --card-border:color-mix(in srgb,#0ea5e9 28%,#dff1f6);}
+
+/* global pattern */
+body::before, body::after{ content:""; position:fixed; inset:0; pointer-events:none; }
+body::before{
+  z-index:0;
+  background-image: radial-gradient(circle at 25% 20%, rgba(0,0,0,var(--pattern-opacity)) 1.2px, transparent 0);
+  background-size:22px 22px; background-repeat:repeat;
+  mix-blend-mode:multiply; opacity:.45;
+}
+body::after{
+  z-index:0;
+  background-image:
+    linear-gradient(135deg, rgba(0,0,0, calc(var(--pattern-opacity)*.45)) 1px, transparent 1px),
+    linear-gradient(45deg,  rgba(0,0,0, calc(var(--pattern-opacity)*.35)) 1px, transparent 1px),
+    conic-gradient(from 45deg at 10% 10%, rgba(0,0,0, calc(var(--pattern-opacity)*.18)) 2deg, transparent 6deg),
+    conic-gradient(from -20deg at 90% 70%, rgba(0,0,0, calc(var(--pattern-opacity)*.18)) 2deg, transparent 6deg);
+  background-size:18px 18px, 18px 18px, 160px 160px, 160px 160px;
+  background-repeat:repeat; mix-blend-mode:multiply; opacity:.25;
+}
+
+/* surface overlay pattern：确保内容区也能看到纹理 */
+.wl-pattern-surface{ position:relative; }
+.wl-pattern-surface::before, .wl-pattern-surface::after{ content:""; position:absolute; inset:0; pointer-events:none; z-index:0; }
+.wl-pattern-surface::before{
+  background-image: radial-gradient(circle at 25% 20%, rgba(0,0,0,var(--pattern-opacity)) 1.2px, transparent 0);
+  background-size:22px 22px; mix-blend-mode:multiply; opacity:.35;
+}
+.wl-pattern-surface::after{
+  background-image:
+    linear-gradient(135deg, rgba(0,0,0, calc(var(--pattern-opacity)*.35)) 1px, transparent 1px),
+    linear-gradient(45deg,  rgba(0,0,0, calc(var(--pattern-opacity)*.25)) 1px, transparent 1px);
+  background-size:18px 18px, 18px 18px; mix-blend-mode:multiply; opacity:.18;
+}
+.wl-pattern-surface > *{ position:relative; z-index:1; }
+
+/* card */
+.wl-card{ background:var(--card-bg, var(--surface)); border:1px solid var(--card-border, var(--border)); border-radius:.75rem; }

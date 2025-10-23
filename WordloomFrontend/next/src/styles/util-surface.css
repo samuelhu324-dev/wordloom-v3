@@ -1,0 +1,24 @@
+
+/* src/styles/util-surface.css
+ * Tiny utilities for token-friendly hover/active/focus states.
+ * Import AFTER globals.css and the token shims.
+ */
+
+.hover-surface:hover {
+  background-color: color-mix(in srgb, var(--surface), #000 4%) !important;
+}
+
+.focus-surface:focus {
+  background-color: color-mix(in srgb, var(--surface), #000 3%) !important;
+  outline: none !important;
+  /* keep ring color consistent with tokens; Tailwind ring utilities can still apply */
+  --tw-ring-color: var(--ring);
+}
+
+.active-surface:active {
+  background-color: color-mix(in srgb, var(--surface), #000 8%) !important;
+}
+
+/* Optional helpers */
+.border-token { border-color: var(--border) !important; }
+.text-muted-token { color: var(--muted) !important; }

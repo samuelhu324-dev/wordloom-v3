@@ -2,8 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-@import "./tokens.css";
+@import './tokens.css';
+@import './tokens-shim.css';
+@import './tokens-shim-extended.css';
+@import './util-surface.css';
+@import './wordloom-themes.css';
+@import './loom-theme.css'; /* 如果页面需要 */
 
 /* 数字蓝、元数据灰的小强化 */
 .emph-num { @apply text-primary font-semibold; }
 .meta     { @apply text-meta text-sm; }
+
+/* Wordloom 主题主按钮/链接映射到 CSS 变量 */
+.btn-primary, .link-primary {
+  background: var(--primary);
+  color: var(--primary-fg);
+}
+.btn-primary:hover { filter: brightness(0.95); }
+.link-primary { text-decoration: none; }
+.link-primary:hover { text-decoration: underline; }
+
+

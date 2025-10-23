@@ -1,0 +1,32 @@
+
+/* tokens-shim-extended.css
+ * Batch 2: widen coverage so you don't have to touch Insert/Admin logic.
+ * Extends Batch 1 by covering more Tailwind utility classes we saw in your codebase.
+ */
+
+/* ---------- Background ---------- */
+.bg-gray-200{background-color:color-mix(in srgb, var(--surface), #000 7%) !important;}
+.hover\:bg-gray-200:hover{background-color:color-mix(in srgb, var(--surface), #000 7%) !important;}
+.focus\:bg-gray-50:focus{background-color:color-mix(in srgb, var(--surface), #000 3%) !important;}
+
+/* ---------- Text ---------- */
+.placeholder-gray-400::placeholder{color:color-mix(in srgb, var(--muted), #000 10%) !important;}
+.selection\:bg-gray-200 *::selection{background-color:color-mix(in srgb, var(--surface), #000 7%) !important;}
+
+/* ---------- Borders / Dividers ---------- */
+.border-gray-100{border-color:var(--border) !important;}
+.divide-gray-100{border-color:var(--border) !important;}
+
+/* ---------- Rings / Focus ---------- */
+.focus\:ring-rose-300:focus{--tw-ring-color:var(--ring) !important;}
+.focus\:ring:focus{--tw-ring-color:var(--ring) !important;}
+/* neutralize fixed ring offsets while keeping token color */
+.ring-gray-200{--tw-ring-color:var(--ring) !important;}
+
+/* ---------- Badges / subtle chips ---------- */
+.bg-gray-800{background-color:color-mix(in srgb, var(--fg), #000 15%) !important;}
+.text-gray-50{color:var(--fg) !important;}
+
+/* ---------- Tables ---------- */
+.even\:bg-gray-100:nth-child(even){background-color:color-mix(in srgb, var(--surface), #000 5%) !important;}
+.odd\:bg-gray-100:nth-child(odd){background-color:color-mix(in srgb, var(--surface), #000 5%) !important;}
