@@ -1,3 +1,0 @@
-align_id,src_lang,tgt_lang,src_text,tgt_text,type_code,source_id,doc_id,quality
-A010,en,zh,"Payment shall be made within 30 days.","付款应在30天内完成。","OBL;TIME",1,1,0.95
-A011,en,zh,"The Buyer may terminate this Agreement...","买方可以终止本协议……","RIGHT;COND",1,1,0.9

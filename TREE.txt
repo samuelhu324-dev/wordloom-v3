@@ -2816,22 +2816,11 @@ VERSION
                     archive_status/
                 pg_xact/
                     0000
-        api/
-            wordloom_api.zip
-            wordloom_api_ready.zip
-        streamlit/
-            0_🏡_Home_Admin.py
-            1_📑_From_Page.py
-            1_📝_Add_Entry.py
-            2_Bulk_Import.py
-            2_📚_Insert.py
-            2_🔍_Search_Export.py
-            3_🧩_Bulk_Insert_plus_status.py
-            app.py
-            Home.py
-            my_segments.csv
-            repo.py
-            repo_legacy.py
+        2025-10-23/
+            admin/
+                page.tsx
+            insert/
+                page.tsx
     tools/
         release.py
         WordloomToolkit/
@@ -2859,6 +2848,7 @@ VERSION
         app.db
         api/
             .env
+            .env.example.txt
             alembic.ini
             app.db
             package-lock.json
@@ -6484,15 +6474,78 @@ VERSION
                         _buildManifest.js
                         _ssgManifest.js
                     webpack/
-                        2b87ea26e50f50cb.webpack.hot-update.json
-                        5d308d6630bae8c7.webpack.hot-update.json
+                        06f090483b066f80.webpack.hot-update.json
+                        09662a99605feb02.webpack.hot-update.json
+                        0cc3f1076d3e8ee3.webpack.hot-update.json
+                        1288f3feef39c826.webpack.hot-update.json
+                        12c4992622e48cd0.webpack.hot-update.json
+                        13f8f4c66fff72a1.webpack.hot-update.json
+                        1c1f2af9e4d11075.webpack.hot-update.json
+                        33df3d75cc6a1cac.webpack.hot-update.json
+                        61aecca6718f493f.webpack.hot-update.json
                         633457081244afec._.hot-update.json
-                        efe6856723a46b03.webpack.hot-update.json
-                        webpack.2b87ea26e50f50cb.hot-update.js
-                        webpack.5d308d6630bae8c7.hot-update.js
-                        webpack.efe6856723a46b03.hot-update.js
+                        7cf9508747979892.webpack.hot-update.json
+                        8e1383733d3ff675.webpack.hot-update.json
+                        9257b275b52f2523.webpack.hot-update.json
+                        b1d7869e8e3a604b.webpack.hot-update.json
+                        bf787813b7c03925.webpack.hot-update.json
+                        c4587cdef33426c0.webpack.hot-update.json
+                        c4a8504b2afd2394.webpack.hot-update.json
+                        cb6455c43e7702b3.webpack.hot-update.json
+                        dfcdc2118cfb5bbf.webpack.hot-update.json
+                        e76833f39229f3b4.webpack.hot-update.json
+                        f4397dfce9e49432.webpack.hot-update.json
+                        f92547262ecac2b4.webpack.hot-update.json
+                        ff941cc4545a76cf.webpack.hot-update.json
+                        webpack.06f090483b066f80.hot-update.js
+                        webpack.09662a99605feb02.hot-update.js
+                        webpack.0cc3f1076d3e8ee3.hot-update.js
+                        webpack.1288f3feef39c826.hot-update.js
+                        webpack.12c4992622e48cd0.hot-update.js
+                        webpack.13f8f4c66fff72a1.hot-update.js
+                        webpack.1c1f2af9e4d11075.hot-update.js
+                        webpack.33df3d75cc6a1cac.hot-update.js
+                        webpack.61aecca6718f493f.hot-update.js
+                        webpack.7cf9508747979892.hot-update.js
+                        webpack.8e1383733d3ff675.hot-update.js
+                        webpack.9257b275b52f2523.hot-update.js
+                        webpack.b1d7869e8e3a604b.hot-update.js
+                        webpack.bf787813b7c03925.hot-update.js
+                        webpack.c4587cdef33426c0.hot-update.js
+                        webpack.c4a8504b2afd2394.hot-update.js
+                        webpack.cb6455c43e7702b3.hot-update.js
+                        webpack.dfcdc2118cfb5bbf.hot-update.js
+                        webpack.e76833f39229f3b4.hot-update.js
+                        webpack.f4397dfce9e49432.hot-update.js
+                        webpack.f92547262ecac2b4.hot-update.js
+                        webpack.ff941cc4545a76cf.hot-update.js
                         app/
-                            layout.efe6856723a46b03.hot-update.js
+                            layout.06f090483b066f80.hot-update.js
+                            layout.09662a99605feb02.hot-update.js
+                            layout.0cc3f1076d3e8ee3.hot-update.js
+                            layout.1288f3feef39c826.hot-update.js
+                            layout.12c4992622e48cd0.hot-update.js
+                            layout.13f8f4c66fff72a1.hot-update.js
+                            layout.1c1f2af9e4d11075.hot-update.js
+                            layout.33df3d75cc6a1cac.hot-update.js
+                            layout.8e1383733d3ff675.hot-update.js
+                            layout.b1d7869e8e3a604b.hot-update.js
+                            layout.bf787813b7c03925.hot-update.js
+                            layout.c4a8504b2afd2394.hot-update.js
+                            layout.cb6455c43e7702b3.hot-update.js
+                            layout.dfcdc2118cfb5bbf.hot-update.js
+                            layout.e76833f39229f3b4.hot-update.js
+                            layout.f4397dfce9e49432.hot-update.js
+                            layout.f92547262ecac2b4.hot-update.js
+                            loom/
+                                page.06f090483b066f80.hot-update.js
+                                page.12c4992622e48cd0.hot-update.js
+                                page.33df3d75cc6a1cac.hot-update.js
+                                page.7cf9508747979892.hot-update.js
+                                page.c4a8504b2afd2394.hot-update.js
+                                page.e76833f39229f3b4.hot-update.js
+                                page.f4397dfce9e49432.hot-update.js
+                                page.f92547262ecac2b4.hot-update.js
                 types/
                     cache-life.d.ts
                     package.json
@@ -6508,10 +6561,6 @@ VERSION
             app/
                 layout.tsx
                 page.tsx
-                admin/
-                    page.tsx
-                insert/
-                    page.tsx
                 loom/
                     ManageBoot.tsx
                     page.tsx
