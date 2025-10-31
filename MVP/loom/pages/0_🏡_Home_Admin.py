@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 0_🏡_Home_Admin.py — Search + Bulk Replace + Inline Edit/Delete + Source Filter
 框架无关版：统一走 DataService（_svc），若不可用则回退到 legacy shim。

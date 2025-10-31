@@ -1,3 +1,29 @@
+.surface-sticky {
+  /* mimic Tailwind's bg-white/80 + backdrop blur */
+  background: color-mix(in oklab, var(--card) 80%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+.bg-card { background: var(--card) !important; }
+.text-foreground { color: var(--foreground) !important; }
+.text-muted { color: var(--muted) !important; }
+.border-card { border-color: color-mix(in oklab, var(--foreground) 12%, transparent) !important; }
+
+/* small utilities mapping to tokens (extend as needed) */
+.bg-primary { background: var(--primary) !important; color: var(--primary-fg) !important; }
+.bg-bm { background: var(--bm-color) !important; }
+
+/* Tab / Nav token-mapped utilities */
+.tab-active {
+  border-bottom-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+.tab-inactive {
+  border-bottom-color: transparent !important;
+  color: var(--muted) !important;
+}
+.tab-inactive:hover { color: var(--fg) !important; }
+
 
 /* tokens-shim.css
  * Zero-disruption bridge layer:

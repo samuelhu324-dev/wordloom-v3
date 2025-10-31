@@ -1,86 +1,43 @@
 // src/modules/loom/services/sources.ts
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000/api/common";
+import { apiFetch } from '@/lib/api';
 
-export type SourceLite = { id?: number | string; name: string };
+export type SourceOption = { id?: number | string; name: string };
 
-// 兜底 fetch：按多个候选路径尝试，取第一个 200
-async function fetchAny(paths: string[]): Promise<Response> {
+async function fetchJSON<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers(init.headers);
+  if (!headers.has('Content-Type') && init.method && init.method !== 'GET') {
+    headers.set('Content-Type', 'application/json');
+  }
+  // apiFetch 已经返回解析后的数据(JSON)，不是Response对象
+  return await apiFetch<T>(path, { ...init, headers });
+}
+
+export async function listSources(): Promise<SourceOption[]> {
+  // 兼容不同后端挂载路径：优先 /api/common，其次 /api 或 /api/loom
+  const candidates = ['/api/common/sources', '/api/sources', '/api/loom/sources'];
+  let data: any = [];
   let lastErr: any;
-  for (const p of paths) {
+  for (const p of candidates) {
     try {
-      const r = await fetch(`${API_BASE}${p}`, { headers: { accept: "application/json" } });
-      if (r.ok) return r;
-      lastErr = new Error(`${r.status} ${r.statusText}`);
+      data = await apiFetch<any>(p, { headers: { accept: 'application/json' } });
+      lastErr = undefined;
+      break;
     } catch (e) {
       lastErr = e;
     }
   }
-  throw lastErr;
+  if (lastErr) throw lastErr;
+  const toOpt = (x: any): SourceOption =>
+    typeof x === 'string' ? { name: x } : { name: x?.name ?? String(x), id: x?.id };
+  if (Array.isArray(data)) return data.map(toOpt);
+  if (Array.isArray(data?.items)) return data.items.map(toOpt);
+  return [];
 }
 
-// 将各种返回形状规范化为 {id?, name}
-function normalizeSources(data: any): SourceLite[] {
-  const out: SourceLite[] = [];
-
-  if (Array.isArray(data)) {
-    for (const it of data) {
-      if (!it) continue;
-      // 1) 纯字符串
-      if (typeof it === "string") {
-        const name = it.trim();
-        if (name) out.push({ name });
-        continue;
-      }
-      // 2) 对象：常见字段
-      if (typeof it === "object") {
-        const name =
-          (it.name ?? it["Name"] ?? it["source_name"] ?? it["title"] ?? "").toString().trim();
-        if (name) {
-          const id = it.id ?? it["ID"] ?? it["source_id"];
-          out.push({ id, name });
-        }
-      }
-    }
-  }
-
-  // 去空 & 去重（按 name）
-  const seen = new Set<string>();
-  const unique = out.filter((s) => {
-    const n = s.name;
-    if (!n) return false;
-    if (seen.has(n)) return false;
-    seen.add(n);
-    return true;
+export async function renameSource(oldName: string, newName: string) {
+  await fetchJSON('/api/common/sources/rename', {
+    method: 'POST',
+    body: JSON.stringify({ old_name: oldName, new_name: newName }),
   });
-
-  // 按拼音/字母排序（简单 localeCompare）
-  unique.sort((a, b) => a.name.localeCompare(b.name));
-  return unique;
-}
-
-/** 列出所有来源（兼容 string[] / 对象数组；兼容多路由） */
-export async function listSources(): Promise<SourceLite[]> {
-  const r = await fetchAny([
-    "/sources",       // 新
-    "/sources/",      // 带尾斜杠
-    "/sources/list",  // 旧
-  ]);
-  const json = await r.json();
-  return normalizeSources(json);
-}
-
-/** 重命名来源（支持预览） */
-export async function renameSource(
-  from: string,
-  to: string,
-  preview = true
-): Promise<{ changed?: number; updated?: number; count?: number }> {
-  const r = await fetch(`${API_BASE}/sources/rename`, {
-    method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ from, to, preview }),
-  });
-  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-  return r.json();
+  return { ok: true as const };
 }

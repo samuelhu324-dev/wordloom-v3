@@ -1,3 +1,175 @@
+/* globals.css
+   Project-wide styles. This file contains the sidebar width rules
+   previously inlined in layout.tsx. Adjust values here to change
+   collapsed/expanded sidebar widths and transition.
+*/
+
+/* Base app layout helpers (minimal, expand as needed) */
+:root {
+  --sidebar-expanded-width: 260px;
+  --sidebar-collapsed-width: 144px; /* 增加到原来的两倍宽度 */
+  --sidebar-transition: .2s cubic-bezier(0.4, 0, 0.2, 1);
+  /* 全局内容居中宽度与左右内边距 */
+  --content-max-w: 1180px;      /* 你可调 960~1280 */
+  --content-hpad: 24px;         /* 两侧内边距 */
+}
+
+/* Sidebar core styles */
+.app-sidebar {
+  width: var(--sidebar-expanded-width);
+  transition: all var(--sidebar-transition);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in oklab, var(--sidebar-bg) 92%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-right: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+  padding-top: 1rem;
+}
+
+/* Sidebar states */
+html[data-sidebar-state="closed"] .app-sidebar {
+  width: var(--sidebar-collapsed-width);
+}
+
+html[data-sidebar-state="open"] .app-sidebar {
+  width: var(--sidebar-expanded-width);
+}
+
+/* Navigation items */
+.nav-item {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+/* Icon container */
+.nav-icon {
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border);
+}
+
+/* Label handling */
+.nav-label {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Toggle button - always visible */
+.app-sidebar button {
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Sidebar navigation styling */
+.nav .nav-item {
+  position: relative;
+  transition: all 0.2s ease;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+/* Icon container - ensure visibility */
+.nav .nav-item > div:first-child {
+  transition: transform 0.2s ease;
+  min-width: 24px;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Label text */
+.nav .label {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  white-space: nowrap;
+}
+
+/* Collapsed state styles */
+html[data-sidebar-state="closed"] {
+  /* Adjust nav item layout */
+  .nav-item {
+    width: 120px !important;
+    margin-left: auto;
+    margin-right: auto;
+    justify-content: center;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Hide label but keep icon */
+  .nav-label {
+    opacity: 0;
+    transform: translateX(-8px);
+    position: absolute;
+    pointer-events: none;
+  }
+
+  /* Ensure icon is always visible and centered */
+  .nav-icon {
+    margin: 0 !important;
+    transform: scale(1.2);
+    width: 52px !important;
+    height: 52px !important;
+  }
+
+  /* Enhanced hover effects */
+  .nav-item:hover .nav-icon {
+    transform: scale(1.2);
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Active state in collapsed mode */
+  .nav-item.active .nav-icon {
+    background: var(--accent);
+    color: white;
+  }
+}
+
+/* Hover and active effects for expanded state */
+html[data-sidebar-state="open"] {
+  .nav-item:hover {
+    transform: translateX(4px);
+  }
+}
+
+/* Ensure icons are always visible */
+.nav .nav-item > div:first-child {
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 1;
+}
+
+/* Active state */
+.nav .nav-item.is-active {
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+  color: var(--accent);
+}
+
+/* Hover effects */
+.nav .nav-item:hover:not(.is-active) {
+  background: color-mix(in oklab, var(--accent) 5%, transparent);
+}
+
+/* Smooth transitions for sidebar */
+.app-sidebar {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 增强折叠时的图标可点击小窗口感（圆角背景 hover） */
+html[data-sidebar-state="closed"] .nav .nav-item > span[aria-hidden] {
+  display: inline-flex;
+  width: 28px; height: 28px;
+  align-items: center; justify-content: center;
+}
+
+/* End of globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,6 +180,7 @@
 @import './util-surface.css';
 @import './wordloom-themes.css';
 @import './loom-theme.css'; /* 如果页面需要 */
+@import './sidebar-variants.css';
 
 /* 数字蓝、元数据灰的小强化 */
 .emph-num { @apply text-primary font-semibold; }
@@ -22,4 +195,147 @@
 .link-primary { text-decoration: none; }
 .link-primary:hover { text-decoration: underline; }
 
+/* === Loom: 强制让词条正文可见（热修，可按需收窄范围） === */
+[data-role="entry-src"],
+[data-role="entry-tgt"] {
+  display: block !important;
+  color: var(--foreground) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  -webkit-line-clamp: unset !important;
+  -webkit-box-orient: unset !important;
+  max-height: none !important;
+  overflow: visible !important;
+  mix-blend-mode: normal !important;
+  -webkit-text-fill-color: currentColor !important;
+  mask-image: none !important;
+  filter: none !important;
+}
 
+body.frame-off::before,
+body.frame-off::after {
+  display: none !important;
+}
+
+:root { --sidebar-w: 280px; }
+
+.bookmark-rail {
+  position: fixed;
+  left: calc(var(--sidebar-w) + 8px);
+  top: 96px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+.bookmark-rail .bm {
+  pointer-events: auto;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.15), 0 0 0 2px rgba(255,255,255,.7);
+  background: var(--bm-color);
+  opacity: .9;
+  transition: transform .12s ease, opacity .12s ease;
+}
+.bookmark-rail .bm:hover { transform: scale(1.15); opacity: 1; }
+.bookmark-rail .bm[aria-current="true"] { box-shadow: 0 0 0 2px rgba(16,185,129,.9), 0 2px 6px rgba(0,0,0,.2); }
+@media (max-width: 1024px) {
+  .bookmark-rail { display: none; }
+}
+
+/* ===== Collapsible Sidebar Variables ===== */
+:root { --sidebar-w: 280px; --gutter: 0px; }
+/* 当切换折叠/展开时，同步控制 --sidebar-w，便于其他规则基于它计算 */
+html[data-sidebar-state="closed"] {
+  --sidebar-open: 0;
+  --sidebar-w: var(--sidebar-collapsed-width);
+}
+html[data-sidebar-state="open"] {
+  --sidebar-open: 1;
+  --sidebar-w: var(--sidebar-expanded-width);
+}
+
+/* 主内容：收起=0，展开=侧栏宽；保留你想要的页面内边距 */
+.app-main {
+  padding: 20px;
+  padding-left: calc(20px + var(--sidebar-w) * var(--sidebar-open));
+  transition: padding-left .18s ease;
+}
+
+/* 新增：内层居中容器，限制最大宽度并左右留白 */
+.page-container {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: var(--content-max-w);
+  padding-left: var(--content-hpad);
+  padding-right: var(--content-hpad);
+}
+
+/* 侧栏：fixed，不占位；收起时完全移出屏幕，避免“1px 细线” */
+.app-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--sidebar-w);
+  transform: translateX(calc(-100% * (1 - var(--sidebar-open))));
+  transition: transform .18s ease;
+  background: var(--sidebar-bg);
+  /* Use dedicated sidebar tokens so sidebar edge/background match active theme */
+  border-right: 1px solid var(--sidebar-border);
+  box-shadow: 0 6px 24px rgba(0,0,0,.08);
+  z-index: 40;
+}
+
+/* 收起时彻底不显示边框阴影 —— 没有多余细线 */
+html[data-sidebar-state="closed"] .app-sidebar {
+  border-right: none;
+  box-shadow: none;
+}
+
+/* 可选：开关按钮（放在左上角） */
+.sidebar-toggle {
+  position: fixed;
+  left: 10px;
+  top: 10px;
+  z-index: 50;
+  width: 28px; height: 28px;
+  border-radius: 9999px;
+  background: var(--sidebar-bg);
+  /* Toggle button border uses sidebar token so it matches sidebar */
+  border: 1px solid var(--sidebar-border);
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+
+/* 侧栏宽度与圆角标外移距离 */
+:root{
+  --sidebar-w-open: 280px;
+  --sidebar-w-closed: 72px;
+  --sidebar-w: var(--sidebar-w-open);
+  --sidebar-fab-offset: 12px; /* 圆角标向右外移的距离，可按需调大/调小 */
+}
+html[data-sidebar-state="closed"]{ --sidebar-w: var(--sidebar-w-closed); }
+html[data-sidebar-state="open"]{ --sidebar-w: var(--sidebar-w-open); }
+
+/* 固定侧栏（玻璃风格由 data-variant 搭配 sidebar-variants.css 决定） */
+.app-sidebar{
+  position: fixed;
+  left: 0; top: 0; height: 100vh;
+  width: var(--sidebar-w);
+  z-index: 48;
+  display: flex; flex-direction: column;
+  background: linear-gradient(to bottom, rgba(255,255,255,.9), rgba(255,255,255,.75));
+  border-right: 1px solid color-mix(in oklab, currentColor 12%, transparent);
+  backdrop-filter: blur(16px);
+  box-shadow: inset -1px 0 0 rgba(0,0,0,.06), 0 10px 30px rgba(0,0,0,.08);
+  transition: width .2s ease;
+}
+
+/* 折叠时只显示图标（文字隐藏） */
+html[data-sidebar-state="closed"] .app-sidebar .label{ display: none; }
+
+/* 右侧主内容为侧栏让出空间（若你把 main 上用了 with-sidebar/with-appnav 类，也可合并用） */
+.with-sidebar{ margin-left: var(--sidebar-w); }
+
+/* 彻底禁用旧“窄导轨/手把/蒙层”样式（若仍在 DOM 中也会被隐藏） */
+.app-sidebar-rail, .sidebar-scrim, .sidebar-overlay, .sidebar-handle { display: none !important; }

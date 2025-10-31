@@ -1,4 +1,4 @@
-# **Chat Overview**  
+﻿# **Chat Overview**  
 **Reference Period:** 2025-10-15 → 2025-10-??  
 **Context:** Functional refinement and feature restructuring of the Translation Retriever System.
 
@@ -51,26 +51,26 @@ A. 后端新增
 
 为了解耦和规范化，我会增加以下模块：
 
-文件	功能
-config.py	用 Pydantic 管理 .env 配置变量（数据库路径、CORS、密钥等）
-services/	放业务逻辑，比如 entries_service.py, sources_service.py
-deps.py	放依赖注入（获取数据库 Session、当前用户等）
-errors.py	自定义错误类 + 全局错误处理
-security.py	JWT 鉴权、密码哈希等功能
-openapi_tags.py	给接口文档分组（更易读）
-static/	可选：如果你想让后端直接托管 assets/static 文件
-alembic/ + alembic.ini	数据库迁移系统（防止表结构错乱）
-tests/	用 pytest 做基本接口测试
-.env.example	环境变量示例文件（开发者参考）
+文件  功能
+config.py  用 Pydantic 管理 .env 配置变量（数据库路径、CORS、密钥等）
+services/  放业务逻辑，比如 entries_service.py, sources_service.py
+deps.py  放依赖注入（获取数据库 Session、当前用户等）
+errors.py  自定义错误类 + 全局错误处理
+security.py  JWT 鉴权、密码哈希等功能
+openapi_tags.py  给接口文档分组（更易读）
+static/  可选：如果你想让后端直接托管 assets/static 文件
+alembic/ + alembic.ini  数据库迁移系统（防止表结构错乱）
+tests/  用 pytest 做基本接口测试
+.env.example  环境变量示例文件（开发者参考）
 B. 前端新增
 
 为 Streamlit 创建一个独立的 API 调用层：
 
-文件	功能
-api_client.py	封装请求，用于调用后端接口（类似 SDK）
-settings.py	存放后端地址（API_BASE_URL）
-state.py	Streamlit session 状态管理（保存 JWT 等）
-adapters/	可选，做数据结构转换，让 UI 层更简洁
+文件  功能
+api_client.py  封装请求，用于调用后端接口（类似 SDK）
+settings.py  存放后端地址（API_BASE_URL）
+state.py  Streamlit session 状态管理（保存 JWT 等）
+adapters/  可选，做数据结构转换，让 UI 层更简洁
 
 四、我会删除或合并的内容
 
@@ -88,15 +88,15 @@ database.py.bak 等旧备份文件——迁移后删除；
 
 Home_Admin：是否已改为通过新 repo.client 读/改条目，并保持你原来的管理入口与筛选习惯。
 
-From_Page：按“文章=一个出处”的阅读视图，验证顺序显示、以及中途插入句子的交互是否使用了 client.create_article / insert_sentence / get_article_sentences 这一套。
+From_Page：按"文章=一个出处"的阅读视图，验证顺序显示、以及中途插入句子的交互是否使用了 client.create_article / insert_sentence / get_article_sentences 这一套。
 
 Insert：单条入库用 client.add_entry，默认语言方向与你之前一致（en→zh 的默认在批量页已固化；单条也保持一致性）。
 
-Bulk_Insert_plus_status：三路合并（CSV/粘贴/手填）→去重→逐条 add_entry，看进度条与失败明细折叠是否正常；“预览匹配/批量替换”是否命中并返回修改数。
+Bulk_Insert_plus_status：三路合并（CSV/粘贴/手填）→去重→逐条 add_entry，看进度条与失败明细折叠是否正常；"预览匹配/批量替换"是否命中并返回修改数。
 
 2. 源数据选择器（小升级，不变核心逻辑）
 
-在 Home、Insert 与 Bulk 里，把“出处”输入框升级为可搜索下拉：前端在加载时调用 /sources 拉取列表缓存到 st.session_state["sources"]，下拉可输入过滤，也可手动输入新值（不破坏你既有行为）。后面我可以直接把“来源下拉”补丁发你。
+在 Home、Insert 与 Bulk 里，把"出处"输入框升级为可搜索下拉：前端在加载时调用 /sources 拉取列表缓存到 st.session_state["sources"]，下拉可输入过滤，也可手动输入新值（不破坏你既有行为）。后面我可以直接把"来源下拉"补丁发你。
 
 3. 错误处理与提示统一
 
@@ -121,11 +121,11 @@ Bulk_Insert_plus_status：三路合并（CSV/粘贴/手填）→去重→逐条 
 批量替换：预览与执行返回的数量一致，大小写/整词/正则三种组合随机抽测。
 
 ### 3. Wordloom工具箱开发：
-1. 你现行脚本（我只做“壳”整合，不动核心逻辑）
+1. 你现行脚本（我只做"壳"整合，不动核心逻辑）
 
 tree.py（或你现用导出目录树脚本）
 
-fix_path.py（最新版：包含“凡不是 ../static 开头就改”的规则）
+fix_path.py（最新版：包含"凡不是 ../static 开头就改"的规则）
 
 gif_maker.py（含你现在的 ffmpeg 命令与参数）
 
@@ -141,7 +141,7 @@ gif_maker.py（含你现在的 ffmpeg 命令与参数）
 
 2–3 个媒体文件（.gif / .jpg / .png / .mp4），其中至少 1 个要用到你的路径修复
 
-一个“你觉得正确”的 TREE.md 示例（我对齐生成格式）
+一个"你觉得正确"的 TREE.md 示例（我对齐生成格式）
 
 3. 你的小偏好（写文本就行，我会固化到默认设置）
 
@@ -166,7 +166,7 @@ schema_backend.sql、schema_backend_app.sql、schema_frontend_app.sql（用 .sch
 
 可选：rowcounts.txt（各表 COUNT 统计）
 
-B2｜后端“真相源”定义（模型+Schema+连接）
+B2｜后端"真相源"定义（模型+Schema+连接）
 
 api/app/models.py、api/app/schemas.py、api/app/database.py、api/app/main.py
 
@@ -261,63 +261,3 @@ fix/api-path-sync
 refactor/db-models
 style/homepage-layout
 doc/dev-log
-
-# Git Cheat Sheet · Wordloom
-
-## 开工三步
-git switch main
-git pull --rebase origin main
-git switch -c feat/<task-name>   # 动词+主题，如 feat/bulk-insert-ui
-
-## 开发提交流
-git status
-git add -p         # 选择性暂存（推荐）
-git add .          # 全量暂存
-git commit -m "feat: <what & why>"
-git push -u origin <branch>   # 首次推送建立跟踪
-
-每天收工前，执行一次
-git add . && git commit -m "checkpoint: <今天的内容>"
-
-## 合并回主线（推荐线性历史）
-# 在功能分支
-git fetch origin
-git rebase origin/main
-# 解决冲突：编辑→git add <file>→git rebase --continue
-
-# 切回主分支并确保最新
-git switch main
-git pull --rebase origin main
-git merge --ff-only <branch>
-git push origin main
-
-# 清理
-git branch -d <branch>
-git push origin --delete <branch>   # 可选，删远端
-
-## 查看与历史
-git branch -a
-git log --oneline --graph --decorate --all
-git show <commit>
-git blame <file>
-
-## 暂存（改到一半先收起来）
-git stash
-git pull --rebase origin main
-git stash pop
-
-## 标签（里程碑/发布点）
-git tag -a v0.9-bulk -m "Bulk Insert UI overhaul"
-git push origin v0.9-bulk
-
-git tag -a v0.4.0 -m "0.4.0: New unified admin panel + path fixes"
-git push origin v0.4.0
-
-## 常见故障
-# 1) cannot pull with rebase: You have unstaged changes
-git add . && git commit -m "save work"   # 或 git stash / git restore .
-# 2) push 被拒（非快进）
-git pull --rebase origin <branch> && git push
-# 3) 不小心复制了“Switched to ...”当命令
-#   仅输入以 git 开头的命令；那行是提示不是命令。
-markdown是一种轻量级的标记语言，他的核心是

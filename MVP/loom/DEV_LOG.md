@@ -1,4 +1,4 @@
-# Developer Log
+﻿# Developer Log
 This document tracks the development journey of the project which is meant for self-reflection.
 
 ---

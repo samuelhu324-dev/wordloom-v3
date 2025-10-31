@@ -1,0 +1,4 @@
+# Don't commit dumps or local secrets
+backups/*.sql
+pgpass*.conf
+pgpass*.tmp

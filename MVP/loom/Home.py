@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Home.py — 前端主页（检索 / 就地编辑 / 删除），框架无关写法
 数据访问统一走 DataService（repo.get_data_service）
@@ -204,7 +204,7 @@ if not df.empty:
                 st.success(f"删除完成：成功 {ok} 条，失败 {fail} 条。")
 
 else:
-    st.info("左侧设置条件后点击“开始检索”。")
+    st.info("左侧设置条件后点击"开始检索"。")
 
 # ---------- 统一页脚 ----------
 ver = _read_version()

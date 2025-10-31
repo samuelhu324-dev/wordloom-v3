@@ -1,4 +1,4 @@
-"""
+﻿"""
 text_utils.py — Unified sentence segmentation toolkit (local-model enabled)
 """
 

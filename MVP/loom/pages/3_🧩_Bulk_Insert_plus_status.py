@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 3_🧩_Bulk_Insert_plus_status.py — API 版
 目标：
@@ -10,7 +10,7 @@
   - from repo import client, ApiError     # 前端 HTTP 客户端（已由你新 repo.py 提供）
 
 保持原则：
-  - 不改变你既有的“页面语义”和使用路径；
+  - 不改变你既有的"页面语义"和使用路径；
   - 不再直连 SQLite；全部通过 FastAPI；
   - 默认语言方向：ls='en', lt='zh'；不做句子拆分。
 """
@@ -315,7 +315,7 @@ with tab_ops:
                         regex_mode=regex_mode,
                         case_sensitive=case_sensitive,
                         strict_word=strict_word,
-                        first_only=False,   # 保持与你以往“批量替换”一致的语义
+                        first_only=False,   # 保持与你以往"批量替换"一致的语义
                     )
                     st.success(f"替换完成：修改 {changed} 处。")
                 except ApiError as e:

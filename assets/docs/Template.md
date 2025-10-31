@@ -1,4 +1,4 @@
-# **Week Trial Report**  
+﻿# **Week Trial Report**  
 **Period:** 2025-10-04 → 2025-10-13  
 **Objective:** Rapid prototyping and stabilization of the Translation Retriever System  
 
@@ -47,7 +47,7 @@
 
 ### **Module 4 · Home Admin (Auto-Save)**  
 **Status:** ✅ Complete
-**Summary:** Implemented default “auto-save” mechanism across all editing actions to improve data reliability.
+**Summary:** Implemented default "auto-save" mechanism across all editing actions to improve data reliability.
 
 <details><summary>▶ Wordloom Welcome (8 s)</summary>
 <a href="../static/media/gif/Wordloom_Welcome%208s.gif" target="_blank">

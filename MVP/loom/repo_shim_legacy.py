@@ -1,4 +1,4 @@
-# repo_shim_legacy.py — 让旧 API 客户端适配到 DataService 接口
+﻿# repo_shim_legacy.py — 让旧 API 客户端适配到 DataService 接口
 from __future__ import annotations
 from typing import Iterable, List, Dict, Any, Tuple, Optional
 

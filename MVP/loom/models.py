@@ -1,4 +1,4 @@
-# models.py — Streamlit 过渡版 ORM（与 app.db 表结构一致）
+﻿# models.py — Streamlit 过渡版 ORM（与 app.db 表结构一致）
 from __future__ import annotations
 from pathlib import Path
 from datetime import datetime

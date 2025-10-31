@@ -1,194 +1,135 @@
-// src/modules/loom/services/entries.ts
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000/api/common";
+// src/modules/loom/services/entries.ts — unified + Creation 支持
+import { apiFetch } from '@/lib/api';
 
-/** —— 数据类型 —— */
-type RawEntry = {
-  id: number;
-  // 后端新版键
-  src?: string;
-  tgt?: string;
-  // 旧版兼容键
-  src_text?: string;
-  tgt_text?: string;
-  source_name?: string | null;
-  created_at?: string | null;
+export type EntryItem = {
+  id: number | string;
+  src_text?: string; tgt_text?: string;
+  src?: string; tgt?: string;
+  text?: string; translation?: string;
+  source_name?: string; source?: string;
+  created_at?: string; updated_at?: string; create_time?: string;
 };
 
-export type EntryItem = RawEntry & {
-  // 统一后的字段：UI 可直接读这两个
-  src_text: string;
-  tgt_text: string;
-  // 额外别名，兼容旧 UI 写法
-  text: string;
-  translation: string;
-};
-
-async function getJSON<T>(url: string, init?: RequestInit): Promise<T> {
-  const r = await fetch(url, {
-    ...init,
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-      ...(init?.headers || {}),
-    },
-  });
-  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-  return (await r.json()) as T;
-}
-
-// 把后端 src/tgt 映射为 src_text/tgt_text，并补出 text/translation 两个别名
-const normalize = (e: RawEntry): EntryItem => {
-  const src_text = (e.src_text ?? e.src ?? "") as string;
-  const tgt_text = (e.tgt_text ?? e.tgt ?? "") as string;
-  return {
-    ...e,
-    src_text,
-    tgt_text,
-    text: src_text,          // 兼容旧 UI：把“原文”映射到 text
-    translation: tgt_text,   // 兼容旧 UI：把“译文”映射到 translation
-  };
-};
-
-/** —— 查询 —— */
-export async function searchEntries(params: {
+export type SearchParams = {
   q?: string;
   source_name?: string;
-  limit?: number;
-  offset?: number;
-} = {}) {
-  const { q, source_name, limit = 20, offset = 0 } = params;
-  const usp = new URLSearchParams();
-  if (q) usp.set("q", q);
-  if (source_name) usp.set("source_name", source_name);
-  usp.set("limit", String(limit));
-  usp.set("offset", String(offset));
+  sort?: 'created_at' | 'updated_at' | 'id';
+  order?: 'asc' | 'desc';
+  limit?: number; offset?: number;
+};
 
-  const data = await getJSON<{ items: RawEntry[]; total: number }>(
-    `${API_BASE}/entries/search?${usp.toString()}`
-  );
-  return { items: data.items.map(normalize), total: data.total };
+export type Page<T> = { items: T[]; total: number; limit: number; offset: number };
+
+function withQuery(base: string, params: Record<string, any> = {}) {
+  const qs = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join('&');
+  return qs ? `${base}?${qs}` : base;
 }
 
-export async function listRecent(n = 20): Promise<EntryItem[]> {
-  const { items } = await searchEntries({ limit: n, offset: 0 });
-  return items;
-}
-
-/** —— 新增（批量）—— 优先 /entries/batch，降级逐条 POST /entries */
-export async function batchInsert(items: Array<{
-  text: string;
-  translation?: string;
-  direction: "en>zh" | "zh>en";
-  source_name?: string;
-  source_id?: number | string;
-  ts_iso?: string;
-}>) {
-  // 先尝试批量端点
-  try {
-    const r = await fetch(`${API_BASE}/entries/batch`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ items }),
-    });
-    if (r.ok || r.status === 207) return r;
-    if (r.status !== 404 && r.status !== 405)
-      throw new Error(`${r.status} ${r.statusText}`);
-  } catch { /* 降级 */ }
-
-  // 再降级逐条
-  let ok = true;
-  for (const it of items) {
-    const isEnToZh = it.direction === "en>zh";
-    const payload = {
-      src: isEnToZh ? it.text : it.translation ?? "",
-      tgt: isEnToZh ? it.translation ?? "" : it.text,
-      source_name: it.source_name,
-      created_at: it.ts_iso,
-    };
-    const r = await fetch(`${API_BASE}/entries`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!r.ok) ok = false;
+async function fetchJSON<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers(init.headers);
+  if (!headers.has('Content-Type') && init.method && init.method !== 'GET') {
+    headers.set('Content-Type', 'application/json');
   }
-  return new Response(null, { status: ok ? 200 : 207 });
+  // apiFetch 已经返回解析后的数据(JSON)，不是Response对象
+  return await apiFetch<T>(path, { ...init, headers });
 }
 
-/** —— 单条更新 —— 优先 PATCH /entries/{id}，兼容旧 /entries/update */
-export async function updateEntry(
-  id: number,
-  patch: { src?: string; tgt?: string; source_name?: string }
-) {
-  // 新式：PATCH /entries/{id}
-  try {
-    const r = await fetch(`${API_BASE}/entries/${id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify(patch),
+function normalizePage<T = EntryItem>(data: any, fallbackLimit = 10, fallbackOffset = 0): Page<T> {
+  const items: T[] =
+    data?.items ?? data?.results ?? data?.list ?? (Array.isArray(data) ? data : []) ?? [];
+  const total =
+    data?.total ?? data?.count ?? data?.total_count ?? (Array.isArray(items) ? items.length : 0);
+  const limit = data?.limit ?? data?.page_size ?? fallbackLimit;
+  const offset = data?.offset ?? data?.page ?? fallbackOffset;
+  return { items, total, limit, offset };
+}
+
+export async function searchEntries(params: SearchParams = {}): Promise<Page<EntryItem>> {
+  // 兼容不同后端挂载路径：优先 /api/common，其次 /api 或 /api/loom
+  const paths = ['/api/common/entries/search', '/api/entries/search', '/api/loom/entries/search'];
+  let data: any = [];
+  let lastErr: any;
+  for (const base of paths) {
+    const url = withQuery(base, {
+      q: params.q,
+      source_name: params.source_name,
+      limit: params.limit ?? 10,
+      offset: params.offset ?? 0,
     });
-    if (r.ok) return r;
-    if (r.status !== 404 && r.status !== 405)
-      throw new Error(`${r.status} ${r.statusText}`);
-  } catch { /* 走旧式 */ }
-
-  // 旧式：POST /entries/update
-  return fetch(`${API_BASE}/entries/update`, {
-    method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ id, ...patch }),
-  });
+    try {
+      data = await fetchJSON<any>(url);
+      lastErr = undefined;
+      break;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  if (lastErr) throw lastErr;
+  return normalizePage<EntryItem>(data, params.limit ?? 10, params.offset ?? 0);
 }
 
-/** —— 删除 —— 优先 DELETE /entries/{id}，兼容旧 /entries/delete */
-export async function deleteEntry(id: number) {
-  try {
-    const r = await fetch(`${API_BASE}/entries/${id}`, { method: "DELETE" });
-    if (r.ok) return r;
-    if (r.status !== 404 && r.status !== 405)
-      throw new Error(`${r.status} ${r.statusText}`);
-  } catch { /* 走旧式 */ }
-
-  return fetch(`${API_BASE}/entries/delete`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ id }),
-  });
+export async function listRecent(limit = 10): Promise<EntryItem[]> {
+  const bases = ['/api/common/entries/search', '/api/entries/search', '/api/loom/entries/search'];
+  let data: any = [];
+  for (const b of bases) {
+    try {
+      const url = withQuery(b, { limit, q: '', page: 1 });
+      data = await fetchJSON<any>(url);
+      break;
+    } catch {}
+  }
+  return normalizePage<EntryItem>(data, limit, 0).items;
 }
 
-/** —— 批量替换 —— 兼容多种后端路径 */
-export async function bulkReplace(args: {
-  keyword: string;
-  replacement: string;
-  scope?: "src" | "tgt" | "both";
+export async function updateEntry(id: number | string, patch: Partial<EntryItem>) {
+  const payload: Record<string, any> = {};
+  if (typeof patch.src === 'string' && patch.src.trim()) payload.src = patch.src.trim();
+  if (typeof patch.tgt === 'string' && patch.tgt.trim()) payload.tgt = patch.tgt.trim();
+  if (typeof patch.source_name === 'string') payload.source_name = patch.source_name;
+  if (typeof patch.created_at === 'string') payload.created_at = patch.created_at;
+
+  return fetchJSON<EntryItem>(`/api/common/entries/${id}`, {
+    method: 'PATCH',
+    // 传对象，交给 apiFetch 串行化一次
+    body: payload as any,
+  });
+}
+export async function deleteEntry(id: number | string) {
+  await fetchJSON<void>(`/api/common/entries/${id}`, { method: 'DELETE' });
+}
+
+export type BatchInsertItem = {
+  text?: string;
+  translation?: string;
+  direction?: 'zh>en' | 'en>zh';
   source_name?: string;
-  date_from?: string;
-  date_to?: string;
-  regex_mode?: boolean;
-  case_sensitive?: boolean;
-  strict_word?: boolean;
-  first_only?: boolean;
-}) {
-  const payload = { ...args };
-  // 新：/entries/bulk-replace
-  try {
-    const r = await fetch(`${API_BASE}/entries/bulk-replace`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (r.ok) return r.json();
-    if (r.status !== 404 && r.status !== 405)
-      throw new Error(`${r.status} ${r.statusText}`);
-  } catch { /* 走旧式 */ }
+  source_id?: string | number;
+  ts_iso?: string;
+};
 
-  // 旧：/entries/replace
-  const r2 = await fetch(`${API_BASE}/entries/replace`, {
-    method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify(payload),
+export async function batchInsert(entries: BatchInsertItem[]): Promise<Response> {
+  // 将前端的数据结构转换为后端期望的格式
+  const items = entries.map(e => {
+    const isEnToZh = e.direction === 'en>zh';
+    return {
+      src: isEnToZh ? (e.text || '') : (e.translation || ''),
+      tgt: isEnToZh ? (e.translation || '') : (e.text || ''),
+      lang_src: isEnToZh ? 'en' : 'zh',
+      lang_tgt: isEnToZh ? 'zh' : 'en',
+      article_id: null,
+      position: 0,
+      created_at: e.ts_iso,
+      source_name: e.source_name,
+    };
   });
-  if (!r2.ok) throw new Error(`${r2.status} ${r2.statusText}`);
-  return r2.json();
+
+  return apiFetch('/api/common/entries/batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    // 传对象，apiFetch 会 stringify 一次
+    body: { items } as any,
+  }) as any;
 }

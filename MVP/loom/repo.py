@@ -1,4 +1,4 @@
-# repo.py — front-end adapter for WordloomFrontend/streamlit
+﻿# repo.py — front-end adapter for WordloomFrontend/streamlit
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
 import requests

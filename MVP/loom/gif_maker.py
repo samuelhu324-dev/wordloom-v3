@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 GIF Maker · save to project assets + thumbnail
 - Uses ffmpeg when available; falls back to MoviePy 2.x

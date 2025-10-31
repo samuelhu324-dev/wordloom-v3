@@ -53,3 +53,27 @@ export function buildPreviewUrl(
   if (opts.allowImport) url.searchParams.set("allowImport", "1"); else url.searchParams.delete("allowImport");
   return url.toString();
 }
+
+// next/src/lib/appearanceUrl.ts
+
+// 静态资源前缀（Nginx/Next 静态映射），默认 /orbit-assets
+const ASSET_PREFIX = process.env.NEXT_PUBLIC_ORBIT_ASSET_PREFIX ?? '/orbit-assets';
+
+/**
+ * assetUrl
+ * - 绝对 URL：原样返回
+ * - 相对路径：拼上 ASSET_PREFIX
+ */
+export function assetUrl(relOrAbs?: string | null): string {
+  if (!relOrAbs) return '';
+  try {
+    const u = new URL(relOrAbs);
+    return u.toString();
+  } catch {
+    // 非绝对：按相对处理
+  }
+  const leading = relOrAbs.startsWith('/') ? '' : '/';
+  return `${ASSET_PREFIX}${leading}${relOrAbs}`;
+}
+
+export { ASSET_PREFIX };

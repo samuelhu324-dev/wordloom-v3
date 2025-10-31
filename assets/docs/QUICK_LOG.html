@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
 <title>QUICK_LOG.md</title>
@@ -12,216 +12,216 @@
  *--------------------------------------------------------------------------------------------*/
 
 body {
-	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
-	font-size: var(--vscode-markdown-font-size, 14px);
-	padding: 0 26px;
-	line-height: var(--vscode-markdown-line-height, 22px);
-	word-wrap: break-word;
+  font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+  font-size: var(--vscode-markdown-font-size, 14px);
+  padding: 0 26px;
+  line-height: var(--vscode-markdown-line-height, 22px);
+  word-wrap: break-word;
 }
 
 #code-csp-warning {
-	position: fixed;
-	top: 0;
-	right: 0;
-	color: white;
-	margin: 16px;
-	text-align: center;
-	font-size: 12px;
-	font-family: sans-serif;
-	background-color:#444444;
-	cursor: pointer;
-	padding: 6px;
-	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+  position: fixed;
+  top: 0;
+  right: 0;
+  color: white;
+  margin: 16px;
+  text-align: center;
+  font-size: 12px;
+  font-family: sans-serif;
+  background-color:#444444;
+  cursor: pointer;
+  padding: 6px;
+  box-shadow: 1px 1px 1px rgba(0,0,0,.25);
 }
 
 #code-csp-warning:hover {
-	text-decoration: none;
-	background-color:#007acc;
-	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+  text-decoration: none;
+  background-color:#007acc;
+  box-shadow: 2px 2px 2px rgba(0,0,0,.25);
 }
 
 body.scrollBeyondLastLine {
-	margin-bottom: calc(100vh - 22px);
+  margin-bottom: calc(100vh - 22px);
 }
 
 body.showEditorSelection .code-line {
-	position: relative;
+  position: relative;
 }
 
 body.showEditorSelection .code-active-line:before,
 body.showEditorSelection .code-line:hover:before {
-	content: "";
-	display: block;
-	position: absolute;
-	top: 0;
-	left: -12px;
-	height: 100%;
+  content: "";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: -12px;
+  height: 100%;
 }
 
 body.showEditorSelection li.code-active-line:before,
 body.showEditorSelection li.code-line:hover:before {
-	left: -30px;
+  left: -30px;
 }
 
 .vscode-light.showEditorSelection .code-active-line:before {
-	border-left: 3px solid rgba(0, 0, 0, 0.15);
+  border-left: 3px solid rgba(0, 0, 0, 0.15);
 }
 
 .vscode-light.showEditorSelection .code-line:hover:before {
-	border-left: 3px solid rgba(0, 0, 0, 0.40);
+  border-left: 3px solid rgba(0, 0, 0, 0.40);
 }
 
 .vscode-light.showEditorSelection .code-line .code-line:hover:before {
-	border-left: none;
+  border-left: none;
 }
 
 .vscode-dark.showEditorSelection .code-active-line:before {
-	border-left: 3px solid rgba(255, 255, 255, 0.4);
+  border-left: 3px solid rgba(255, 255, 255, 0.4);
 }
 
 .vscode-dark.showEditorSelection .code-line:hover:before {
-	border-left: 3px solid rgba(255, 255, 255, 0.60);
+  border-left: 3px solid rgba(255, 255, 255, 0.60);
 }
 
 .vscode-dark.showEditorSelection .code-line .code-line:hover:before {
-	border-left: none;
+  border-left: none;
 }
 
 .vscode-high-contrast.showEditorSelection .code-active-line:before {
-	border-left: 3px solid rgba(255, 160, 0, 0.7);
+  border-left: 3px solid rgba(255, 160, 0, 0.7);
 }
 
 .vscode-high-contrast.showEditorSelection .code-line:hover:before {
-	border-left: 3px solid rgba(255, 160, 0, 1);
+  border-left: 3px solid rgba(255, 160, 0, 1);
 }
 
 .vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
-	border-left: none;
+  border-left: none;
 }
 
 img {
-	max-width: 100%;
-	max-height: 100%;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 a {
-	text-decoration: none;
+  text-decoration: none;
 }
 
 a:hover {
-	text-decoration: underline;
+  text-decoration: underline;
 }
 
 a:focus,
 input:focus,
 select:focus,
 textarea:focus {
-	outline: 1px solid -webkit-focus-ring-color;
-	outline-offset: -1px;
+  outline: 1px solid -webkit-focus-ring-color;
+  outline-offset: -1px;
 }
 
 hr {
-	border: 0;
-	height: 2px;
-	border-bottom: 2px solid;
+  border: 0;
+  height: 2px;
+  border-bottom: 2px solid;
 }
 
 h1 {
-	padding-bottom: 0.3em;
-	line-height: 1.2;
-	border-bottom-width: 1px;
-	border-bottom-style: solid;
+  padding-bottom: 0.3em;
+  line-height: 1.2;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
 }
 
 h1, h2, h3 {
-	font-weight: normal;
+  font-weight: normal;
 }
 
 table {
-	border-collapse: collapse;
+  border-collapse: collapse;
 }
 
 table > thead > tr > th {
-	text-align: left;
-	border-bottom: 1px solid;
+  text-align: left;
+  border-bottom: 1px solid;
 }
 
 table > thead > tr > th,
 table > thead > tr > td,
 table > tbody > tr > th,
 table > tbody > tr > td {
-	padding: 5px 10px;
+  padding: 5px 10px;
 }
 
 table > tbody > tr + tr > td {
-	border-top: 1px solid;
+  border-top: 1px solid;
 }
 
 blockquote {
-	margin: 0 7px 0 5px;
-	padding: 0 16px 0 10px;
-	border-left-width: 5px;
-	border-left-style: solid;
+  margin: 0 7px 0 5px;
+  padding: 0 16px 0 10px;
+  border-left-width: 5px;
+  border-left-style: solid;
 }
 
 code {
-	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
-	font-size: 1em;
-	line-height: 1.357em;
+  font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+  font-size: 1em;
+  line-height: 1.357em;
 }
 
 body.wordWrap pre {
-	white-space: pre-wrap;
+  white-space: pre-wrap;
 }
 
 pre:not(.hljs),
 pre.hljs code > div {
-	padding: 16px;
-	border-radius: 3px;
-	overflow: auto;
+  padding: 16px;
+  border-radius: 3px;
+  overflow: auto;
 }
 
 pre code {
-	color: var(--vscode-editor-foreground);
-	tab-size: 4;
+  color: var(--vscode-editor-foreground);
+  tab-size: 4;
 }
 
 /** Theming */
 
 .vscode-light pre {
-	background-color: rgba(220, 220, 220, 0.4);
+  background-color: rgba(220, 220, 220, 0.4);
 }
 
 .vscode-dark pre {
-	background-color: rgba(10, 10, 10, 0.4);
+  background-color: rgba(10, 10, 10, 0.4);
 }
 
 .vscode-high-contrast pre {
-	background-color: rgb(0, 0, 0);
+  background-color: rgb(0, 0, 0);
 }
 
 .vscode-high-contrast h1 {
-	border-color: rgb(0, 0, 0);
+  border-color: rgb(0, 0, 0);
 }
 
 .vscode-light table > thead > tr > th {
-	border-color: rgba(0, 0, 0, 0.69);
+  border-color: rgba(0, 0, 0, 0.69);
 }
 
 .vscode-dark table > thead > tr > th {
-	border-color: rgba(255, 255, 255, 0.69);
+  border-color: rgba(255, 255, 255, 0.69);
 }
 
 .vscode-light h1,
 .vscode-light hr,
 .vscode-light table > tbody > tr + tr > td {
-	border-color: rgba(0, 0, 0, 0.18);
+  border-color: rgba(0, 0, 0, 0.18);
 }
 
 .vscode-dark h1,
 .vscode-dark hr,
 .vscode-dark table > tbody > tr + tr > td {
-	border-color: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 </style>
@@ -234,7 +234,7 @@ pre code {
 /* Tomorrow Comment */
 .hljs-comment,
 .hljs-quote {
-	color: #8e908c;
+  color: #8e908c;
 }
 
 /* Tomorrow Red */
@@ -246,7 +246,7 @@ pre code {
 .hljs-selector-class,
 .hljs-regexp,
 .hljs-deletion {
-	color: #c82829;
+  color: #c82829;
 }
 
 /* Tomorrow Orange */
@@ -258,12 +258,12 @@ pre code {
 .hljs-params,
 .hljs-meta,
 .hljs-link {
-	color: #f5871f;
+  color: #f5871f;
 }
 
 /* Tomorrow Yellow */
 .hljs-attribute {
-	color: #eab700;
+  color: #eab700;
 }
 
 /* Tomorrow Green */
@@ -271,34 +271,34 @@ pre code {
 .hljs-symbol,
 .hljs-bullet,
 .hljs-addition {
-	color: #718c00;
+  color: #718c00;
 }
 
 /* Tomorrow Blue */
 .hljs-title,
 .hljs-section {
-	color: #4271ae;
+  color: #4271ae;
 }
 
 /* Tomorrow Purple */
 .hljs-keyword,
 .hljs-selector-tag {
-	color: #8959a8;
+  color: #8959a8;
 }
 
 .hljs {
-	display: block;
-	overflow-x: auto;
-	color: #4d4d4c;
-	padding: 0.5em;
+  display: block;
+  overflow-x: auto;
+  color: #4d4d4c;
+  padding: 0.5em;
 }
 
 .hljs-emphasis {
-	font-style: italic;
+  font-style: italic;
 }
 
 .hljs-strong {
-	font-weight: bold;
+  font-weight: bold;
 }
 </style>
 
@@ -308,48 +308,48 @@ pre code {
  */
 
  body {
-	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
-	padding: 0 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+  padding: 0 12px;
 }
 
 pre {
-	background-color: #f8f8f8;
-	border: 1px solid #cccccc;
-	border-radius: 3px;
-	overflow-x: auto;
-	white-space: pre-wrap;
-	overflow-wrap: break-word;
+  background-color: #f8f8f8;
+  border: 1px solid #cccccc;
+  border-radius: 3px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
 
 pre:not(.hljs) {
-	padding: 23px;
-	line-height: 19px;
+  padding: 23px;
+  line-height: 19px;
 }
 
 blockquote {
-	background: rgba(127, 127, 127, 0.1);
-	border-color: rgba(0, 122, 204, 0.5);
+  background: rgba(127, 127, 127, 0.1);
+  border-color: rgba(0, 122, 204, 0.5);
 }
 
 .emoji {
-	height: 1.4em;
+  height: 1.4em;
 }
 
 code {
-	font-size: 14px;
-	line-height: 19px;
+  font-size: 14px;
+  line-height: 19px;
 }
 
 /* for inline code */
 :not(pre):not(.hljs) > code {
-	color: #C9AE75; /* Change the old color so it seems less like an error */
-	font-size: inherit;
+  color: #C9AE75; /* Change the old color so it seems less like an error */
+  font-size: inherit;
 }
 
 /* Page Break : use <div class="page"/> to insert page break
 -------------------------------------------------------- */
 .page {
-	page-break-after: always;
+  page-break-after: always;
 }
 
 </style>
@@ -396,7 +396,7 @@ Question Dolved - 12~13</p>
 Home的insert功能希望有个快捷键点击入库，而不是长拉到下面；（2 图中的功能希望也像choose一样显示在左边，最好可以调整收缩，可以收起来看不见。</p>
 </li>
 <li>
-<p><code>From Page</code>: 8中功能目测很难以使用。希望把功能变成这样：（1 choose的位置改到文章前面（sentences for 附近，如第二张图）（2 在每个句子旁有一个编辑按钮把图一的功能装载进去，并且可以进行句子的各种修改（来源，出处，时间等）；但平时这些修改和编辑功能看不见，除非你点击“编辑”按钮。</p>
+<p><code>From Page</code>: 8中功能目测很难以使用。希望把功能变成这样：（1 choose的位置改到文章前面（sentences for 附近，如第二张图）（2 在每个句子旁有一个编辑按钮把图一的功能装载进去，并且可以进行句子的各种修改（来源，出处，时间等）；但平时这些修改和编辑功能看不见，除非你点击"编辑"按钮。</p>
 </li>
 <li>
 <p><code>Insert</code> 识别到不匹配的中英文入库，驳回 (错误导入机制的识别,详细见<code>Day_5_2</code>)</p>
@@ -540,7 +540,7 @@ gif_maker.py（确认缩略图/占位的调用点）
 <li>
 <p>第二批文件发送
 第 2 批：数据访问抽象（今天就铺好路，将来切 API 不会痛）
-目标：让前端只认识“数据服务层”，不要认识 SQLite 细节。
+目标：让前端只认识"数据服务层"，不要认识 SQLite 细节。
 抽象层落点
 以 WordloomFrontend/streamlit/repo.py 为门面，models.py 定义数据结构，text_utils.py 做辅助。先适配本地 app.db，等你后端 API 稳定后，只改这一层的实现即可。
 最小契约
@@ -550,17 +550,17 @@ gif_maker.py（确认缩略图/占位的调用点）
 <p>第三批文件发送</p>
 </li>
 </ol>
-<p>第 3 批：路径与样式的一次性“止血”
-目标：防止“搬家就全崩”的相对路径问题 + 统一样式入口。
+<p>第 3 批：路径与样式的一次性"止血"
+目标：防止"搬家就全崩"的相对路径问题 + 统一样式入口。
 路径
 沿用你现有的 assets/static/... 组织；前端组件里统一从相对根引用。你仓库里有 fix_md_paths.py（用于文档），前端也会放一个 url_for_asset() 小工具，避免硬编码。
 样式
-加一个 styles/base.css（或保留现状），让字体、颜色、行距等在一处管控；不强制换你已有字体/配色，只做“可配置”。</p>
+加一个 styles/base.css（或保留现状），让字体、颜色、行距等在一处管控；不强制换你已有字体/配色，只做"可配置"。</p>
 <ol start="4">
 <li>第四批文件发送
-目标：给你“跑一遍就能心安”的最小测试与烟囱脚本。
+目标：给你"跑一遍就能心安"的最小测试与烟囱脚本。
 健康检查脚本：启动后端（如需）、检查前端关键页能否加载、抽样读写是否成功。
-演示数据夹具：一小份“英文↔中文”样例，便于回归。
+演示数据夹具：一小份"英文↔中文"样例，便于回归。
 目录树导出：你工具箱里已有 tools/WordloomToolkit 与 tree_runner.py，保持使用。</li>
 </ol>
 <h3 id="%E5%BC%83%E8%88%B9%E4%B8%8A%E5%B2%B8%E6%96%B9%E6%A1%88">弃船上岸方案</h3>
@@ -599,7 +599,7 @@ SentenceList.tsx
 lib/
 api.ts                    # axios 实例，拦截器
 queryClient.ts            # TanStack Query 客户端
-repo.ts                   # 对后端的“服务层”：统一封装 entries/sources
+repo.ts                   # 对后端的"服务层"：统一封装 entries/sources
 schema.ts                 # zod 校验（与后端对齐）
 fonts.ts                  # 本地字体注册
 config.ts                 # WL_API_BASE 从环境读取

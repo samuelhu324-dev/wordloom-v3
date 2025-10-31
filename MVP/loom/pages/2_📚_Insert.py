@@ -1,4 +1,4 @@
-# 2_📚_Insert.py — Insert / Detection / Rename / Recent  [API版, 安全微调 v3]
+﻿# 2_📚_Insert.py — Insert / Detection / Rename / Recent  [API版, 安全微调 v3]
 # 要点：始终渲染页面；导入/后端异常以可见方式提示；其余逻辑完全沿用你的旧版。
 
 import re, traceback
@@ -7,7 +7,7 @@ from typing import List, Tuple
 
 import streamlit as st
 
-# --- 页面基础：务必最先渲染，让“白屏”不再白 ---
+# --- 页面基础：务必最先渲染，让"白屏"不再白 ---
 st.set_page_config(page_title="Batch Insert (Flexible)", layout="wide", page_icon="📦")
 st.title("📚 Insert — Insert / Detection / Rename / Recent（API）")
 
@@ -154,7 +154,7 @@ with tab_insert:
     mode = st.selectbox("拆分方式 / Split Mode", ["不要拆分（整段入库）", "按行对齐（每行是一条）", "按分隔符（正则）"], index=["不要拆分（整段入库）", "按行对齐（每行是一条）", "按分隔符（正则）"].index(st.session_state["ins_mode"]), key="ins_mode")
     mode_key = {"不要拆分（整段入库）": "no_split","按行对齐（每行是一条）": "by_line","按分隔符（正则）": "by_regex"}[mode]
     default_regex = r"[。！？；;.!?:]+"
-    delim_regex = st.text_input("分隔符正则（仅“按分隔符”生效）", value=st.session_state.get("ins_regex", default_regex), disabled=(mode_key != "by_regex"), key="ins_regex")
+    delim_regex = st.text_input("分隔符正则（仅"按分隔符"生效）", value=st.session_state.get("ins_regex", default_regex), disabled=(mode_key != "by_regex"), key="ins_regex")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -245,10 +245,10 @@ with tab_detect:
     with cold3:
         st.caption("当中文(或英文) ≥ 主导比 × 另一方，即判定方向正确。")
     st.markdown('</div>', unsafe_allow_html=True)
-    st.info("检测参数会在“📥 Insert”前自动应用。")
+    st.info("检测参数会在"📥 Insert"前自动应用。")
 
 # -------- 重命名 + 最近（与旧版一致，略） --------
 with st.expander("关于后端连接的小提示"):
     st.markdown(f"- 当前 API_BASE：`{API_BASE}`")
-    st.markdown("- 若此页仍空白：请查看页面顶部是否有“模块导入异常”折叠框；如无，请按 F12 看控制台错误。")
+    st.markdown("- 若此页仍空白：请查看页面顶部是否有"模块导入异常"折叠框；如无，请按 F12 看控制台错误。")
     st.markdown("- 运行入口尽量使用 `WordloomFrontend/streamlit/app.py`，避免工作目录导致的 `import` 失败。")

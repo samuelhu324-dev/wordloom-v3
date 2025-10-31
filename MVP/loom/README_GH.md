@@ -1,4 +1,4 @@
-# Week Trial Report (GitHub-friendly)
+﻿# Week Trial Report (GitHub-friendly)
 
 > This README is optimized for GitHub rendering. GitHub Markdown does **not** play videos inline in README;
 > instead, use **clickable thumbnails** that open the `.mp4` file, or host an HTML page via **GitHub Pages**.

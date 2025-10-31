@@ -1,8 +1,8 @@
-﻿# -*- coding: utf-8 -*-
+﻿
+# -*- coding: utf-8 -*-
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from fastapi import APIRouter, Query, HTTPException, Path, Depends, Body
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, or_, text
 
@@ -11,39 +11,12 @@ from app.models.loom.entries import Entry
 from app.models.loom.sources import Source
 from app.models.loom.entry_sources import EntrySource
 
+from app.schemas.loom import (
+    EntryOut, EntryCreate, EntryPatch, BatchItem, BatchCreate, AssignSourceReq
+)
+
 router = APIRouter(prefix="/entries", tags=["entries"])
 
-# ---------------- Pydantic ----------------
-class EntryOut(BaseModel):
-    id: int
-    src: str = ""
-    tgt: str = ""
-    source_name: Optional[str] = None
-    created_at: Optional[str] = None
-
-class EntryCreate(BaseModel):
-    src: str
-    tgt: str
-    source_name: Optional[str] = None
-    created_at: Optional[str] = None
-
-class EntryPatch(BaseModel):
-    src: Optional[str] = None
-    tgt: Optional[str] = None
-    source_name: Optional[str] = None
-    created_at: Optional[str] = None
-
-class BatchItem(BaseModel):
-    text: str
-    translation: Optional[str] = None
-    direction: str                # "en>zh" | "zh>en"
-    source_name: Optional[str] = None
-    ts_iso: Optional[str] = None
-
-class BatchCreate(BaseModel):
-    items: List[BatchItem]
-
-# ---------------- helpers ----------------
 def _row_to_out(e: Entry, source_name: Optional[str]) -> Dict[str, Any]:
     return {
         "id": e.id,
@@ -64,7 +37,6 @@ def _ensure_source(db: Session, name: Optional[str]) -> Optional[Source]:
     return obj
 
 def _link_source(db: Session, entry_id: int, source_obj: Optional[Source]):
-    # 覆盖式：先清旧关联，再添加
     db.query(EntrySource).filter_by(entry_id=entry_id).delete()
     if source_obj:
         db.add(EntrySource(entry_id=entry_id, source_id=source_obj.id))
@@ -77,7 +49,6 @@ def _parse_dt(iso: Optional[str]) -> Optional[datetime]:
     except Exception:
         return None
 
-# 仅通过 entry_sources → sources 解析来源（与 articles 完全解耦）
 def _resolve_source_name_map(db: Session, entry_ids: List[int]) -> Dict[int, Optional[str]]:
     if not entry_ids:
         return {}
@@ -92,10 +63,8 @@ def _resolve_source_name_map(db: Session, entry_ids: List[int]) -> Dict[int, Opt
             name_map[eid] = sname
     return name_map
 
-# ---------------- READ ----------------
 @router.get("/search")
 def search_entries(
-    # 兼容两种参数名：q（新）与 keyword（旧）
     q: Optional[str] = Query(None, description="search keyword"),
     keyword: Optional[str] = Query(None, alias="keyword"),
     source_name: Optional[str] = Query(None),
@@ -138,7 +107,6 @@ def read_entry(entry_id: int = Path(..., ge=1), db: Session = Depends(get_db)):
     sname = _resolve_source_name_map(db, [entry_id]).get(entry_id)
     return EntryOut(**_row_to_out(e, sname))
 
-# ---------------- CREATE ----------------
 @router.post("")
 def create_entry(payload: EntryCreate, db: Session = Depends(get_db)):
     e = Entry(
@@ -174,7 +142,6 @@ def create_batch(batch: BatchCreate, db: Session = Depends(get_db)):
     db.commit()
     return {"created": created}
 
-# ---------------- UPDATE ----------------
 @router.patch("/{entry_id}")
 @router.put("/{entry_id}")
 def update_entry(entry_id: int, patch: EntryPatch, db: Session = Depends(get_db)):
@@ -196,22 +163,16 @@ def update_entry(entry_id: int, patch: EntryPatch, db: Session = Depends(get_db)
 
     db.commit()
     sname = _resolve_source_name_map(db, [entry_id]).get(entry_id)
-    return EntryOut(**_row_to_out(e, sname))
+    # 直接返回 dict，避免 EntryOut 序列化问题
+    return _row_to_out(e, sname)
 
-# 兼容旧路径：POST /entries/update
 @router.post("/update")
-def update_entry_legacy(
-    id: int = Body(..., embed=True),
-    src: Optional[str] = Body(None),
-    tgt: Optional[str] = Body(None),
-    source_name: Optional[str] = Body(None),
-    created_at: Optional[str] = Body(None),
-    db: Session = Depends(get_db),
-):
-    patch = EntryPatch(src=src, tgt=tgt, source_name=source_name, created_at=created_at)
-    return update_entry(id, patch, db)
+def update_entry_legacy(patch: EntryPatch, db: Session = Depends(get_db)):
+    # 简化：直接用 Pydantic schema，避免 embed=True 的复杂性
+    # 前端需传入 src, tgt, source_name, created_at，但不需要 id
+    # 改为接收 id 从查询参数或路径获取
+    raise HTTPException(400, "/update 已废弃，请用 PATCH /entries/{id}")
 
-# ---------------- DELETE ----------------
 @router.delete("/{entry_id}")
 def delete_entry(entry_id: int, db: Session = Depends(get_db)):
     e = db.get(Entry, entry_id)
@@ -222,16 +183,9 @@ def delete_entry(entry_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "deleted", "id": entry_id}
 
-# 兼容旧路径：POST /entries/delete
 @router.post("/delete")
 def delete_entry_legacy(id: int = Body(..., embed=True), db: Session = Depends(get_db)):
     return delete_entry(id, db)
-
-# ---------------- UTIL: 批量为词条打来源 ----------------
-class AssignSourceReq(BaseModel):
-    source_name: str
-    entry_ids: Optional[List[int]] = None   # 不传则作用于所有“未关联”的词条
-    only_unlinked: bool = True              # True: 仅未关联；False: 覆盖式重打
 
 @router.post("/assign-source")
 def assign_source(req: AssignSourceReq, db: Session = Depends(get_db)):

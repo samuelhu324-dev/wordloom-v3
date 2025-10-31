@@ -1,31 +1,31 @@
-// src/app/layout.tsx — Batch A (providers path version)
-import type { Metadata } from "next";
-import "@/styles/globals.css";
-
-import Sidebar from "@/components/common/Sidebar";
-import QueryProvider from "@/providers/QueryProvider";
-import { ThemeProvider } from "@/providers/ThemeProvider";
+// app/layout.tsx
+import type { Metadata } from 'next';
+import '@/styles/globals.css';
+import QueryProvider from '@/providers/QueryProvider';
+import { ThemeProvider } from '@/providers/ThemeProvider';
+import Sidebar from '@/components/common/Sidebar';
 
 export const metadata: Metadata = {
-  title: "Wordloom",
-  description: "Personal translation + knowledge studio",
+  title: 'Wordloom',
+  description: 'Wordloom Frontend',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
-      <head />
-      <body className="min-h-screen bg-[var(--bg)] text-[var(--fg)]">
-        <ThemeProvider>
-          <QueryProvider>
-            <div className="flex">
-              <Sidebar />
-              <main className="flex-1 min-h-screen">
-                <div className="mx-auto max-w-5xl px-6 py-8">{children}</div>
-              </main>
-            </div>
-          </QueryProvider>
-        </ThemeProvider>
+      <body>
+        {/* 仍使用 Sidebar 作为主菜单 */}
+        <QueryProvider>
+          <ThemeProvider>
+            <Sidebar />
+            {/* 改用 app-main + 内层居中容器 */}
+            <main className="app-main">
+              <div className="page-container">
+                {children}
+              </div>
+            </main>
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );

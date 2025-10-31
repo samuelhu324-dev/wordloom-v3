@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { apiFetch } from '@/lib/api';
 
 type Entry = {
   id: number | string;
@@ -19,11 +20,10 @@ type Props = {
   showRefresh?: boolean;       // 是否显示刷新按钮
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/api";
-
 async function fetchLatestEntries(limit: number): Promise<Entry[]> {
-  const url = `${API_BASE}/entries?limit=${limit}&sort=created_at&order=desc&page=1`;
-  const res = await fetch(url, { cache: "no-store" });
+  // 只传资源路径，由 apiFetch 拼接基址
+  const url = `/entries?limit=${limit}&sort=created_at&order=desc&page=1`;
+  const res = await apiFetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to load latest entries: ${res.status}`);
   const data = await res.json();
   if (Array.isArray(data)) return data;
