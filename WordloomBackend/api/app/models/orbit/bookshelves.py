@@ -1,13 +1,12 @@
-"""
-Orbit Bookshelf 模型：书橱/分类管理
-
-一个 Bookshelf 可包含多个 Notes，用于组织和管理 Notes
-"""
 from __future__ import annotations
+from typing import TYPE_CHECKING
 from sqlalchemy import Column, Text, Integer, DateTime, func, text, Boolean
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import relationship
 from app.database_orbit import OrbitBase
+
+if TYPE_CHECKING:
+    from app.models.orbit.notes import OrbitNote
 
 
 class OrbitBookshelf(OrbitBase):
@@ -34,6 +33,8 @@ class OrbitBookshelf(OrbitBase):
     # 状态管理
     status = Column(Text, nullable=False, server_default=text("'active'"))  # active | archived | deleted
     is_favorite = Column(Boolean, nullable=False, server_default=text("false"))  # 收藏标记
+    is_pinned = Column(Boolean, nullable=False, server_default=text("false"))  # 置顶标记
+    pinned_at = Column(DateTime(timezone=True), nullable=True)  # 置顶时间
 
     # 分类标签
     tags = Column(ARRAY(Text), nullable=False, server_default=text("'{}'::text[]"))
@@ -51,7 +52,7 @@ class OrbitBookshelf(OrbitBase):
         back_populates="bookshelf",
         foreign_keys="OrbitNote.bookshelf_id",
         cascade="save-update, merge",
-        lazy="select"
+        lazy="noload"  # 不自动加载，需要时显式查询
     )
 
     def __repr__(self):

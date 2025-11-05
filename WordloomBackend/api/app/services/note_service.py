@@ -56,7 +56,13 @@ class NoteService:
             raise ValueError(f"Note not found: {original_note_id}")
 
         # 2️⃣ 创建新 Note 记录
+        import uuid
+        new_note_id = str(uuid.uuid4())
+        storage_path = f"notes/{new_note_id}"
+
         new_note = OrbitNote(
+            id=new_note_id,
+            storage_path=storage_path,  # SET storage_path BEFORE db.add()
             title=f"{original_note.title} {title_suffix}" if original_note.title else None,
             content_md=original_note.content_md or "",
             status=original_note.status or "open",
@@ -106,7 +112,9 @@ class NoteService:
 
     def _copy_note_uploads(self, src_note_id: str, dest_note_id: str) -> bool:
         """
-        复制 Note 的上传文件夹
+        复制 Note 的上传文件夹 (Fixed-path architecture)
+
+        固定路径架构: storage/{notes/{note_id}/}
 
         Args:
             src_note_id: 源 Note ID
@@ -115,8 +123,9 @@ class NoteService:
         Returns:
             复制是否成功
         """
-        src_folder = self.upload_dir / src_note_id
-        dest_folder = self.upload_dir / dest_note_id
+        # 使用固定路径: notes/{id}/
+        src_folder = self.upload_dir / "notes" / src_note_id
+        dest_folder = self.upload_dir / "notes" / dest_note_id
 
         # 如果源文件夹不存在，直接创建目标空文件夹
         if not src_folder.exists():
@@ -172,7 +181,9 @@ class NoteService:
 
     def _delete_note_uploads(self, note_id: str) -> bool:
         """
-        删除 Note 的上传文件夹
+        删除 Note 的上传文件夹 (Fixed-path architecture)
+
+        固定路径架构: storage/{notes/{note_id}/}
 
         Args:
             note_id: Note ID
@@ -180,5 +191,6 @@ class NoteService:
         Returns:
             删除是否成功
         """
-        folder = self.upload_dir / note_id
+        # 使用固定路径: notes/{id}/
+        folder = self.upload_dir / "notes" / note_id
         return self.file_service.delete_directory(folder)

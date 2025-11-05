@@ -1,8 +1,6 @@
 .editorconfig
 .gitattributes
 .gitignore
-TREE.txt
-VERSION
     .vscode/
         settings.json
     assets/
@@ -10,8 +8,6 @@ VERSION
             2025-10-01-03_DEV_LOG.md
             2025-10-04-13_DEV_LOG.md
             2025-10-14-16_DEV_LOG.md
-            Abstract.md
-            fix_md_paths.py
             image-1.png
             image-2.png
             image-3.png
@@ -21,7 +17,6 @@ VERSION
             image-7.png
             image-8.png
             image.png
-            OTHERS.md
             palette.png
             QUICK_LOG.html
             QUICK_LOG.jpeg
@@ -30,6 +25,7 @@ VERSION
             QUICK_LOG.png
             Template.md
             Template.md.bak
+            TIME_EDITOR_UPGRADE.md
         static/
             fonts/
                 NotoSerifCJKsc-VF.otf
@@ -4843,7 +4839,6 @@ VERSION
     tools/
         release.py
         script/
-            .pids.json
             restart-all.ps1
             start-all.ps1
             Start_All.bat
@@ -4878,20 +4873,25 @@ VERSION
             .env.example.txt
             alembic.ini
             app.db
+            create_media_resources.sql
+            init_media.py
+            migrate_blocks_json.py
+            migrate_checkpoint_images.py
+            migrate_cover.py
             package-lock.json
             package.json
-            README.md
             requirements.txt
-            run_backend.bat
-            run_backend_8012.bat
-            run_backend_8013.bat
-            run_orbit.bat
-            run_orbit_8011.bat
+            test_upload.py
             VERSION
             __init__.py
             alembic/
                 env.py
                 script.py.mako
+                versions/
+                    003_add_pinned_fields.py
+                    004_add_checkpoints.py
+                    005_add_marker_completion.py
+                    006_add_note_summary.py
             app/
                 database.py
                 database_orbit.py
@@ -4899,6 +4899,11 @@ VERSION
                 main_orbit.py
                 orbit_bootstrap.py
                 repo.py
+                core/
+                    image_manager.py
+                    storage_manager.py
+                    storage_manager_v2.py
+                    __init__.py
                 models/
                     core.py
                     __init__.py
@@ -4909,7 +4914,11 @@ VERSION
                         sources.py
                         __init__.py
                     orbit/
+                        bookshelves.py
+                        checkpoints.py
+                        media.py
                         notes.py
+                        tags.py
                         __init__.py
                 routers/
                     __init__.py
@@ -4918,7 +4927,12 @@ VERSION
                         entries.py
                         sources.py
                     orbit/
+                        bookshelves.py
+                        checkpoints.py
+                        diagrams.py
+                        media.py
                         notes.py
+                        tags.py
                         uploads.py
                         __init__.py
                 schemas/
@@ -4929,7 +4943,14 @@ VERSION
                         sources.py
                         __init__.py
                     orbit/
+                        checkpoints.py
+                        media.py
                         __init__.py
+                services/
+                    bookshelf_service.py
+                    file_service.py
+                    mermaid_service.py
+                    note_service.py
                 static/
             core/
                 repo.py
@@ -4938,7 +4959,6 @@ VERSION
                 app.db
                 memos/
                 orbit_uploads/
-                    3b2153b2e16048f0b36cdb4086c6ae66.jpg
                     memos/
                 thumbs/
             venv/
@@ -7509,11 +7529,151 @@ VERSION
                     websockets.exe
         storage/
             orbit_uploads/
-                memos/
-                    306a032f-87dc-4377-8fb8-46d003e02cf5/
-                        9120e0d052424303829c3c36c43ceb09.jpg
-                        ce09016c401a4cd981dbb8adeb93be9d.jpg
-                _temp/
+                bookshelf/
+                bookshelves/
+                    64f9a929-7ca7-4e85-91ac-388c5e20bad3/
+                        cover.jpeg
+                    6d685d17-c872-495f-b2fb-422f18654cbc/
+                        cover.jpg
+                    8034063f-7d81-412d-bc5d-d56998cef2ae/
+                        cover.jpg
+                free_notes/
+                media/
+                    workspaces/
+                        checkpoint_marker/
+                            10c3ca7a-a51a-4143-b06b-95ca0237b6a5/
+                                6f560261.png
+                            1ea2ed9d-3b3c-419a-8b73-536d655ab6b1/
+                                6d10fe97.png
+                            26949d26-8820-411e-a60a-a01e9ebd5254/
+                                a5f1d1d6.png
+                            2ab49340-a9d0-4075-8219-2b1906b822f1/
+                                d6c3dbe3.png
+                            2c3c10f6-07f8-47dd-88ec-5daec0239c4a/
+                                1e06827f.png
+                                f785d901.png
+                            3cdb7d79-6d1c-4359-8f87-6d489e6885ff/
+                                afe161cd.png
+                                f814d635.png
+                            5ecc0019-158b-4d48-96d2-d27076c6b9a4/
+                            6edcea3d-4a3c-48fc-9eec-e61a71f13999/
+                                4c1792eb.png
+                            72173def-2993-426e-bad4-e3895d90508e/
+                            87654321-4321-8765-4321-876543218765/
+                            9891d26e-b2bc-4b3a-b07d-1c1c886c42ef/
+                                1e06827f.png
+                            996c9a80-c316-4543-86d4-9817690abadf/
+                                6f560261.png
+                            a4808a99-74ec-464e-95ce-c61e1b66598c/
+                                139f9c1a.png
+                            b43f4581-b400-4978-bd26-5cfa846f2146/
+                                352ab1a4.png
+                            c8bd7387-934f-41de-b832-f3397d01d968/
+                                bcde6a23.png
+                            d52db854-9fca-4e14-9ce0-8293d3d7baff/
+                                818ccc77.png
+                                8cf15564.png
+                                d6c3dbe3.png
+                            d7fd3efd-efb1-41e7-b7b7-0c4b06428429/
+                                f785d901.png
+                            e0a81f11-c492-444b-af2a-79acf5ed232e/
+                                6f560261.png
+                            e3cbaef7-4559-42d1-9c9d-f1625d0d4cb0/
+                                e374e823.png
+                notes/
+                    0e0687a8-56e5-4542-adbd-2ca891828f83/
+                        images/
+                    11a905c1-b058-4b2a-9d9a-a7167c10dde4/
+                        checkpoints/
+                            6037b9ca-e938-4561-bd58-59f4f6adc2cd/
+                                markers/
+                                    0166074d/
+                                        images/
+                                    0166074d-1f4e-4e49-972f-db7737776a88/
+                                        images/
+                            9fc4176c-d954-4c80-bb53-5bdf44c139f2/
+                                markers/
+                                    c3180ae8/
+                                        images/
+                        cover/
+                            cover.jpg
+                        images/
+                    2770dffa-6f6a-4c5c-96c9-78328a7a24a8/
+                        cover/
+                            cover.jpg
+                        images/
+                    389ef758-6022-4387-b011-f195e7ccff0e/
+                        images/
+                    56cc5655-2958-450f-9b44-944b86b9924f/
+                        images/
+                    82f47804-4c4f-46d5-b016-e029bb7ea9c9/
+                        images/
+                            59865b4bb5ec4ea49ba16f5ed41fc9f4.jpg
+                    8426ceb2-8b01-49dc-966d-3c603cfd8abc/
+                        checkpoints/
+                            3bf121d7-d172-4b5c-8f74-dd003e8caaf6/
+                                markers/
+                                    0d542b4e/
+                                        images/
+                                            0d542b4e_ade311f2b046492f9fc7c16a329d8beb.png
+                                    5ecc0019/
+                                        images/
+                                    72173def/
+                                        images/
+                                            72173def_12540669d20f4a21badbb3f0abaf1856.png
+                                            72173def_1742de673f644222896f63338d2fe38c.png
+                                            72173def_49b5ae3310e240a989c47438f099629b.png
+                                            72173def_b9883e1975854618a9ee95846598d4ab.png
+                                            72173def_c8ed1aa76aed4850a8eb064cb3757bab.png
+                                            72173def_fc88b86b203c48dfa420ab74dae8ff7e.png
+                                    77461baa/
+                                        images/
+                                            77461baa_19662792ad5b43edba3b3dca16f92388.png
+                            fd2ce931-499e-4a5d-83f7-8ed9f0ec4b58/
+                                markers/
+                                    1ea2ed9d/
+                                        images/
+                                            1ea2ed9d_c24ea87185f546cca22596682218e5fb.png
+                        cover/
+                            cover.jpg
+                        images/
+                    9365434d-3395-4669-9a35-e0b6f17edf8c/
+                        images/
+                    c5b4775c-f477-4ef3-b5a4-eea757db3e22/
+                        cover/
+                    dc963d34-2794-4ba0-a31c-5df834d00515/
+                        images/
+                    ee8eab08-3d4f-405b-bbbd-148f488e884a/
+                        checkpoints/
+                            1ff1160a-0b0e-44ce-a444-9a9df1e199e2/
+                                markers/
+                                    996c9a80/
+                                        images/
+                                            996c9a80_4a78fd20a88448009ac02abeb138ba31.png
+                                            996c9a80_6993b39f5619470d94674aca0a0b19cc.png
+                                            996c9a80_9a95988ad6a543a5bcfa99b0f05cdaeb.png
+                            57a65232-677a-4f90-8219-258d742875db/
+                                markers/
+                                    3cdb7d79/
+                                        images/
+                                            3cdb7d79_95d752e032e847c9bdf89ff32c1b57be.png
+                            95f324a3-7dd9-47a2-a746-29f084dc1d3b/
+                                markers/
+                                    a4808a99/
+                                        images/
+                                            a4808a99_29af9af0dcc24cadae446ca133b9473a.png
+                            eba8df56-44ce-488d-9251-8e5bbaa863d4/
+                                markers/
+                                    10c3ca7a/
+                                        images/
+                                            10c3ca7a_c5da42c73743452785a6f967b36b4e80.png
+                                    886a469b/
+                                        images/
+                                            886a469b_7ebd5c8f31fd40c09cd37f8fcece8e9c.png
+                        cover/
+                            cover.jpg
+                        images/
+                temp/
         venv/
             .gitignore
             pyvenv.cfg
@@ -9322,7 +9482,6 @@ VERSION
             .env.local
             .gitignore
             .prettierrc
-            Fix-NodePath.ps1
             next-env.d.ts
             next.config.mjs
             package-lock.json
@@ -9332,6 +9491,7 @@ VERSION
             tailwind.config.js
             tailwind.config.ts
             tsconfig.json
+            tsconfig.tsbuildinfo
             .next/
                 app-build-manifest.json
                 build-manifest.json
@@ -9344,6 +9504,39 @@ VERSION
                     .rscinfo
                     chrome-devtools-workspace-uuid
                     next-devtools-config.json
+                    images/
+                        9g-ptHYkLn3AFa5LXGGjnnzPChTVLsNP5OOBsTW9-nE/
+                            60.1762331763308.Ki0we_kld5Q-9UVRuEGaMyJ7UuptLrvFPl29nmaqVyw.IjMxNmIyMjFiMGQ1OWJiNjYyMGU4NTM2NjA5NzgwMTljIg.webp
+                        a-IP8sXRdRr8bM6KJoU1I2_N27x4dodH4OAPUj04ZDo/
+                            60.1762323723366.P1jIjjx0PY940TYXHiWXEegdZsNVT21eZpjkTCxuoiU.Ijk2MDhiNmIyNjcwY2E2Nzk2YjBmYjJhMzM1MTA0ZGRmIg.webp
+                        DuSbh4X27CXKUrQUr6DWkMIdIw9zB-KN53ae1zmYEE4/
+                            60.1762323406184.J1SAHmN-711nalAFC0g1QzTzQbxACGxrWmxwYcrodLI.ImQ0YmY5ZjQ0YmM5MDFkMDI0OTUyNDI5ZjBmYzkzYjk4Ig.webp
+                        ebKBL9kiNKo3pLoEnAckj-8OVUH1VPOi21r8W0_9jjc/
+                            60.1762324142916.J1SAHmN-711nalAFC0g1QzTzQbxACGxrWmxwYcrodLI.IjU2ZDcxMjg4ZDQ1NmI2YTIxY2VlMDA0YzdiMTdjYzBlIg.webp
+                        fJH760Tqzzb54XcU2eh-b3xYGseRCknrcC49XqEM65Q/
+                            60.1762324142727.r3FHH7qTekAzfTGmtVtTNefb0A6f4cuiaEHFqQs-OHY.ImRkY2M1NzY2MjRjNjg3ZDRjOGE2YWU4NDBlMzY3YTg2Ig.webp
+                        GVfYaet10yLd9PCyobJ6WFzX4XfAnTMnCFFWopPas8Q/
+                            60.1762323723366.OupXGe5AiE7p2JRmtArBR09AyxE2Cu7xz3CYsOn_mh0.ImJlZjUxMGY1N2I3YTkzZWNiOTc2MTRkZDY5YzU1NzUzIg.webp
+                        hJ-t4dTouc6udic7mBQ1xm6EWVVUKDdnYB6QWXOTQUg/
+                            60.1762324142917.IUsxi0GOdDqbjVCuR8WoJW6KTENUdQNZVjLXVVwygFk.IjZlYmIxN2M1ZTY3MTYyYzc2MTlmZTAwYzcxZDNjMmU3Ig.webp
+                        HrR3Ze4vIUing0nXG41no_ivl3NJrUScu9iZeMQIJqQ/
+                            60.1762323559727.0eHWBt9oezs6Qy3oDK5hX8VyJFxciiiZbuRR-KzQe5M.IjM2MWI3YmE2NTAzMzdmYmZlNzFkZTZhY2FlNmFjZWFhIg.webp
+                        MXuCijyYYmC19prrbj8MfsHz_oW9gd4Bp7XmcsCrFYg/
+                            60.1762324142915.RXXrngGdbrR0xTsnB-iBTDuNY3Ym_ep022PPuMEFZIs.Ijc4MTE4OWU2ODVlMWE0NDA3ZTRmOTc4ODU3Zjg4MzNlIg.webp
+                        Nd8xa_YALGSzAD9GyoGp2StdNwWtG8S0fNWk-E8SAwE/
+                            60.1762324142757.oZCiDEkdN0fzobnW-6DI6w4o2DFCaXtkTcaDpnmmd6Q.IjI3MGE2YzRhZTY0N2JlYWIwZWViZDVlNzQ4N2JmYTc2Ig.webp
+                        noi40BXpwTVH0BbxSJTKsfWlfP423j6EbgsCvhXZuIg/
+                            60.1762323824465.2Yv8ViPIQShFZ5xHOzYEUnBXoRLMMgF4sTKyz7MhPNg.IjVjMTJhODc0MWE2ZWI5MTEyMzBmNzc2MGYxOTRiYzc0Ig.webp
+                        O5W39HQKO4B5zv0Yd0Kr18WTREkbY8Dh0tkT5bi-l3Y/
+                            60.1762324142763.gHKrbxM-q4yFP0R3AZot2vUuldRV-pitXYdodhP9fEU.IjQ5Yjk0NzUxOTU4YzI4MTllZWVhZTliMzg0N2UwYTlkIg.webp
+                        Qftmiliu6PEaamoJsuiv1vfzJHugwo_1jEch8n7A7jY/
+                            60.1762323877918.tGuCprl7GmV2rNRPJdnL0aLpoSD_SS1AorkSSk9FluM.ImQ2YWU1MTg3MDYwMmZjMTQ3YjM3MGMwMTJlYzhjY2M0Ig.webp
+                        RRiZuqtjvd8oju_E11Uop_zYfRoMldzYJG40grSBF3I/
+                            60.1762324142732.Tl5CW9dqJIbC_nnFFhMPFXKz_3eIjEN8NecTguZ2wfE.IjczMmQ1YWFmMDIyZTA3YjdlOTY1OTFiOTEyNGZlMTlkIg.webp
+                        TpbX5Hrrm7IZM53ekaUOR9uN1EHNIivHhfhVNHFrk0s/
+                            60.1762323950562.2WZfrii15LhM_NDStu_71inb1-5YsoWCKj5LbY7xP7c.IjI1ZDg5MjJkYjE1ZGNjNDdlNjU0OTNkNDZkYWUxMTY4Ig.webp
+                        xEkgj3Kyiqi6BKDRo8ctXSoNPx9kDVNQ08DtJfacyMs/
+                            60.1762331763304.SsLYh5_gmElkzXO6GavUulDh3v1uT7DtesYE_WWbaD8.IjJhMmQ0MDFlMjBiM2I0YzBlOTc5OTIxYzk5YTUwZGE0Ig.webp
                     swc/
                         plugins/
                             windows_x86_64_18.0.0/
@@ -9357,6 +9550,9 @@ VERSION
                             13.pack.gz
                             14.pack.gz
                             15.pack.gz
+                            16.pack.gz
+                            17.pack.gz
+                            18.pack.gz
                             2.pack.gz
                             3.pack.gz
                             4.pack.gz
@@ -9369,9 +9565,7 @@ VERSION
                             index.pack.gz.old
                         client-development-fallback/
                             0.pack.gz
-                            1.pack.gz
                             index.pack.gz
-                            index.pack.gz.old
                         server-development/
                             0.pack.gz
                             1.pack.gz
@@ -9381,6 +9575,9 @@ VERSION
                             13.pack.gz
                             14.pack.gz
                             15.pack.gz
+                            16.pack.gz
+                            17.pack.gz
+                            18.pack.gz
                             2.pack.gz
                             3.pack.gz
                             4.pack.gz
@@ -9404,36 +9601,36 @@ VERSION
                     server-reference-manifest.json
                     webpack-runtime.js
                     app/
-                        loom/
-                            page.js
-                            page_client-reference-manifest.js
                         orbit/
-                            page.js
-                            page_client-reference-manifest.js
-                        _not-found/
-                            page.js
-                            page_client-reference-manifest.js
+                            bookshelves/
+                                [id]/
+                                    page.js
+                                    page_client-reference-manifest.js
+                            [id]/
+                                page.js
+                                page_client-reference-manifest.js
                     vendor-chunks/
-                        @swc+helpers@0.5.15.js
-                        @tanstack+query-core@5.90.5.js
-                        @tanstack+react-query@5.90.5_react@19.2.0.js
-                        lucide-react@0.548.0_react@19.2.0.js
-                        next@15.5.6_react-dom@19.2.0_react@19.2.0__react@19.2.0.js
+                        @swc.js
+                        @tanstack.js
+                        lucide-react.js
+                        next.js
+                        uuid.js
                 static/
                     chunks/
                         app-pages-internals.js
                         main-app.js
                         polyfills.js
                         webpack.js
-                        _app-pages-browser_node_modules_pnpm_next_15_5_6_react-dom_19_2_0_react_19_2_0__react_19_2_0_-728936.js
+                        _app-pages-browser_node_modules_next_dist_client_dev_noop-turbopack-hmr_js.js
+                        _app-pages-browser_src_modules_orbit_ui_TagSelector_tsx.js
                         app/
                             layout.js
-                            loom/
-                                page.js
                             orbit/
-                                page.js
-                            _not-found/
-                                page.js
+                                bookshelves/
+                                    [id]/
+                                        page.js
+                                [id]/
+                                    page.js
                     css/
                         app/
                             layout.css
@@ -9441,26 +9638,50 @@ VERSION
                         _buildManifest.js
                         _ssgManifest.js
                     webpack/
+                        08957bb987be104e.webpack.hot-update.json
+                        35c609623ccae6cd.webpack.hot-update.json
                         633457081244afec._.hot-update.json
-                        79dabf99d9683ffa.webpack.hot-update.json
-                        7a0be35e7c31d247.webpack.hot-update.json
-                        93063aea7ae56fe9.webpack.hot-update.json
-                        94588ba5fc36e2d4.webpack.hot-update.json
-                        98ec5fee73e33f12.webpack.hot-update.json
-                        a9a5ddcefc0a8d56.webpack.hot-update.json
-                        webpack.79dabf99d9683ffa.hot-update.js
-                        webpack.7a0be35e7c31d247.hot-update.js
-                        webpack.93063aea7ae56fe9.hot-update.js
-                        webpack.94588ba5fc36e2d4.hot-update.js
-                        webpack.98ec5fee73e33f12.hot-update.js
-                        webpack.a9a5ddcefc0a8d56.hot-update.js
+                        6ea970ec91b96368.webpack.hot-update.json
+                        7b367bcaf6796ed7.webpack.hot-update.json
+                        8d446b49cfbfd962.webpack.hot-update.json
+                        915a8849ec66c373.webpack.hot-update.json
+                        a4d1c7ae17cc2382.webpack.hot-update.json
+                        bd1914f36e5abc37.webpack.hot-update.json
+                        c333881f498d1192.webpack.hot-update.json
+                        cbd59e57e9cbb72d.webpack.hot-update.json
+                        df25c898e22e68d0.webpack.hot-update.json
+                        webpack.08957bb987be104e.hot-update.js
+                        webpack.35c609623ccae6cd.hot-update.js
+                        webpack.6ea970ec91b96368.hot-update.js
+                        webpack.7b367bcaf6796ed7.hot-update.js
+                        webpack.8d446b49cfbfd962.hot-update.js
+                        webpack.915a8849ec66c373.hot-update.js
+                        webpack.a4d1c7ae17cc2382.hot-update.js
+                        webpack.bd1914f36e5abc37.hot-update.js
+                        webpack.c333881f498d1192.hot-update.js
+                        webpack.cbd59e57e9cbb72d.hot-update.js
+                        webpack.df25c898e22e68d0.hot-update.js
                         app/
-                            layout.7a0be35e7c31d247.hot-update.js
-                            layout.94588ba5fc36e2d4.hot-update.js
-                            layout.98ec5fee73e33f12.hot-update.js
+                            layout.08957bb987be104e.hot-update.js
+                            layout.35c609623ccae6cd.hot-update.js
+                            layout.6ea970ec91b96368.hot-update.js
+                            layout.7b367bcaf6796ed7.hot-update.js
+                            layout.8d446b49cfbfd962.hot-update.js
+                            layout.915a8849ec66c373.hot-update.js
+                            layout.a4d1c7ae17cc2382.hot-update.js
+                            layout.bd1914f36e5abc37.hot-update.js
+                            layout.c333881f498d1192.hot-update.js
+                            layout.cbd59e57e9cbb72d.hot-update.js
+                            layout.df25c898e22e68d0.hot-update.js
                             orbit/
-                                page.94588ba5fc36e2d4.hot-update.js
-                                page.98ec5fee73e33f12.hot-update.js
+                                [id]/
+                                    page.08957bb987be104e.hot-update.js
+                                    page.35c609623ccae6cd.hot-update.js
+                                    page.7b367bcaf6796ed7.hot-update.js
+                                    page.915a8849ec66c373.hot-update.js
+                                    page.bd1914f36e5abc37.hot-update.js
+                                    page.cbd59e57e9cbb72d.hot-update.js
+                                    page.df25c898e22e68d0.hot-update.js
                 types/
                     cache-life.d.ts
                     package.json
@@ -9468,20 +9689,32 @@ VERSION
                     validator.ts
                     app/
                         layout.ts
-                        loom/
-                            page.ts
                         orbit/
-                            page.ts
+                            bookshelves/
+                                [id]/
+                                    page.ts
+                            [id]/
+                                page.ts
             app/
                 globals.css
                 layout.tsx
                 page.tsx
+                api/
+                    upload/
+                        route.ts
                 loom/
                     ManageBoot.tsx
                     page.tsx
                 orbit/
                     page.tsx
+                    page.tsx.new
+                    bookshelves/
+                        page.tsx
+                        [id]/
+                            page.tsx
                     quick-capture/
+                        page.tsx
+                    tags/
                         page.tsx
                     [id]/
                         page.tsx
@@ -9489,20 +9722,50 @@ VERSION
                     page.tsx
                 theme/
                     page.tsx
+            public/
+                uploads/
+                    .gitkeep
+                    img_1762011198415_eyap048.jpeg
             src/
+                app/
+                    api/
+                        upload/
+                            route.ts
                 components/
+                    AutoResizeTextarea.tsx
+                    BlockRenderer.tsx
+                    CheckpointManager.tsx
+                    CheckpointStats.tsx
+                    FloatingSaveBar.tsx
+                    MarkerDialog.tsx
+                    NotePreviewPicker.tsx
+                    QuickMarkerPanel.tsx
+                    blocks/
+                        CheckpointBlockView.tsx
+                        CodeBlockView.tsx
+                        HeadingBlockView.tsx
+                        ImageBlockView.tsx
+                        LinkBlockView.tsx
+                        ParagraphBlockView.tsx
+                        QuoteBlockView.tsx
+                        TableBlockView.tsx
+                        TextBlockView.tsx
                     common/
                         AppNav.tsx
                         BookmarkRail.tsx
                         EditDialog.tsx
                         ErrorOrEmpty.tsx
                         LatestList.tsx
+                        MediaUploadComponent.tsx
                         Pagination.tsx
                         Sidebar.tsx
                         SidebarToggle.tsx
                         SkeletonList.tsx
                         ThemeDock.tsx
                         ThemeToolbar.tsx
+                hooks/
+                    useBookshelf.ts
+                    useOrbitTags.ts
                 lib/
                     api.ts
                     apiBase.ts
@@ -9540,14 +9803,24 @@ VERSION
                         api.ts
                         domain/
                             api.ts
+                            blocks.ts
+                            bookshelves.ts
+                            checkpoints.ts
+                            diagrams.ts
+                            media.ts
                             notes.ts
+                            tags.ts
+                            test_markdown.ts
                         services/
                             AttachmentPanel.tsx
                             BacklinksPanel.tsx
                             NoteEditor.tsx
                         state/
                         ui/
-                            RichTextEditor.tsx
+                            MermaidDiagram.tsx
+                            TagColorPicker.tsx
+                            TagManagementPanel.tsx
+                            TagSelector.tsx
                 providers/
                     QueryProvider.tsx
                     ThemeProvider.tsx

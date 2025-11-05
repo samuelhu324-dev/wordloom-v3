@@ -24,6 +24,13 @@ ORBIT_UPLOAD_DIR = os.getenv("ORBIT_UPLOAD_DIR") or os.path.abspath(
 
 def ensure_orbit_dirs():
     Path(ORBIT_UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
+    # 初始化 free_notes 文件夹
+    free_notes_dir = Path(ORBIT_UPLOAD_DIR) / "free_notes"
+    free_notes_dir.mkdir(parents=True, exist_ok=True)
+    # 初始化 bookshelf 文件夹
+    bookshelf_dir = Path(ORBIT_UPLOAD_DIR) / "bookshelf"
+    bookshelf_dir.mkdir(parents=True, exist_ok=True)
+    print(f"[Orbit] Directories ensured: {ORBIT_UPLOAD_DIR}")
 
 def ensure_orbit_extensions():
     with engine_orbit.begin() as conn:
@@ -34,6 +41,7 @@ def ensure_orbit_tables():
     from app.models.orbit.notes import OrbitNote  # noqa: F401
     from app.models.orbit.tags import OrbitTag, OrbitNoteTag  # noqa: F401
     from app.models.orbit.bookshelves import OrbitBookshelf  # noqa: F401
+    from app.models.orbit.checkpoints import OrbitNoteCheckpoint, OrbitNoteCheckpointMarker  # noqa: F401
 
     # 创建所有表
     OrbitBase.metadata.create_all(bind=engine_orbit)
@@ -62,9 +70,30 @@ def ensure_orbit_tables():
             ALTER TABLE orbit_tags
             ADD COLUMN IF NOT EXISTS icon text NULL;
         """))
-    print("[Orbit] Tables ensured: orbit_notes (+ urgency, usage_level, usage_count, bookshelf_id)")
+        # orbit_note_checkpoint_markers: is_completed 列
+        conn.execute(text("""
+            ALTER TABLE orbit_note_checkpoint_markers
+            ADD COLUMN IF NOT EXISTS is_completed boolean NOT NULL DEFAULT false;
+        """))
+        # orbit_note_checkpoint_markers: image_url 列（图片 URL）
+        conn.execute(text("""
+            ALTER TABLE orbit_note_checkpoint_markers
+            ADD COLUMN IF NOT EXISTS image_url text NULL;
+        """))
+        # orbit_note_checkpoint_markers: image_display_width 列（显示宽度）
+        conn.execute(text("""
+            ALTER TABLE orbit_note_checkpoint_markers
+            ADD COLUMN IF NOT EXISTS image_display_width integer DEFAULT 150;
+        """))
+        # orbit_notes: preview_image 列（封面图 URL）
+        conn.execute(text("""
+            ALTER TABLE orbit_notes
+            ADD COLUMN IF NOT EXISTS preview_image text NULL;
+        """))
+    print("[Orbit] Tables ensured: orbit_notes (+ urgency, usage_level, usage_count, bookshelf_id, preview_image)")
     print("[Orbit] Tables ensured: orbit_bookshelves (new)")
     print("[Orbit] Tags system initialized: orbit_tags, orbit_note_tags (+ icon)")
+    print("[Orbit] Checkpoint system initialized: orbit_note_checkpoints, orbit_note_checkpoint_markers (+ is_completed, image_url, image_display_width)")
 
     # 初始化默认标签（20 个），仅在数据库中不存在任何标签时写入
     try:

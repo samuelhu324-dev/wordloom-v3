@@ -3,30 +3,31 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost', port: '8000', pathname: '/uploads/**' },
+      { protocol: 'http', hostname: 'localhost', port: '8000', pathname: '/media/**' },
     ],
   },
 
   async rewrites() {
-   return {
-     beforeFiles: [
-       // Orbit 图片 - 直接转发到后端的 /uploads
-       {
-         source: "/uploads/:path*",
-         destination: "http://localhost:8000/uploads/:path*",
-       },
-       // Orbit API
-       {
-         source: "/api/orbit/:path*",
-         destination: "http://localhost:8000/api/orbit/:path*",
-       },
-       // Loom API
-       {
-         source: "/api/loom/:path*",
-         destination: "http://localhost:8013/api/common/:path*",
-       },
-     ],
-   };
- },
+    return {
+      beforeFiles: [
+        // Orbit 图片 - 直接转发到后端的 /uploads
+        {
+          source: "/uploads/:path*",
+          destination: "http://localhost:8000/uploads/:path*",
+        },
+        // Orbit API
+        {
+          source: "/api/orbit/:path*",
+          destination: "http://localhost:8000/api/orbit/:path*",
+        },
+        // Loom API
+        {
+          source: "/api/loom/:path*",
+          destination: "http://localhost:8013/api/common/:path*",
+        },
+      ],
+    };
+  },
 
   experimental: {
     esmExternals: true,

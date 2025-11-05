@@ -22,6 +22,8 @@ export type Bookshelf = {
   tags: string[]; // 标签数组
   color?: string | null; // 颜色代码
   isFavorite: boolean; // 是否收藏
+  isPinned: boolean; // 是否置顶
+  pinnedAt?: string | null; // 置顶时间
   createdAt?: string | null;
   updatedAt?: string | null;
 };
@@ -96,9 +98,27 @@ export type BookshelfResponse = {
   tags: string[];
   color?: string | null;
   is_favorite: boolean;
+  is_pinned?: boolean;
+  pinned_at?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
 };
+
+/**
+ * 为图片URL添加时间戳，强制浏览器刷新缓存
+ * 如果URL已有时间戳，则更新；否则添加新的
+ */
+function addCacheBuster(url: string | null | undefined): string | null | undefined {
+  if (!url) return url;
+
+  // 如果URL中已有时间戳查询参数，替换为新的
+  if (url.includes('?t=')) {
+    return url.replace(/\?t=\d+/, `?t=${Date.now()}`);
+  }
+
+  // 否则添加新的时间戳
+  return `${url}?t=${Date.now()}`;
+}
 
 /**
  * 转换 API 响应为前端类型
@@ -108,7 +128,7 @@ export function transformBookshelfResponse(data: BookshelfResponse): Bookshelf {
     id: data.id,
     name: data.name,
     description: data.description,
-    coverUrl: data.cover_url,
+    coverUrl: addCacheBuster(data.cover_url),  // 添加时间戳
     icon: data.icon,
     priority: data.priority,
     urgency: data.urgency,
@@ -118,6 +138,8 @@ export function transformBookshelfResponse(data: BookshelfResponse): Bookshelf {
     tags: data.tags || [],
     color: data.color,
     isFavorite: data.is_favorite,
+    isPinned: data.is_pinned || false,
+    pinnedAt: data.pinned_at,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };

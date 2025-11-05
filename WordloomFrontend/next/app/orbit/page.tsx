@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { listNotes, createNote, deleteNote, incrementNoteUsage, duplicateNote } from "@/modules/orbit/domain/api";
+import { listNotes, createNote, deleteNote, incrementNoteUsage, duplicateNote, listBookshelves, moveNoteToBookshelf, pinNote, unpinNote } from "@/modules/orbit/domain/api";
 import { extractFirstImageFromHtml, extractFirstSentenceFromHtml } from "@/lib/imageUtils";
 import type { Note } from "@/modules/orbit/domain/notes";
+import type { Bookshelf } from "@/modules/orbit/domain/bookshelves";
 import {
   Zap, Bug, TrendingUp, Clock, CheckCircle2,
   BookOpen, Link2, FileText, Code2, Lightbulb,
   AlertTriangle, Star, Smile, Pause, Flame,
-  Palette, CheckCircle, Lock, Compass
+  Palette, CheckCircle, Lock, Compass, Pin
 } from "lucide-react";
 
 type ViewMode = "grid" | "list";
@@ -38,6 +39,12 @@ function contrastColor(hex: string): string {
   return brightness > 128 ? '#111827' : '#FFFFFF';
 }
 
+// 对标签进行字母排序的辅助函数
+function getSortedTags(tags: any[] | undefined) {
+  if (!tags || tags.length === 0) return [];
+  return [...tags].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+}
+
 export default function OrbitPage() {
   const router = useRouter();
   const qc = useQueryClient();
@@ -55,12 +62,46 @@ export default function OrbitPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [showTagDropdown, setShowTagDropdown] = useState(false);
   const [duplicating, setDuplicating] = useState<string | null>(null);
+  const [moving, setMoving] = useState<string | null>(null);
+  const [moveNoteId, setMoveNoteId] = useState<string | null>(null);
+  const [pinning, setPinning] = useState<string | null>(null);
 
-  const { data: notes = [], isLoading } = useQuery({
+  const { data: notes = [], isLoading, refetch } = useQuery({
     queryKey: ["orbit", "notes", { q: searchQ, tag, status, sort }],
     queryFn: () => listNotes({ q: searchQ, tag, status, sort, limit: 100, offset: 0 }),
     staleTime: 15_000,
   });
+
+  const { data: bookshelves = [] } = useQuery({
+    queryKey: ["orbit", "bookshelves"],
+    queryFn: () => listBookshelves({ limit: 100, offset: 0 }),
+    staleTime: 15_000,
+  });
+
+  // 页面可见性变化时自动刷新数据
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log("[NOTES] 页面变为可见，刷新数据");
+        refetch();
+      }
+    };
+
+    // 同时监听 focus 和 visibilitychange 事件
+    window.addEventListener("focus", handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [refetch]);
+
+  // 页面进入时刷新数据（确保显示最新的 Notes 数据）
+  useEffect(() => {
+    console.log("[NOTES] 页面进入/搜索条件变化，刷新数据");
+    refetch();
+  }, [searchQ, tag, status, sort, refetch]);
 
   const tags = useMemo(() => Array.from(new Set(notes.flatMap(n => n.tags))), [notes]);
 
@@ -73,12 +114,25 @@ export default function OrbitPage() {
 
   // 前端过滤逻辑
   const filteredNotes = useMemo(() => {
-    return notes.filter(note => {
+    const filtered = notes.filter(note => {
       if (priority && note.priority !== parseInt(priority)) return false;
       if (urgency && note.urgency !== parseInt(urgency)) return false;
       if (usageCount && note.usageCount !== parseInt(usageCount)) return false;
       return true;
     });
+
+    // 分离pinned和unpinned，置顶的优先显示
+    const pinned = filtered.filter(n => n.isPinned);
+    const unpinned = filtered.filter(n => !n.isPinned);
+
+    // 置顶的按pinnedAt降序排列
+    pinned.sort((a, b) => {
+      const dateA = a.pinnedAt ? new Date(a.pinnedAt).getTime() : 0;
+      const dateB = b.pinnedAt ? new Date(b.pinnedAt).getTime() : 0;
+      return dateB - dateA;
+    });
+
+    return [...pinned, ...unpinned];
   }, [notes, priority, urgency, usageCount]);
 
   const formatDate = (dateString: string | undefined | null) => {
@@ -102,7 +156,7 @@ export default function OrbitPage() {
     setCreating(true);
     try {
       const n = await createNote({ title: "Untitled", text: "" });
-      await qc.invalidateQueries({ queryKey: ["orbit", "notes"] });
+      await refetch();
       router.push(`/orbit/${n.id}`);
     } finally {
       setCreating(false);
@@ -116,7 +170,7 @@ export default function OrbitPage() {
     setDeleting(noteId);
     try {
       await deleteNote(noteId);
-      await qc.invalidateQueries({ queryKey: ["orbit", "notes"] });
+      await refetch();
     } finally {
       setDeleting(null);
     }
@@ -127,7 +181,7 @@ export default function OrbitPage() {
     setDuplicating(noteId);
     try {
       const newNote = await duplicateNote(noteId);
-      await qc.invalidateQueries({ queryKey: ["orbit", "notes"] });
+      await refetch();
       alert(`已复制! 新 Note ID: ${newNote.id}`);
     } catch (err) {
       console.error("复制失败:", err);
@@ -137,14 +191,55 @@ export default function OrbitPage() {
     }
   }
 
+  async function onMoveToBookshelf(noteId: string, bookshelfId: string) {
+    setMoving(bookshelfId);
+    try {
+      await moveNoteToBookshelf(noteId, bookshelfId);
+      await refetch();
+      setMoveNoteId(null);
+      alert("Note 已移至书架！");
+    } catch (err) {
+      console.error("移动失败:", err);
+      alert("移动失败，请重试");
+    } finally {
+      setMoving(null);
+    }
+  }
+
   async function onNoteClick(noteId: string) {
     try {
       await incrementNoteUsage(noteId);
-      await qc.invalidateQueries({ queryKey: ["orbit", "notes"] });
+      await refetch();
     } catch (e) {
       console.error("Failed to increment usage:", e);
     }
     router.push(`/orbit/${noteId}`);
+  }
+
+  async function onPin(noteId: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setPinning(noteId);
+    try {
+      await pinNote(noteId);
+      await refetch();
+    } catch (err) {
+      console.error("[PIN] 置顶失败:", err);
+    } finally {
+      setPinning(null);
+    }
+  }
+
+  async function onUnpin(noteId: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setPinning(noteId);
+    try {
+      await unpinNote(noteId);
+      await refetch();
+    } catch (err) {
+      console.error("[UNPIN] 取消置顶失败:", err);
+    } finally {
+      setPinning(null);
+    }
   }
 
   if (isLoading) return <main className="max-w-6xl mx-auto px-5 py-6">加载中…</main>;
@@ -316,7 +411,33 @@ export default function OrbitPage() {
                 onClick={() => onNoteClick(note.id)}
                 className="relative group p-4 border rounded hover:shadow-md hover:cursor-pointer transition"
               >
+                {/* 置顶徽章 */}
+                {note.isPinned && (
+                  <div className="absolute top-2 left-2 bg-red-500 text-white p-1 rounded z-20">
+                    <Pin size={14} fill="currentColor" />
+                  </div>
+                )}
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition flex gap-1">
+                  <button
+                    onClick={(e) =>
+                      note.isPinned ? onUnpin(note.id, e) : onPin(note.id, e)
+                    }
+                    disabled={pinning === note.id}
+                    className="p-1 bg-amber-500 hover:bg-amber-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs disabled:opacity-50"
+                    title={note.isPinned ? "取消置顶" : "置顶"}
+                  >
+                    <Pin size={14} fill={note.isPinned ? "currentColor" : "none"} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMoveNoteId(note.id);
+                    }}
+                    className="p-1 bg-green-500 hover:bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                    title="移动到书架"
+                  >
+                    📚
+                  </button>
                   <button
                     onClick={(e) => onDuplicate(note.id, e)}
                     disabled={duplicating === note.id}
@@ -334,6 +455,41 @@ export default function OrbitPage() {
                     {deleting === note.id ? "…" : "×"}
                   </button>
                 </div>
+
+                {/* 移动到书架模态 */}
+                {moveNoteId === note.id && (
+                  <div className="absolute top-12 right-2 bg-white border rounded shadow-lg p-3 z-10 w-40">
+                    <p className="text-xs font-semibold mb-2">移动到书架：</p>
+                    {bookshelves.length === 0 ? (
+                      <p className="text-xs text-gray-500">暂无书架</p>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {bookshelves.map(bs => (
+                          <button
+                            key={bs.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onMoveToBookshelf(note.id, bs.id);
+                            }}
+                            disabled={moving === bs.id}
+                            className="text-left px-2 py-1 text-xs hover:bg-gray-100 rounded disabled:opacity-50"
+                          >
+                            {moving === bs.id ? "移动中…" : bs.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMoveNoteId(null);
+                      }}
+                      className="text-xs text-gray-500 mt-2"
+                    >
+                      取消
+                    </button>
+                  </div>
+                )}
 
                 {firstImage && (
                   <img
@@ -367,7 +523,7 @@ export default function OrbitPage() {
 
                 {note.tagsRel && note.tagsRel.length > 0 && (
                   <div className="flex gap-1 flex-wrap">
-                    {note.tagsRel.map(t => (
+                    {getSortedTags(note.tagsRel).map(t => (
                       <div
                         key={t.id}
                         className="inline-flex items-center gap-1 px-2 py-1 text-white rounded text-xs font-medium"
@@ -396,6 +552,12 @@ export default function OrbitPage() {
                 onClick={() => onNoteClick(note.id)}
                 className="flex gap-4 p-4 hover:shadow-md transition cursor-pointer relative group items-start"
               >
+                {/* 置顶徽章 */}
+                {note.isPinned && (
+                  <div className="absolute top-4 left-4 bg-red-500 text-white p-1 rounded z-20">
+                    <Pin size={14} fill="currentColor" />
+                  </div>
+                )}
                 {/* 左侧图片缩略图 */}
                 {firstImage && (
                   <div className="flex-shrink-0 w-24 h-24 bg-gray-200 rounded overflow-hidden">
@@ -413,6 +575,26 @@ export default function OrbitPage() {
                 {/* 删除按钮（X 图标） */}
                 <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition flex gap-1">
                   <button
+                    onClick={(e) =>
+                      note.isPinned ? onUnpin(note.id, e) : onPin(note.id, e)
+                    }
+                    disabled={pinning === note.id}
+                    className="p-1 bg-amber-500 hover:bg-amber-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm disabled:opacity-50"
+                    title={note.isPinned ? "取消置顶" : "置顶"}
+                  >
+                    <Pin size={16} fill={note.isPinned ? "currentColor" : "none"} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMoveNoteId(note.id);
+                    }}
+                    className="p-1 bg-green-500 hover:bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm"
+                    title="移动到书架"
+                  >
+                    📚
+                  </button>
+                  <button
                     onClick={(e) => onDuplicate(note.id, e)}
                     disabled={duplicating === note.id}
                     className="p-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm disabled:opacity-50"
@@ -429,6 +611,41 @@ export default function OrbitPage() {
                     {deleting === note.id ? "…" : "×"}
                   </button>
                 </div>
+
+                {/* 移动到书架模态 */}
+                {moveNoteId === note.id && (
+                  <div className="absolute top-12 right-4 bg-white border rounded shadow-lg p-3 z-10 w-40">
+                    <p className="text-xs font-semibold mb-2">移动到书架：</p>
+                    {bookshelves.length === 0 ? (
+                      <p className="text-xs text-gray-500">暂无书架</p>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {bookshelves.map(bs => (
+                          <button
+                            key={bs.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onMoveToBookshelf(note.id, bs.id);
+                            }}
+                            disabled={moving === bs.id}
+                            className="text-left px-2 py-1 text-xs hover:bg-gray-100 rounded disabled:opacity-50"
+                          >
+                            {moving === bs.id ? "移动中…" : bs.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMoveNoteId(null);
+                      }}
+                      className="text-xs text-gray-500 mt-2"
+                    >
+                      取消
+                    </button>
+                  </div>
+                )}
 
                 <div className="flex-1">
                   <h3 className="font-semibold text-base mb-1">{note.title || "Untitled"}</h3>
@@ -448,7 +665,7 @@ export default function OrbitPage() {
 
                   {note.tagsRel && note.tagsRel.length > 0 && (
                     <div className="flex gap-2 flex-wrap">
-                      {note.tagsRel.map(t => (
+                      {getSortedTags(note.tagsRel).map(t => (
                         <div
                           key={t.id}
                           className="inline-flex items-center gap-1 px-3 py-1 text-white rounded text-xs font-medium"

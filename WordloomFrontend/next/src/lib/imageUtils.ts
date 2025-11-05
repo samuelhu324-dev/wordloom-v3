@@ -1,12 +1,32 @@
 /**
- * 从 HTML 内容中提取第一张图片的 src
+ * 从内容中提取第一张图片的 src
+ * 支持格式：
+ * - Markdown: ![alt](url)
+ * - HTML: <img src="url">
+ * @param content HTML 或 Markdown 内容
+ * @returns 第一张图片的 URL，或 null 如果没有找到
  */
-export function extractFirstImageFromHtml(html: string): string | null {
-  if (!html) return null;
-  const match = html.match(/<img[^>]+src=["']([^"']+)["']/);
-  const url = match ? match[1] : null;
-  console.log("提取的图片 URL:", url);
-  return url;
+export function extractFirstImageFromHtml(content: string): string | null {
+  if (!content) return null;
+
+  // 1. 尝试提取 Markdown 图片格式: ![alt](url)
+  const markdownMatch = content.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+  if (markdownMatch) {
+    const url = markdownMatch[2].trim();
+    console.log('[extractFirstImageFromHtml] Markdown 格式图片:', url);
+    return url;
+  }
+
+  // 2. 尝试提取 HTML img 标签
+  const htmlMatch = content.match(/<img[^>]+src=["']([^"']+)["']/);
+  if (htmlMatch) {
+    const url = htmlMatch[1];
+    console.log('[extractFirstImageFromHtml] HTML 格式图片:', url);
+    return url;
+  }
+
+  console.log('[extractFirstImageFromHtml] 没有找到图片');
+  return null;
 }
 
 /**

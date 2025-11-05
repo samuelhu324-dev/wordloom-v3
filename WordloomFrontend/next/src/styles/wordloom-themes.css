@@ -5,8 +5,8 @@
   --card-bg: color-mix(in srgb, var(--accent) 6%, var(--surface));
   --card-border: color-mix(in srgb, var(--accent) 25%, var(--border));
 }
-html,body{background-color:var(--bg);} body{color:var(--fg);background:var(--surface);}
-.loom-theme{--surface: color-mix(in srgb, #ffeff7 65%, #fff 35%);} 
+html,body{background-color:var(--bg);} body{color:var(--fg);background:var(--bg);}
+.loom-theme{--surface: color-mix(in srgb, #ffeff7 65%, #fff 35%);}
 
 /* themes (7) */
 .theme-sky      { --bg:#fbfdff; --fg:#0f172a; --muted:#5b6478; --border:#e6eef9; --surface:#f4f9ff; --accent:#3b82f6; --accent-2:#06b6d4; --pattern-opacity:.09; --card-bg:color-mix(in srgb,#3b82f6 7%,#f4f9ff); --card-border:color-mix(in srgb,#3b82f6 28%,#e6eef9);}
