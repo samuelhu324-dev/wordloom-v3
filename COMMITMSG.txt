@@ -1,0 +1,8 @@
+refactor(infra): initialize blue-green v3 bootstrap
+
+- Scaffold v3 directory tree
+- Configure .gitignore for blue-green
+- Refine DDD architecture docs
+- Bootstrap rules-tracking framework
+
+Refs: Wordloom journal D31-WordloomRefactoring/1.Infrastructure-Setup

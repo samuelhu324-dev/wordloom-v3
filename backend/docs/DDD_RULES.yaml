@@ -1,0 +1,1055 @@
+# ============================================
+# Wordloom v3 DDD 规则追踪系统
+# ============================================
+# 基于老架构分析和新业务需求
+# 最后更新：2025-11-10
+
+metadata:
+  version: "3.0"
+  domain_model: "Library → Bookshelf → Book → Block"
+  architecture_style: "Hexagonal + Domain-Driven Design"
+  created_at: "2025-11-10"
+  last_updated: "2025-11-10"
+
+  # 迁移来源
+  migrated_from: "OrbitBookshelf → Notes → tags/checkpoints/media"
+  legacy_system: "WordloomBackend/orbit"
+
+# ============================================
+# Domain 1: Library（图书馆 - 聚合根）
+# ============================================
+
+domains:
+  library:
+    name: "Library（图书馆）"
+    type: "AggregateRoot"
+    description: "用户的唯一数据容器，所有书架、书籍、块的顶层容器。代表用户的完整知识库。"
+    status: "planned"
+
+    # 从老架构的演变
+    legacy_source: |
+      - 老架构中 Bookshelves 表是复数形式，代表多个书橱
+      - v3 中统一为 Library（单数），每个用户 1 个
+      - 提升一层以便支持分享/权限/导出等 Library 级操作
+
+    invariants:
+      RULE-001:
+        title: "每个用户只拥有一个 Library"
+        statement: "User 与 Library 是 1:1 关系，不能创建多个 Library，不能删除。"
+        type: "invariant"
+        priority: "critical"
+        status: "planned"
+
+        implementation:
+          domain_file: "backend/api/app/modules/library/domain.py"
+          test_file: "backend/api/app/tests/test_library/test_invariants.py"
+          orm_file: "backend/api/app/modules/library/models.py"
+
+        code_example: |
+          class Library(AggregateRoot):
+              id: UUID
+              user_id: UUID  # 唯一约束：(user_id) 组合 unique
+              name: str
+              created_at: datetime
+              updated_at: datetime
+
+              def __post_init__(self):
+                  # 在 Repository 中强制此约束
+                  # 如果 user_id 已有 Library，raise DuplicateLibraryError
+                  pass
+
+        validation:
+          method: "pytest + SQLAlchemy unique constraint"
+          test_case: "test_library_one_per_user"
+
+        related_files:
+          - "backend/api/app/modules/library/repository.py"
+          - "backend/api/app/modules/library/service.py"
+
+        devlog_entry: "D30-Library-SingleInstance"
+        pr_number: null
+
+      RULE-002:
+        title: "Library 拥有唯一的用户身份"
+        statement: "Library 必须关联到一个有效的 User，不能为空。"
+        type: "invariant"
+        priority: "critical"
+        status: "planned"
+
+        implementation:
+          domain_file: "backend/api/app/modules/library/domain.py"
+          test_file: "backend/api/app/tests/test_library/test_invariants.py"
+
+        devlog_entry: "D30-Library-UserAssociation"
+
+      RULE-003:
+        title: "Library 包含唯一的名称"
+        statement: "Library 的名称应该反映用户的身份或知识库主题，通常为用户名或'我的知识库'。"
+        type: "invariant"
+        priority: "high"
+        status: "planned"
+
+        devlog_entry: "D30-Library-UniqueName"
+
+    policies:
+      POLICY-001:
+        title: "Library 分享和权限管理"
+        statement: "Library 可以与其他用户分享（只读或可编辑），支持不同的权限级别。"
+        type: "policy"
+        status: "future"  # 暂不实现
+
+        devlog_entry: "D32-Library-Sharing"
+
+      POLICY-002:
+        title: "Library 导出和备份"
+        statement: "支持将整个 Library 导出为 JSON 或 Markdown 格式，支持定期备份。"
+        type: "policy"
+        status: "future"
+
+        devlog_entry: "D32-Library-Export"
+
+    events:
+      LibraryCreated:
+        description: "Library 被创建（通常由系统在 User 注册时自动创建）"
+        fields:
+          - library_id: UUID
+          - user_id: UUID
+          - created_at: datetime
+
+      LibraryUpdated:
+        description: "Library 信息被更新"
+        fields:
+          - library_id: UUID
+          - user_id: UUID
+          - updated_at: datetime
+
+    children:
+      - bookshelf
+
+# ============================================
+# Domain 2: Bookshelf（书架 - 子聚合）
+# ============================================
+
+  bookshelf:
+    name: "Bookshelf（书架）"
+    type: "AggregateRoot"
+    description: "Library 下的第一级容器，用于组织和分类 Books。"
+    parent: "library"
+    status: "planned"
+
+    # 从老架构的演变
+    legacy_source: |
+      - 对应老架构中的 OrbitBookshelf 表
+      - 移除了"用户可创建多个"的假设，改为明确归属于 Library
+      - 保留了所有字段：name, description, cover_url, icon, priority, urgency, tags, color
+
+    invariants:
+      RULE-004:
+        title: "Bookshelf 可无限创建"
+        statement: "用户可在 Library 下无限创建 Bookshelf，无数量限制。"
+        type: "invariant"
+        priority: "critical"
+        status: "planned"
+
+        implementation:
+          domain_file: "backend/api/app/modules/bookshelf/domain.py"
+          test_file: "backend/api/app/tests/test_bookshelf/test_invariants.py"
+
+        devlog_entry: "D31-Bookshelf-Unlimited"
+
+      RULE-005:
+        title: "Bookshelf 必须属于一个 Library"
+        statement: "每个 Bookshelf 必须持有其所属 Library 的 ID（FK: library_id），不能孤立存在。"
+        type: "invariant"
+        priority: "critical"
+        status: "planned"
+
+        code_example: |
+          class Bookshelf(AggregateRoot):
+              id: UUID
+              library_id: UUID  # 强制关联
+              name: str
+              # ... other fields
+
+        implementation:
+          domain_file: "backend/api/app/modules/bookshelf/domain.py"
+
+        devlog_entry: "D31-Bookshelf-BelongsToLibrary"
+
+      RULE-006:
+        title: "Bookshelf 的名称不能为空"
+        statement: "创建 Bookshelf 时，name 字段必须非空且不能全为空格。"
+        type: "invariant"
+        priority: "high"
+        status: "planned"
+
+        devlog_entry: "D31-Bookshelf-NameNotEmpty"
+
+      RULE-007:
+        title: "Bookshelf 内 Books 可无限添加"
+        statement: "每个 Bookshelf 可持有无限数量的 Book，支持快速增长。"
+        type: "invariant"
+        priority: "critical"
+        status: "planned"
+
+        devlog_entry: "D31-Bookshelf-UnlimitedBooks"
+
+      RULE-008:
+        title: "Bookshelf 支持优先级和紧急度标记"
+        statement: "每个 Bookshelf 有 priority 和 urgency 字段（1-5 整数），用于排序和筛选。"
+        type: "invariant"
+        priority: "medium"
+        status: "planned"
+
+        fields:
+          - priority: Integer (1-5)  # 优先级
+          - urgency: Integer (1-5)   # 紧急度
+
+        devlog_entry: "D31-Bookshelf-PriorityUrgency"
+
+    policies:
+      POLICY-003:
+        title: "Bookshelf 删除策略"
+        statement: "删除 Bookshelf 时，可选择：(1) 级联删除所有 Books 和 Blocks，(2) 孤立处理（Books 变为自由）。"
+        type: "policy"
+        status: "planned"
+
+        implementation:
+          domain_file: "backend/api/app/modules/bookshelf/domain.py"
+          test_file: "backend/api/app/tests/test_bookshelf/test_policies.py"
+
+        code_example: |
+          # 删除策略选择
+          delete_bookshelf(bookshelf_id, cascade="orphan")  # 推荐
+          delete_bookshelf(bookshelf_id, cascade="delete")  # 谨慎使用
+
+        devlog_entry: "D32-Bookshelf-CascadingDelete"
+
+      POLICY-004:
+        title: "Book 转移策略"
+        statement: "支持将 Book 从一个 Bookshelf 转移到另一个，或变为自由 Book（bookshelf_id = null）。"
+        type: "policy"
+        status: "planned"
+
+        devlog_entry: "D32-Bookshelf-MoveBooks"
+
+    events:
+      BookshelfCreated:
+        description: "Bookshelf 被创建"
+        fields:
+          - library_id: UUID
+          - bookshelf_id: UUID
+          - name: str
+
+      BookshelfUpdated:
+        description: "Bookshelf 信息被更新"
+
+      BookshelfDeleted:
+        description: "Bookshelf 被删除"
+
+    children:
+      - book
+
+# ============================================
+# Domain 3: Book（书籍 - 子聚合）
+# ============================================
+
+  book:
+    name: "Book（书籍）"
+    type: "AggregateRoot"
+    description: "Bookshelf 下的容器，存储结构化内容（Blocks）。对应老架构中的 OrbitNote。"
+    parent: "bookshelf"
+    status: "planned"
+
+    # 从老架构的演变
+    legacy_source: |
+      - 对应老架构中的 OrbitNote 表
+      - 保留字段：id, title, summary, content_md, preview_image, priority, urgency, tags, status
+      - 新增字段：blocks（从 blocks_json 扁平化出来）
+      - 新增关系：has_many :blocks
+      - 移除字段：blocks_json（被 Block 实体替代）
+
+    invariants:
+      RULE-009:
+        title: "Book 可无限创建"
+        statement: "用户可在 Bookshelf 下无限创建 Book，无数量限制。"
+        type: "invariant"
+        priority: "critical"
+        status: "planned"
+
+        implementation:
+          domain_file: "backend/api/app/modules/book/domain.py"
+          test_file: "backend/api/app/tests/test_book/test_invariants.py"
+
+        devlog_entry: "D32-Book-Unlimited"
+
+      RULE-010:
+        title: "Book 必须属于一个 Bookshelf"
+        statement: "每个 Book 必须持有其所属 Bookshelf 的 ID（FK: bookshelf_id），可以为 null（自由 Book）。"
+        type: "invariant"
+        priority: "high"
+        status: "planned"
+
+        code_example: |
+          class Book(AggregateRoot):
+              id: UUID
+              bookshelf_id: UUID | None  # 可空（自由 Book）
+              title: str | None
+              summary: str | None
+              blocks: List[Block]  # 有序列表
+
+        implementation:
+          domain_file: "backend/api/app/modules/book/domain.py"
+
+        devlog_entry: "D32-Book-BelongsToBookshelf"
+
+      RULE-011:
+        title: "Book 包含有序的 Blocks"
+        statement: "每个 Book 包含一个有序的 Blocks 列表，Blocks 通过 order 字段排序。"
+        type: "invariant"
+        priority: "critical"
+        status: "planned"
+
+        code_example: |
+          # Book 与 Block 的关系
+          class Book:
+              blocks: List[Block] = relationship(
+                  "Block",
+                  cascade="all, delete-orphan",
+                  order_by="Block.order",
+                  back_populates="book"
+              )
+
+        devlog_entry: "D32-Book-OrderedBlocks"
+
+      RULE-012:
+        title: "Book 支持复制"
+        statement: "可以复制一个 Book 及其所有 Blocks，生成新的 Book 记录。"
+        type: "invariant"
+        priority: "high"
+        status: "planned"
+
+        code_example: |
+          # 复制 Book 的操作
+          duplicated_book = book_service.duplicate_book(
+              original_book_id=book_id,
+              title_suffix="(副本)",
+              db=db
+          )
+          # 返回：新 Book（新 ID，所有 Blocks 也复制）
+
+        implementation:
+          domain_file: "backend/api/app/modules/book/domain.py"
+          test_file: "backend/api/app/tests/test_book/test_service.py"
+
+        devlog_entry: "D33-Book-Duplication"
+
+    policies:
+      POLICY-005:
+        title: "Book 删除策略"
+        statement: "删除 Book 时，级联删除其下所有 Blocks 和关联的媒体资源。"
+        type: "policy"
+        status: "planned"
+
+        implementation:
+          domain_file: "backend/api/app/modules/book/domain.py"
+
+        devlog_entry: "D33-Book-CascadingDelete"
+
+      POLICY-006:
+        title: "Book 转移策略"
+        statement: "支持将 Book 从一个 Bookshelf 转移到另一个，或变为自由 Book。"
+        type: "policy"
+        status: "planned"
+
+        devlog_entry: "D33-Book-Transfer"
+
+    events:
+      BookCreated:
+        description: "Book 被创建"
+
+      BookUpdated:
+        description: "Book 信息被更新"
+
+      BookDeleted:
+        description: "Book 被删除"
+
+      BlockAdded:
+        description: "Block 被添加到 Book"
+
+    children:
+      - block
+
+# ============================================
+# Domain 4: Block（块 - 值对象/最小单位）
+# ============================================
+
+  block:
+    name: "Block（块）"
+    type: "AggregateRoot"  # 注：未来可能变成 Value Object，暂定为 AggregateRoot
+    description: "Book 的最小内容单位，支持多种类型（文本、代码、图片等）。从老架构的 blocks_json 扁平化出来。"
+    parent: "book"
+    status: "planned"
+
+    # 从老架构的演变
+    legacy_source: |
+      - 老架构中存储在 OrbitNote.blocks_json 中为 JSON 数组
+      - v3 将其独立为数据库表和实体
+      - 支持的类型：text, code, image, table, checkpoint, translation, media, etc.
+      - 新增字段：metadata（用于存储类型特定的数据）
+
+    invariants:
+      RULE-013:
+        title: "Block 可无限创建"
+        statement: "用户可在 Book 下无限创建 Block，无数量限制。"
+        type: "invariant"
+        priority: "critical"
+        status: "planned"
+
+        implementation:
+          domain_file: "backend/api/app/modules/block/domain.py"
+
+        devlog_entry: "D33-Block-Unlimited"
+
+      RULE-014:
+        title: "Block 必须有 type"
+        statement: "每个 Block 必须有 type（text|code|image|table|checkpoint|translation|media|etc.）。"
+        type: "invariant"
+        priority: "critical"
+        status: "planned"
+
+        code_example: |
+          class Block(AggregateRoot):
+              id: UUID
+              book_id: UUID
+              type: str  # Enum: text, code, image, ...
+              content: str  # 主要内容
+              metadata: Dict  # 类型特定的数据
+              order: int  # 排序位置
+
+        implementation:
+          domain_file: "backend/api/app/modules/block/domain.py"
+
+        devlog_entry: "D33-Block-MustHaveType"
+
+      RULE-015:
+        title: "Block 有序排列"
+        statement: "Block 通过 order 字段按升序排列，移动 Block 时重新计算顺序。"
+        type: "invariant"
+        priority: "high"
+        status: "planned"
+
+        devlog_entry: "D33-Block-Ordering"
+
+      RULE-016:
+        title: "Block 必须属于一个 Book"
+        statement: "每个 Block 必须持有其所属 Book 的 ID（FK: book_id），不能孤立。"
+        type: "invariant"
+        priority: "critical"
+        status: "planned"
+
+        devlog_entry: "D33-Block-BelongsToBook"
+
+      RULE-017:
+        title: "Block 类型特定的元数据"
+        statement: |
+          不同 type 的 Block 支持不同的 metadata 字段：
+          - text: { language: str, formatting: {...} }
+          - code: { language: str, theme: str, lineNumbers: bool }
+          - image: { alt: str, width: int, height: int, caption: str }
+          - checkpoint: { status: str, completed_at: datetime }
+          - translation: { source_lang: str, target_lang: str, nested_blocks: [...] }
+          - media: { mime_type: str, duration: int }
+        type: "invariant"
+        priority: "medium"
+        status: "planned"
+
+        devlog_entry: "D33-Block-Metadata"
+
+    policies:
+      POLICY-007:
+        title: "Block 删除策略"
+        statement: "删除 Block 时，自动清理关联的媒体资源（如果有）。"
+        type: "policy"
+        status: "planned"
+
+        devlog_entry: "D33-Block-DeletionCleanup"
+
+      POLICY-008:
+        title: "Block 类型检验"
+        statement: "新增 Block 时，必须验证 type 在允许列表内，metadata 符合 type 的约束。"
+        type: "policy"
+        status: "planned"
+
+        devlog_entry: "D33-Block-TypeValidation"
+
+    events:
+      BlockCreated:
+        description: "Block 被创建"
+
+      BlockUpdated:
+        description: "Block 被更新"
+
+      BlockDeleted:
+        description: "Block 被删除"
+
+      BlockMoved:
+        description: "Block 的顺序改变"
+
+# ============================================
+# Domain 5: Tag（全局标签 - 值对象）
+# ============================================
+
+  tag:
+    name: "Tag（标签）"
+    type: "ValueObject"
+    description: "全局标签系统，与 Book 多对多关联。菜单栏绑定，支持过滤和搜索。对应老架构中的 OrbitTag。"
+    status: "planned"
+
+    # 从老架构的演变
+    legacy_source: |
+      - 对应老架构中的 OrbitTag 表
+      - 保留 N:N 关系（通过 BookTag 关联表）
+      - 新增"菜单栏绑定"的概念（用户可通过菜单栏点击 Tag 来过滤）
+      - 保留字段：id, name, color, icon, description, count（使用次数缓存）
+
+    invariants:
+      RULE-018:
+        title: "Tag 名称全局唯一"
+        statement: "每个 Tag 的名称必须唯一（unique constraint in DB）。"
+        type: "invariant"
+        priority: "critical"
+        status: "planned"
+
+        implementation:
+          domain_file: "backend/api/app/modules/tag/domain.py"
+
+        devlog_entry: "D34-Tag-UniqueName"
+
+      RULE-019:
+        title: "Tag 与 Book 多对多关联"
+        statement: "一个 Tag 可关联多个 Books，一个 Book 可有多个 Tags。"
+        type: "invariant"
+        priority: "critical"
+        status: "planned"
+
+        code_example: |
+          class Tag(ValueObject):
+              id: UUID
+              name: str  # unique
+              color: str
+              icon: str | None
+              description: str | None
+              books: List[Book] = relationship(secondary="book_tags")
+
+        devlog_entry: "D34-Tag-BookAssociation"
+
+      RULE-020:
+        title: "Tag 支持颜色和图标"
+        statement: "每个 Tag 可以设置颜色（十六进制）和图标（Lucide 图标名）用于 UI 展示。"
+        type: "invariant"
+        priority: "medium"
+        status: "planned"
+
+        devlog_entry: "D34-Tag-UIProperties"
+
+    policies:
+      POLICY-009:
+        title: "Tag 删除策略"
+        statement: "删除 Tag 时，自动从所有 Books 移除关联。"
+        type: "policy"
+        status: "planned"
+
+        devlog_entry: "D34-Tag-DeletionCleanup"
+
+      POLICY-010:
+        title: "Tag 菜单栏集成"
+        statement: "用户可以在菜单栏点击 Tag 来过滤显示的 Books，支持多 Tag 并集过滤。"
+        type: "policy"
+        status: "planned"
+
+        devlog_entry: "D34-Tag-MenubarIntegration"
+
+    events:
+      TagCreated:
+        description: "Tag 被创建"
+
+      TagUpdated:
+        description: "Tag 被更新"
+
+      TagDeleted:
+        description: "Tag 被删除"
+
+# ============================================
+# Domain 6: Chronicle（新增 - 时间追踪）
+# ============================================
+
+  chronicle:
+    name: "Chronicle（编年史 / 工作日记）"
+    type: "AggregateRoot"
+    description: "会话级别的时间追踪和日志记录。从老架构的 Checkpoint 分离出来，专门处理时间维度的数据。"
+    status: "planned"
+
+    # 从老架构的演变
+    legacy_source: |
+      - 老架构中 Checkpoint 和 Marker 用于记录工作时间
+      - v3 将时间追踪功能独立为 Chronicle 模块
+      - 概念重新定义：
+        - Session = 一个工作会话（可选与某个 Book 关联）
+        - TimeSegment = 工作时间分片（类似老 Marker）
+      - 新增功能：Session 汇总、效率分析、Tag 关联
+
+    core_entities:
+      Session:
+        description: "一个独立的工作会话"
+        fields:
+          - id: UUID
+          - user_id: UUID  # 所属用户
+          - book_id: UUID | None  # 可选关联到具体的 Book
+          - started_at: datetime
+          - ended_at: datetime | None  # null = 进行中
+          - title: str  # 会话标题（如"Python 学习"）
+          - description: str | None
+          - tags: List[UUID]  # 关联的 Tag IDs
+          - time_segments: List[TimeSegment]
+          - total_duration: int  # 秒数（计算属性）
+
+      TimeSegment:
+        description: "Session 内的时间分片"
+        fields:
+          - id: UUID
+          - session_id: UUID
+          - started_at: datetime
+          - ended_at: datetime
+          - duration_seconds: int
+          - category: str  # work, pause, break, review, etc.
+          - title: str | None
+          - description: str | None
+          - image_urls: List[str]  # 最多 5 张图片（60x60）
+          - tags: List[UUID]  # TimeSegment 级别的 Tag
+
+    invariants:
+      RULE-021:
+        title: "Session 必须有开始时间"
+        statement: "创建 Session 时，started_at 必须填写。"
+        type: "invariant"
+        priority: "critical"
+        status: "planned"
+
+        devlog_entry: "D35-Chronicle-SessionStartTime"
+
+      RULE-022:
+        title: "TimeSegment 的时间范围有效性"
+        statement: "TimeSegment 的 ended_at 必须 >= started_at，duration_seconds 自动计算。"
+        type: "invariant"
+        priority: "high"
+        status: "planned"
+
+        devlog_entry: "D35-Chronicle-TimeSegmentValidity"
+
+      RULE-023:
+        title: "Session 可选关联到 Book"
+        statement: "Session 的 book_id 可以为 null，表示通用工作会话；也可指向具体的 Book。"
+        type: "invariant"
+        priority: "medium"
+        status: "planned"
+
+        devlog_entry: "D35-Chronicle-SessionBookAssociation"
+
+    policies:
+      POLICY-011:
+        title: "Session 自动计算总工作时长"
+        statement: "total_duration = sum(time_segment.duration_seconds)，自动聚合。"
+        type: "policy"
+        status: "planned"
+
+        devlog_entry: "D35-Chronicle-AutoCalculation"
+
+      POLICY-012:
+        title: "TimeSegment 删除策略"
+        statement: "删除 TimeSegment 时，自动清理关联的图片。删除 Session 时级联删除所有 TimeSegments。"
+        type: "policy"
+        status: "planned"
+
+        devlog_entry: "D35-Chronicle-DeletionCleanup"
+
+    events:
+      SessionStarted:
+        description: "工作会话开始"
+
+      SessionEnded:
+        description: "工作会话结束"
+
+      TimeSegmentAdded:
+        description: "添加时间分片"
+
+      SessionReported:
+        description: "会话统计报告生成"
+
+# ============================================
+# Domain 7: Media（媒体资源管理）
+# ============================================
+
+  media:
+    name: "Media（媒体资源）"
+    type: "ValueObject"
+    description: "统一的媒体存储管理，支持图片、视频等多种类型。对应老架构中的 OrbitMediaResource。"
+    status: "planned"
+
+    # 从老架构的演变
+    legacy_source: |
+      - 对应老架构中的 OrbitMediaResource 表
+      - 保留核心字段和存储策略
+      - 新增支持的实体类型：BOOKSHELF_COVER, BOOK_COVER, BLOCK_IMAGE, CHRONICLE_ATTACHMENT
+      - 改进存储路径管理
+
+    invariants:
+      RULE-024:
+        title: "Media 必须关联到有效的 entity_type"
+        statement: "entity_type 必须是预定义的类型之一（BOOKSHELF_COVER|BOOK_COVER|BLOCK_IMAGE|CHRONICLE_ATTACHMENT|...）。"
+        type: "invariant"
+        priority: "critical"
+        status: "planned"
+
+        devlog_entry: "D36-Media-EntityTypeValidation"
+
+      RULE-025:
+        title: "Media 必须有有效的 entity_id"
+        statement: "entity_id 必须指向实际存在的实体，不能为 null。"
+        type: "invariant"
+        priority: "critical"
+        status: "planned"
+
+        devlog_entry: "D36-Media-EntityIdValidation"
+
+      RULE-026:
+        title: "Media 文件路径固定架构"
+        statement: "文件存储路径格式：storage/{entity_type}/{entity_id}/。路径不可变。"
+        type: "invariant"
+        priority: "high"
+        status: "planned"
+
+        code_example: |
+          # 示例路径
+          storage/bookshelf_cover/bookshelf-uuid-123/cover.jpg
+          storage/book_cover/book-uuid-456/preview.png
+          storage/block_image/block-uuid-789/image-001.jpg
+          storage/chronicle_attachment/session-uuid-000/screenshot.jpg
+
+        devlog_entry: "D36-Media-FixedPathArchitecture"
+
+    policies:
+      POLICY-013:
+        title: "Media 软删除策略"
+        statement: "删除 Media 时，标记 deleted_at 而非物理删除，支持恢复。定期清理规则：deleted_at > 30 天时物理删除。"
+        type: "policy"
+        status: "planned"
+
+        devlog_entry: "D36-Media-SoftDeletion"
+
+      POLICY-014:
+        title: "Media 关联实体删除"
+        statement: "当关联的实体被删除时（如 Book 删除），自动标记其所有 Media 为软删除。"
+        type: "policy"
+        status: "planned"
+
+        devlog_entry: "D36-Media-CascadingDeletion"
+
+    events:
+      MediaUploaded:
+        description: "媒体文件被上传"
+
+      MediaDeleted:
+        description: "媒体文件被删除"
+
+# ============================================
+# Domain 8: Search（搜索 - 新增）
+# ============================================
+
+  search:
+    name: "Search（搜索）"
+    type: "Service"
+    description: "全文搜索和高级过滤功能，支持基于 Books/Blocks 的内容搜索。"
+    status: "planned"
+
+    capabilities:
+      - "按关键词全文搜索 Books 和 Blocks"
+      - "按 Tag 过滤"
+      - "按优先级/紧急度过滤"
+      - "按创建/修改时间范围搜索"
+      - "按 status 过滤"
+      - "多条件组合查询"
+
+    devlog_entry: "D37-Search-FulltextSupport"
+
+# ============================================
+# Domain 9: Stats（统计 - 新增）
+# ============================================
+
+  stats:
+    name: "Stats（统计分析）"
+    type: "Service"
+    description: "统计数据聚合和分析，支持 Dashboard 展示和用户数据分析。"
+    status: "planned"
+
+    metrics:
+      - "Books 总数、Bookshelves 总数、Blocks 总数"
+      - "创建/修改时间趋势"
+      - "Tag 使用频率分布"
+      - "工作时间统计（来自 Chronicle）"
+      - "热门标签排行"
+      - "内容规模（字符数、代码行数）"
+
+    devlog_entry: "D37-Stats-MetricsAggregation"
+
+# ============================================
+# Domain 10: Theme（主题 - 新增）
+# ============================================
+
+  theme:
+    name: "Theme（主题系统）"
+    type: "Service"
+    description: "用户界面主题管理，支持多主题切换。"
+    status: "planned"
+
+    capabilities:
+      - "预设主题（Light, Dark, Auto）"
+      - "自定义主题配置"
+      - "主题同步到所有设备"
+
+    devlog_entry: "D37-Theme-UserPreferences"
+
+# ============================================
+# 跨域事件（Cross-Domain Events）
+# ============================================
+
+cross_domain_events:
+  BookshelfDeleted:
+    triggered_by: "bookshelf domain"
+    listeners:
+      - "block domain: cascade delete"
+      - "media domain: cleanup references"
+      - "search domain: remove index"
+      - "stats domain: recalculate"
+
+  BookDeleted:
+    triggered_by: "book domain"
+    listeners:
+      - "block domain: cascade delete"
+      - "media domain: cleanup references"
+      - "chronicle domain: update session references"
+
+  BlockDeleted:
+    triggered_by: "block domain"
+    listeners:
+      - "media domain: cleanup references"
+      - "search domain: remove from index"
+
+  TagDeleted:
+    triggered_by: "tag domain"
+    listeners:
+      - "book domain: remove tag associations"
+      - "chronicle domain: remove from sessions"
+
+# ============================================
+# 实现计划（按优先级和依赖）
+# ============================================
+
+implementation_phases:
+
+  phase_1_foundations:
+    description: "基础设施和 Domain 层核心"
+    estimated_duration: "2 weeks"
+    rules:
+      - RULE-001  # Library 单实例
+      - RULE-004  # Bookshelf 无限创建
+      - RULE-009  # Book 无限创建
+      - RULE-013  # Block 无限创建
+      - RULE-018  # Tag 唯一名称
+      - RULE-024  # Media entity_type 验证
+
+    tasks:
+      - "创建各 domain/*.py 文件"
+      - "定义 ORM Models"
+      - "编写 Repository 接口"
+      - "编写 Unit Tests for Domain"
+
+  phase_2_relationships:
+    description: "聚合根间的关系和依赖"
+    estimated_duration: "1 week"
+    rules:
+      - RULE-002  # Library user association
+      - RULE-005  # Bookshelf belongs to Library
+      - RULE-010  # Book belongs to Bookshelf
+      - RULE-016  # Block belongs to Book
+      - RULE-019  # Tag-Book association
+
+    tasks:
+      - "实现 Foreign Key 约束"
+      - "实现 Service 层的关系操作"
+      - "编写集成测试"
+
+  phase_3_policies:
+    description: "业务政策和级联操作"
+    estimated_duration: "1.5 weeks"
+    policies:
+      - POLICY-003  # Bookshelf deletion
+      - POLICY-005  # Book deletion
+      - POLICY-007  # Block deletion
+      - POLICY-009  # Tag deletion
+      - POLICY-013  # Media soft deletion
+
+    tasks:
+      - "实现级联删除逻辑"
+      - "实现孤立处理逻辑"
+      - "编写边界测试"
+
+  phase_4_advanced_features:
+    description: "高级功能（复制、转移、搜索、统计）"
+    estimated_duration: "2 weeks"
+    rules:
+      - RULE-012  # Book duplication
+      - RULE-017  # Block metadata
+
+    tasks:
+      - "实现 Book/Note 复制"
+      - "实现 Book 转移"
+      - "实现全文搜索（集成 PostgreSQL FTS）"
+      - "实现统计汇聚"
+
+  phase_5_chronicle:
+    description: "时间追踪模块（独立迭代）"
+    estimated_duration: "2 weeks"
+    rules:
+      - RULE-021  # Session start time
+      - RULE-022  # TimeSegment validity
+      - RULE-023  # Session book association
+
+    tasks:
+      - "实现 Session 和 TimeSegment 实体"
+      - "实现时间自动计算"
+      - "实现与 Wordloom 日记的集成"
+
+# ============================================
+# 验证和测试策略
+# ============================================
+
+testing_strategy:
+
+  unit_tests:
+    path: "backend/api/app/tests/test_*/test_domain.py"
+    coverage_target: ">= 90%"
+    focus:
+      - "Invariants 验证"
+      - "Value Objects 比较"
+      - "Domain Logic 单元测试"
+
+  integration_tests:
+    path: "backend/api/app/tests/test_*/test_integration.py"
+    coverage_target: ">= 80%"
+    focus:
+      - "Repository 实现"
+      - "Service 业务逻辑"
+      - "Domain Events 触发"
+      - "级联操作（删除、转移）"
+
+  api_tests:
+    path: "backend/api/app/tests/test_*/test_router.py"
+    coverage_target: ">= 75%"
+    focus:
+      - "API 端点验证"
+      - "请求/响应 Schema"
+      - "错误处理"
+      - "权限校验"
+
+  e2e_tests:
+    path: "backend/api/app/tests/e2e/"
+    coverage_target: ">= 50%"
+    focus:
+      - "完整工作流"
+      - "Wordloom 日记集成"
+      - "蓝绿部署验证"
+
+# ============================================
+# DevLog 和 PR 追踪
+# ============================================
+
+devlog_entries:
+  D30:
+    title: "Library Domain 定义"
+    entries:
+      - "D30-Library-SingleInstance"
+      - "D30-Library-Identity"
+      - "D30-Library-UserAssociation"
+
+  D31:
+    title: "Bookshelf Domain 定义"
+    entries:
+      - "D31-Bookshelf-Unlimited"
+      - "D31-Bookshelf-BelongsToLibrary"
+      - "D31-Bookshelf-NameNotEmpty"
+      - "D31-Bookshelf-UnlimitedBooks"
+      - "D31-Bookshelf-PriorityUrgency"
+
+  D32:
+    title: "Book Domain 定义"
+    entries:
+      - "D32-Book-Unlimited"
+      - "D32-Book-BelongsToBookshelf"
+      - "D32-Book-OrderedBlocks"
+      - "D32-Bookshelf-CascadingDelete"
+      - "D32-Bookshelf-MoveBooks"
+
+  D33:
+    title: "Block Domain 定义"
+    entries:
+      - "D33-Block-Unlimited"
+      - "D33-Block-MustHaveType"
+      - "D33-Block-Ordering"
+      - "D33-Block-BelongsToBook"
+      - "D33-Block-Metadata"
+      - "D33-Book-CascadingDelete"
+      - "D33-Book-Transfer"
+      - "D33-Book-Duplication"
+
+  D34:
+    title: "Tag 和 Media Domain"
+    entries:
+      - "D34-Tag-UniqueName"
+      - "D34-Tag-BookAssociation"
+      - "D34-Tag-UIProperties"
+      - "D34-Tag-MenubarIntegration"
+
+  D35:
+    title: "Chronicle 模块"
+    entries:
+      - "D35-Chronicle-SessionStartTime"
+      - "D35-Chronicle-TimeSegmentValidity"
+      - "D35-Chronicle-SessionBookAssociation"
+
+  D36:
+    title: "Media 资源管理"
+    entries:
+      - "D36-Media-EntityTypeValidation"
+      - "D36-Media-EntityIdValidation"
+      - "D36-Media-FixedPathArchitecture"
+
+  D37:
+    title: "Search 和 Stats 模块"
+    entries:
+      - "D37-Search-FulltextSupport"
+      - "D37-Stats-MetricsAggregation"
+      - "D37-Theme-UserPreferences"
+
+# ============================================
+# 规则变更历史
+# ============================================
+
+changelog:
+  "2025-11-10":
+    author: "Architecture Team"
+    changes:
+      - "Initial DDD Rules extraction from legacy architecture"
+      - "Defined 25 core invariants and 14 business policies"
+      - "Mapped 10 domains with clear responsibilities"
+      - "Established 5-phase implementation plan"
