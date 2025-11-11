@@ -21,7 +21,6 @@ class OrbitNote(OrbitBase):
     priority = Column(Integer, nullable=False, server_default=text("3"))
     # 紧急程度 1-5
     urgency = Column(Integer, nullable=False, server_default=text("'3'"))
-    # 日用程度 1-5（避免使用关键字 usage，采用 usage_level）
     usage_level = Column(Integer, nullable=False, server_default=text("'3'"))
     # 使用次数（自动计数，用户点击时递增）
     usage_count = Column(Integer, nullable=False, server_default=text("0"))

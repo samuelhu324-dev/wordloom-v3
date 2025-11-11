@@ -63,6 +63,19 @@ class LibraryDeleted(DomainEvent):
         return self.library_id
 
 
+@dataclass
+class BasementCreated(DomainEvent):
+    """Domain event emitted when Basement (recycle bin) is automatically created with Library"""
+    basement_bookshelf_id: UUID
+    library_id: UUID
+    user_id: UUID
+    occurred_at: datetime = field(default_factory=datetime.utcnow)
+
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.library_id
+
+
 # ============================================================================
 # Value Objects
 # ============================================================================
@@ -119,12 +132,14 @@ class Library(AggregateRoot):
         library_id: UUID,
         user_id: UUID,
         name: LibraryName,
+        basement_bookshelf_id: UUID = None,
         created_at: datetime = None,
         updated_at: datetime = None,
     ):
         self.id = library_id
         self.user_id = user_id
         self.name = name
+        self.basement_bookshelf_id = basement_bookshelf_id  # ← 特殊的 Basement 书架
         self.created_at = created_at or datetime.utcnow()
         self.updated_at = updated_at or datetime.utcnow()
         self.events: List[DomainEvent] = []
@@ -143,12 +158,13 @@ class Library(AggregateRoot):
             name: The name of the Library
 
         Returns:
-            New Library instance with LibraryCreated event
+            New Library instance with LibraryCreated and BasementCreated events
 
         Raises:
             ValueError: If name is invalid
         """
         library_id = uuid4()
+        basement_id = uuid4()  # ← 自动为每个 Library 创建 Basement
         library_name = LibraryName(value=name)
         now = datetime.utcnow()
 
@@ -156,15 +172,26 @@ class Library(AggregateRoot):
             library_id=library_id,
             user_id=user_id,
             name=library_name,
+            basement_bookshelf_id=basement_id,
             created_at=now,
             updated_at=now,
         )
 
+        # 发出两个事件：Library 创建 + Basement 创建
         library.emit(
             LibraryCreated(
                 library_id=library_id,
                 user_id=user_id,
                 name=name,
+                occurred_at=now,
+            )
+        )
+
+        library.emit(
+            BasementCreated(
+                basement_bookshelf_id=basement_id,
+                library_id=library_id,
+                user_id=user_id,
                 occurred_at=now,
             )
         )

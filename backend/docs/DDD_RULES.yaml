@@ -8,19 +8,21 @@ metadata:
   version: "3.0"
   domain_model: "Library → Bookshelf → Book → Block"
   architecture_style: "Hexagonal + Domain-Driven Design"
+  aggregate_model: "Independent Aggregate Roots (不嵌套)"
   created_at: "2025-11-10"
-  last_updated: "2025-11-11"
-  
+  last_updated: "2025-11-12"
+
   # Phase 1 Implementation Status
-  phase_1_status: "COMPLETED"
+  phase_1_status: "COMPLETED + ARCHITECTURE DECISION"
   phase_1_completion_date: "2025-11-11"
+  architecture_refactor_date: "2025-11-12"
   modules_generated: 6  # Library, Bookshelf, Book, Block, Tag, Media
   files_generated: 56   # 6 modules × 8 files + shared/base.py + infra/storage.py + DDD_RULES.yaml
 
   # 迁移来源
   migrated_from: "OrbitBookshelf → Notes → tags/checkpoints/media"
   legacy_system: "WordloomBackend/orbit"
-  
+
   # 代码仓库信息
   repository_path: "backend/domains/"
   shared_base_path: "backend/shared/base.py"
@@ -36,7 +38,7 @@ domains:
     type: "AggregateRoot"
     description: "用户的唯一数据容器，所有书架、书籍、块的顶层容器。代表用户的完整知识库。"
     status: "implemented"
-    
+
     implementation_files:
       - "backend/domains/library/domain.py"
       - "backend/domains/library/models.py"
@@ -164,17 +166,62 @@ domains:
       - 移除了"用户可创建多个"的假设，改为明确归属于 Library
       - 保留了所有字段：name, description, cover_url, icon, priority, urgency, tags, color
 
+    # 架构实现分层（ADR-005: Bookshelf Domain Simplification）
+    implementation_layers:
+      domain_layer:
+        file: "backend/api/app/modules/domains/bookshelf/domain.py"
+        line_count: "~290 LOC (精简后，从 350 LOC -17%)"
+        responsibilities:
+          - "BookshelfName/BookshelfDescription 值对象验证（RULE-006）"
+          - "Bookshelf.create() 工厂方法（RULE-004）"
+          - "rename() 核心业务方法"
+          - "change_status() 状态管理（RULE-010）"
+          - "mark_deleted() 删除操作"
+          - "mark_as_basement() Basement 支持（RULE-010）"
+          - "发出 BookshelfCreated/Renamed/StatusChanged/Deleted 事件"
+
+      service_layer:
+        file: "backend/api/app/modules/domains/bookshelf/service.py"
+        line_count: "~180 LOC（扩展后，从 120 LOC +50%）"
+        core_operations:
+          - "create_bookshelf() - RULE-004 创建"
+          - "get_bookshelf() / list_bookshelves() - RULE-005 查询"
+          - "rename_bookshelf() - RULE-006 重命名"
+          - "delete_bookshelf() - 删除协调"
+
+        auxiliary_features:
+          - "pin_bookshelf() / unpin_bookshelf() - UI 便利"
+          - "favorite_bookshelf() / unfavorite_bookshelf() - UI 便利"
+          - "archive_bookshelf() / unarchive_bookshelf() - 状态编排"
+
+        query_methods_moved_from_domain:
+          - "set_description() - 元数据管理（新增，曾在 Domain）"
+          - "can_accept_books() - 业务规则（新增，曾在 Domain）"
+          - "is_active() - 状态查询（新增，曾在 Domain）"
+          - "is_archived() - 状态查询（新增，曾在 Domain）"
+          - "is_deleted() - 状态查询（新增，曾在 Domain）"
+
+      repository_layer:
+        file: "backend/api/app/modules/domains/bookshelf/repository.py"
+        responsibilities:
+          - "get_by_id(bookshelf_id) - 单体查询"
+          - "get_by_library_id(library_id) - 列表查询"
+          - "save(bookshelf) - 持久化 + 事件"
+          - "delete(bookshelf_id) - 物理删除"
+
     invariants:
       RULE-004:
         title: "Bookshelf 可无限创建"
-        statement: "用户可在 Library 下无限创建 Bookshelf，无数量限制。"
+        statement: "用户可在 Library 下无限创建 Bookshelf，无数量限制。每个 Bookshelf 独立存在，通过 library_id FK 关联。"
         type: "invariant"
         priority: "critical"
-        status: "planned"
+        status: "implemented"
 
         implementation:
-          domain_file: "backend/api/app/modules/bookshelf/domain.py"
-          test_file: "backend/api/app/tests/test_bookshelf/test_invariants.py"
+          domain_file: "backend/api/app/modules/domains/bookshelf/domain.py (Line: create())"
+          orm_constraint: "bookshelf.library_id FK → libraries.id"
+
+        design_note: "独立聚合根模式：Bookshelf 不嵌套在 Library 内"
 
         devlog_entry: "D31-Bookshelf-Unlimited"
 
@@ -183,104 +230,130 @@ domains:
         statement: "每个 Bookshelf 必须持有其所属 Library 的 ID（FK: library_id），不能孤立存在。"
         type: "invariant"
         priority: "critical"
-        status: "planned"
+        status: "implemented"
 
         code_example: |
           class Bookshelf(AggregateRoot):
               id: UUID
-              library_id: UUID  # 强制关联
-              name: str
-              # ... other fields
+              library_id: UUID  # ← 强制 FK，不是 Library 对象
+              type: BookshelfType  # NORMAL or BASEMENT
+              is_hidden: bool  # Basement 为 True
 
         implementation:
-          domain_file: "backend/api/app/modules/bookshelf/domain.py"
+          domain_file: "backend/api/app/modules/domains/bookshelf/domain.py (Line: __init__)"
 
         devlog_entry: "D31-Bookshelf-BelongsToLibrary"
 
       RULE-006:
         title: "Bookshelf 的名称不能为空"
-        statement: "创建 Bookshelf 时，name 字段必须非空且不能全为空格。"
+        statement: "创建 Bookshelf 时，name 字段必须非空且不能全为空格，≤255 字符。"
         type: "invariant"
         priority: "high"
-        status: "planned"
+        status: "implemented"
+
+        implementation:
+          domain_file: "backend/api/app/modules/domains/bookshelf/domain.py (BookshelfName.value_object, __post_init__)"
+          service_file: "backend/api/app/modules/domains/bookshelf/service.py (rename_bookshelf(), create_bookshelf())"
+          validation_layers:
+            - "Router (Pydantic): min_length=1, max_length=255"
+            - "Domain (ValueObject): __post_init__ 检查非空和长度"
+            - "Database (ORM): String(255) NOT NULL"
 
         devlog_entry: "D31-Bookshelf-NameNotEmpty"
 
-      RULE-007:
-        title: "Bookshelf 内 Books 可无限添加"
-        statement: "每个 Bookshelf 可持有无限数量的 Book，支持快速增长。"
+      RULE-010:
+        title: "每个 Library 自动创建一个 Basement Bookshelf"
+        statement: "系统创建 Library 时，自动创建一个隐藏的 Basement Bookshelf（回收站）。"
         type: "invariant"
         priority: "critical"
-        status: "planned"
+        status: "implemented"
 
-        devlog_entry: "D31-Bookshelf-UnlimitedBooks"
+        code_example: |
+          # 创建 Library 时自动触发
+          library = Library.create(user_id, "My Library")
+          # 自动发出两个事件：
+          # - LibraryCreated
+          # - BasementCreated(basement_bookshelf_id=...)
 
-      RULE-008:
-        title: "Bookshelf 支持优先级和紧急度标记"
-        statement: "每个 Bookshelf 有 priority 和 urgency 字段（1-5 整数），用于排序和筛选。"
-        type: "invariant"
-        priority: "medium"
-        status: "planned"
+        implementation:
+          domain_file: "backend/api/app/modules/domains/library/domain.py (Line: BasementCreated event)"
+          service_file: "backend/api/app/modules/domains/library/service.py"
 
-        fields:
-          - priority: Integer (1-5)  # 优先级
-          - urgency: Integer (1-5)   # 紧急度
+        design_note: "Basement 是特殊的 Bookshelf（BookshelfType.BASEMENT），隐藏且不能删除"
 
-        devlog_entry: "D31-Bookshelf-PriorityUrgency"
+        devlog_entry: "D31-Library-BasementAutoCreate"
 
     policies:
       POLICY-003:
-        title: "Bookshelf 删除策略"
-        statement: "删除 Bookshelf 时，可选择：(1) 级联删除所有 Books 和 Blocks，(2) 孤立处理（Books 变为自由）。"
+        title: "Bookshelf 删除时的 Book 处理"
+        statement: |
+          当删除 Bookshelf 时，其内的 Books 需要处理：
+          选项1（推荐）：将所有 Book 转移到 Basement
+          选项2：级联删除所有 Book（不推荐，用户体验差）
         type: "policy"
-        status: "planned"
+        status: "pending_decision"  # 需在 Service 层明确实现
+
+        devlog_entry: "D31-Bookshelf-DeletePolicy"
+
+      POLICY-006:
+        title: "Basement 中 Book 的自动清理"
+        statement: "Basement 中存储超过 30 天的 Book，由外部 Job 自动硬删除（purge_basement）。"
+        type: "policy"
+        status: "future"
 
         implementation:
-          domain_file: "backend/api/app/modules/bookshelf/domain.py"
-          test_file: "backend/api/app/tests/test_bookshelf/test_policies.py"
+          service_file: "backend/api/app/modules/domains/book/service.py (purge_basement)"
+          trigger: "AsyncTask / Celery Job (每天午夜)"
 
-        code_example: |
-          # 删除策略选择
-          delete_bookshelf(bookshelf_id, cascade="orphan")  # 推荐
-          delete_bookshelf(bookshelf_id, cascade="delete")  # 谨慎使用
-
-        devlog_entry: "D32-Bookshelf-CascadingDelete"
-
-      POLICY-004:
-        title: "Book 转移策略"
-        statement: "支持将 Book 从一个 Bookshelf 转移到另一个，或变为自由 Book（bookshelf_id = null）。"
-        type: "policy"
-        status: "planned"
-
-        devlog_entry: "D32-Bookshelf-MoveBooks"
+        devlog_entry: "D31-Book-BasementAutoCleanup"
 
     events:
       BookshelfCreated:
-        description: "Bookshelf 被创建"
+        description: "新 Bookshelf 被创建"
         fields:
-          - library_id: UUID
           - bookshelf_id: UUID
+          - library_id: UUID
           - name: str
+          - type: BookshelfType (NORMAL or BASEMENT)
 
-      BookshelfUpdated:
-        description: "Bookshelf 信息被更新"
+      BookshelfRenamed:
+        description: "Bookshelf 名称被更改（核心事件）"
+        fields:
+          - bookshelf_id: UUID
+          - old_name: str
+          - new_name: str
+
+      BookshelfStatusChanged:
+        description: "Bookshelf 状态改变（核心事件，ACTIVE/ARCHIVED/DELETED）"
+        fields:
+          - bookshelf_id: UUID
+          - old_status: BookshelfStatus
+          - new_status: BookshelfStatus
 
       BookshelfDeleted:
-        description: "Bookshelf 被删除"
+        description: "Bookshelf 被删除（Basement 不能被删除，核心事件）"
+        fields:
+          - bookshelf_id: UUID
+          - library_id: UUID
+
+      # ← REMOVED (moved to Service layer per AD-004)
+      # BookshelfPinned, BookshelfUnpinned, BookshelfFavorited, BookshelfUnfavorited
+      # These are now handled by Service layer auxiliary methods (pin_bookshelf, favorite_bookshelf, etc.)
+      # See: bookshelf/service.py and AD-004 (Auxiliary Features Layering)
 
     children:
       - book
 
 # ============================================
-# Domain 3: Book（书籍 - 子聚合）
+# Domain 3: Book（书籍 - 独立聚合根）
 # ============================================
 
   book:
     name: "Book（书籍）"
     type: "AggregateRoot"
-    description: "Bookshelf 下的容器，存储结构化内容（Blocks）。对应老架构中的 OrbitNote。"
+    description: "独立聚合根，通过 bookshelf_id FK 关联到 Bookshelf。存储结构化内容（Blocks）。对应老架构中的 OrbitNote。"
     parent: "bookshelf"
-    status: "planned"
+    status: "implemented"
 
     # 从老架构的演变
     legacy_source: |
@@ -289,81 +362,257 @@ domains:
       - 新增字段：blocks（从 blocks_json 扁平化出来）
       - 新增关系：has_many :blocks
       - 移除字段：blocks_json（被 Block 实体替代）
+      - 新增字段：soft_deleted_at（用于 Basement 标记）
+
+    # Phase 5 优化后的实现分布（ADR-006）
+    implementation_layers:
+      domain_layer:
+        file: "backend/api/app/modules/domains/book/domain.py"
+        lines_of_code: 370
+        percentage: "38%"
+        responsibilities:
+          - "Factory method: create() with library_id initialization"
+          - "Core operations: rename(), change_status()"
+          - "Transfer semantics: move_to_bookshelf(), move_to_basement(), restore_from_basement()"
+          - "Block management: update_block_count()"
+          - "Query properties: is_draft, is_published, is_archived, is_deleted, can_edit, is_in_basement"
+          - "Domain events: BookCreated, BookRenamed, BookStatusChanged, BookMovedToBookshelf, BookMovedToBasement, BookRestoredFromBasement, BlocksUpdated"
+        core_methods:
+          - "create(bookshelf_id, library_id, title, summary)"
+          - "rename(new_title)"
+          - "change_status(new_status)"
+          - "move_to_bookshelf(new_bookshelf_id)"
+          - "move_to_basement(basement_bookshelf_id)"
+          - "restore_from_basement(restore_to_bookshelf_id)"
+
+      service_layer:
+        file: "backend/api/app/modules/domains/book/service.py"
+        lines_of_code: 150
+        percentage: "16%"
+        responsibilities:
+          - "Orchestration: create_book() with library_id validation"
+          - "Core operations: rename_book(), publish_book(), archive_book()"
+          - "Soft delete: delete_book() with basement transfer"
+          - "Transfer with permission checks: move_to_bookshelf() validates target Bookshelf"
+          - "Basement operations: move_to_basement(), restore_from_basement()"
+          - "Auxiliary features (moved from domain): set_summary(), set_due_date(), pin_book(), unpin_book()"
+          - "Query methods (service layer wrappers): is_draft(), is_published(), is_archived(), is_deleted(), can_edit()"
+        auxiliary_methods:
+          - "set_summary(book_id, summary)"
+          - "set_due_date(book_id, due_at)"
+          - "pin_book(book_id)"
+          - "unpin_book(book_id)"
+          - "is_draft(book_id)"
+          - "is_published(book_id)"
+          - "is_archived(book_id)"
+          - "is_deleted(book_id)"
+          - "can_edit(book_id)"
+        permission_validations:
+          - "Verify target Bookshelf exists"
+          - "Verify target Bookshelf belongs to same Library (library_id consistency)"
+          - "Reject manual moves to Basement"
+          - "Initialize library_id from parent Bookshelf in create_book()"
+
+      repository_layer:
+        file: "backend/api/app/modules/domains/book/repository.py"
+        responsibilities:
+          - "get_by_id(book_id)"
+          - "get_by_bookshelf_id(bookshelf_id)"
+          - "save(book)"
+          - "delete(book_id)"
 
     invariants:
       RULE-009:
         title: "Book 可无限创建"
-        statement: "用户可在 Bookshelf 下无限创建 Book，无数量限制。"
+        statement: |
+          用户可在 Bookshelf 下无限创建 Book，无数量限制。
+          创建时必须正确初始化 library_id（从父 Bookshelf 获取）。
         type: "invariant"
         priority: "critical"
-        status: "planned"
+        status: "implemented"
+
+        code_example: |
+          # Domain 层
+          book = Book.create(
+              bookshelf_id=bookshelf_id,
+              library_id=library_id,  # ← 必须传入（冗余 FK）
+              title=title,
+              summary=summary
+          )
 
         implementation:
-          domain_file: "backend/api/app/modules/book/domain.py"
-          test_file: "backend/api/app/tests/test_book/test_invariants.py"
+          domain_file: "backend/api/app/modules/domains/book/domain.py (Line: create())"
+          service_file: "backend/api/app/modules/domains/book/service.py (Line: create_book())"
+
+        design_note: "Service 层负责从 Bookshelf 获取 library_id 并传给 Domain"
 
         devlog_entry: "D32-Book-Unlimited"
 
-      RULE-010:
-        title: "Book 必须属于一个 Bookshelf"
-        statement: "每个 Book 必须持有其所属 Bookshelf 的 ID（FK: bookshelf_id），可以为 null（自由 Book）。"
-        type: "invariant"
-        priority: "high"
-        status: "planned"
-
-        code_example: |
-          class Book(AggregateRoot):
-              id: UUID
-              bookshelf_id: UUID | None  # 可空（自由 Book）
-              title: str | None
-              summary: str | None
-              blocks: List[Block]  # 有序列表
-
-        implementation:
-          domain_file: "backend/api/app/modules/book/domain.py"
-
-        devlog_entry: "D32-Book-BelongsToBookshelf"
-
       RULE-011:
-        title: "Book 包含有序的 Blocks"
-        statement: "每个 Book 包含一个有序的 Blocks 列表，Blocks 通过 order 字段排序。"
+        title: "Book 可跨 Bookshelf 转移（带权限检查）"
+        statement: |
+          Book 可以从一个 Bookshelf 转移到另一个（真实转移，不是复制）。
+          转移时 Book ID 不变，必须验证：
+          1. 目标 Bookshelf 存在
+          2. 目标 Bookshelf 属于同一个 Library（library_id 一致）
+          3. 目标 Bookshelf 不是 Basement
         type: "invariant"
         priority: "critical"
-        status: "planned"
+        status: "implemented"
 
         code_example: |
-          # Book 与 Block 的关系
-          class Book:
-              blocks: List[Block] = relationship(
-                  "Block",
-                  cascade="all, delete-orphan",
-                  order_by="Block.order",
-                  back_populates="book"
-              )
+          # Domain 层：真实转移
+          book.move_to_bookshelf(new_bookshelf_id)
+          # 发出事件：BookMovedToBookshelf(old_id, new_id, book_id)
 
-        devlog_entry: "D32-Book-OrderedBlocks"
+          # Service 层：权限检查
+          async def move_to_bookshelf(self, book_id, target_id):
+              book = await self.get_book(book_id)
 
-      RULE-012:
-        title: "Book 支持复制"
-        statement: "可以复制一个 Book 及其所有 Blocks，生成新的 Book 记录。"
-        type: "invariant"
-        priority: "high"
-        status: "planned"
+              # 验证目标存在且合法
+              target_shelf = await self.bookshelf_repo.get_by_id(target_id)
+              if not target_shelf:
+                  raise BookshelfNotFoundError()
+              if target_shelf.library_id != book.library_id:
+                  raise PermissionError("Different Library")
+              if target_shelf.is_basement:
+                  raise ValueError("Cannot move to Basement")
 
-        code_example: |
-          # 复制 Book 的操作
-          duplicated_book = book_service.duplicate_book(
-              original_book_id=book_id,
-              title_suffix="(副本)",
-              db=db
-          )
-          # 返回：新 Book（新 ID，所有 Blocks 也复制）
+              book.move_to_bookshelf(target_id)
+              await self.repository.save(book)
 
         implementation:
-          domain_file: "backend/api/app/modules/book/domain.py"
-          test_file: "backend/api/app/tests/test_book/test_service.py"
+          domain_file: "backend/api/app/modules/domains/book/domain.py (Line: move_to_bookshelf())"
+          service_file: "backend/api/app/modules/domains/book/service.py (Line: move_to_bookshelf())"
 
-        devlog_entry: "D33-Book-Duplication"
+        design_note: "Move Semantics（真转移）+ 三层权限检查（存在、一致、Basement）"
+
+        devlog_entry: "D32-Book-Move (ADR-006)"
+
+      RULE-012:
+        title: "Book 删除时转移到 Basement（软删除）"
+        statement: |
+          删除 Book 时，不硬删除，而是调用 move_to_basement(basement_id)。
+          Book 仍存在数据库，但 soft_deleted_at 被设置，bookshelf_id 变为 basement_id。
+          Service 层必须正确处理：调用 Domain 转移方法，然后 save() 不 delete()。
+        type: "invariant"
+        priority: "critical"
+        status: "implemented"
+
+        code_example: |
+          # 删除 Book（实际是转移到 Basement）
+          book.move_to_basement(basement_id)
+          # soft_deleted_at 被设置为当前时间
+          # 发出事件：BookMovedToBasement(...)
+
+          # Service 层实现
+          async def delete_book(self, book_id, basement_id):
+              book = await self.get_book(book_id)
+              book.move_to_basement(basement_id)  # ← Domain 方法
+              await self.repository.save(book)   # ← 只保存，不删除！
+              # ❌ NOT await self.repository.delete(book_id)
+
+        implementation:
+          domain_file: "backend/api/app/modules/domains/book/domain.py (Line: move_to_basement())"
+          service_file: "backend/api/app/modules/domains/book/service.py (Line: delete_book())"
+
+        design_note: "Basement 模式：软删除 + 回收站，30 天后自动硬删除。Service 层确保不硬删除。"
+
+        devlog_entry: "D32-Book-SoftDelete (ADR-006)"
+
+      RULE-013:
+        title: "Book 可从 Basement 恢复"
+        statement: |
+          Basement 中的 Book 可调用 restore_from_basement(target_bookshelf_id) 恢复。
+          恢复时 soft_deleted_at 被清除，bookshelf_id 变为目标 Bookshelf。
+          必须验证目标 Bookshelf 属于同一 Library。
+        type: "invariant"
+        priority: "high"
+        status: "implemented"
+
+        code_example: |
+          # 从 Basement 恢复
+          book.restore_from_basement(restore_to_bookshelf_id)
+          # soft_deleted_at 被清除为 None
+          # bookshelf_id 变为新地址
+          # 发出事件：BookRestoredFromBasement(...)
+
+        implementation:
+          domain_file: "backend/api/app/modules/domains/book/domain.py (Line: restore_from_basement())"
+          service_file: "backend/api/app/modules/domains/book/service.py (Line: restore_from_basement())"
+
+        devlog_entry: "D32-Book-Restore (ADR-006)"
+
+    policies:
+      POLICY-005:
+        title: "Book 转移时的权限检查"
+        statement: |
+          Book 转移到新 Bookshelf 时，Service 层需验证：
+          1. 新 Bookshelf 存在
+          2. 新 Bookshelf 属于同一个 Library（library_id 一致）
+          3. 新 Bookshelf 不是 Basement（用户不能主动转移到 Basement）
+        type: "policy"
+        status: "implemented"
+
+        implementation:
+          service_file: "backend/api/app/modules/domains/book/service.py (Line: move_to_bookshelf())"
+
+        devlog_entry: "D32-Book-MovePolicy (ADR-006)"
+
+      POLICY-007:
+        title: "Basement 中 Book 的自动清理"
+        statement: "Basement 中存储超过 30 天的 Book，由外部 Job 自动硬删除。"
+        type: "policy"
+        status: "future"
+
+        implementation:
+          service_file: "backend/api/app/modules/domains/book/service.py (Line: purge_basement)"
+          trigger: "Celery / APScheduler Job（每天午夜）"
+
+        devlog_entry: "D32-Book-PurgeBasement"
+
+    events:
+      BookCreated:
+        description: "新 Book 被创建"
+        fields:
+          - book_id: UUID
+          - bookshelf_id: UUID
+          - library_id: UUID
+          - title: str
+
+      BookMovedToBookshelf:
+        description: "Book 转移到另一个 Bookshelf"
+        fields:
+          - book_id: UUID
+          - old_bookshelf_id: UUID
+          - new_bookshelf_id: UUID
+          - moved_at: datetime
+
+      BookMovedToBasement:
+        description: "Book 被删除（转移到 Basement）"
+        fields:
+          - book_id: UUID
+          - old_bookshelf_id: UUID
+          - basement_bookshelf_id: UUID
+          - deleted_at: datetime
+
+      BookRestoredFromBasement:
+        description: "Book 从 Basement 恢复"
+        fields:
+          - book_id: UUID
+          - basement_bookshelf_id: UUID
+          - restored_to_bookshelf_id: UUID
+          - restored_at: datetime
+
+      BookStatusChanged:
+        description: "Book 状态变更（draft → published → archived → deleted）"
+        fields:
+          - book_id: UUID
+          - old_status: BookStatus
+          - new_status: BookStatus
+
+    children:
+      - block
 
     policies:
       POLICY-005:
@@ -387,16 +636,66 @@ domains:
 
     events:
       BookCreated:
-        description: "Book 被创建"
+        description: "Book 被创建（核心事件）"
+        fields:
+          - book_id: UUID
+          - bookshelf_id: UUID
+          - title: str
 
-      BookUpdated:
-        description: "Book 信息被更新"
+      BookRenamed:
+        description: "Book 标题被改变（核心事件）"
+        fields:
+          - book_id: UUID
+          - old_title: str
+          - new_title: str
+
+      BookStatusChanged:
+        description: "Book 状态改变（核心事件，DRAFT/PUBLISHED/ARCHIVED/DELETED）"
+        fields:
+          - book_id: UUID
+          - old_status: BookStatus
+          - new_status: BookStatus
 
       BookDeleted:
-        description: "Book 被删除"
+        description: "Book 被删除（核心事件，软删除）"
+        fields:
+          - book_id: UUID
+          - bookshelf_id: UUID
 
-      BlockAdded:
-        description: "Block 被添加到 Book"
+      BookMovedToBookshelf:
+        description: "Book 被转移到不同 Bookshelf（核心事件）"
+        fields:
+          - book_id: UUID
+          - old_bookshelf_id: UUID
+          - new_bookshelf_id: UUID
+          - moved_at: datetime
+
+      BookMovedToBasement:
+        description: "Book 被转移到 Basement（删除，核心事件）"
+        fields:
+          - book_id: UUID
+          - old_bookshelf_id: UUID
+          - basement_bookshelf_id: UUID
+          - deleted_at: datetime
+
+      BookRestoredFromBasement:
+        description: "Book 从 Basement 恢复（核心事件）"
+        fields:
+          - book_id: UUID
+          - basement_bookshelf_id: UUID
+          - restored_to_bookshelf_id: UUID
+          - restored_at: datetime
+
+      BlocksUpdated:
+        description: "Book 的 Blocks 更新（核心事件，用于块计数）"
+        fields:
+          - book_id: UUID
+          - block_count: int
+
+      # ← REMOVED (moved to Service layer per AD-004)
+      # BookPinned, BookUnpinned
+      # These are now handled by Service layer auxiliary methods (pin_book, unpin_book)
+      # See: book/service.py and AD-004 (Auxiliary Features Layering)
 
     children:
       - block
@@ -407,10 +706,10 @@ domains:
 
   block:
     name: "Block（块）"
-    type: "AggregateRoot"  # 注：未来可能变成 Value Object，暂定为 AggregateRoot
-    description: "Book 的最小内容单位，支持多种类型（文本、代码、图片等）。从老架构的 blocks_json 扁平化出来。"
+    type: "AggregateRoot"
+    description: "独立聚合根，通过 book_id FK 关联到 Book。最小内容单位，支持多种类型。从老架构的 blocks_json 扁平化出来。"
     parent: "book"
-    status: "planned"
+    status: "implemented"
 
     # 从老架构的演变
     legacy_source: |
@@ -418,83 +717,217 @@ domains:
       - v3 将其独立为数据库表和实体
       - 支持的类型：text, code, image, table, checkpoint, translation, media, etc.
       - 新增字段：metadata（用于存储类型特定的数据）
+      - 设计为独立聚合根（不嵌套在 Book 内）
+
+    # Phase 5 优化后的实现分布（ADR-007）
+    implementation_layers:
+      domain_layer:
+        file: "backend/api/app/modules/domains/block/domain.py"
+        lines_of_code: 450
+        percentage: "40-42%"
+        responsibilities:
+          - "Factory methods: create(), create_text_block(), create_heading_block(), create_image_block(), create_code_block()"
+          - "Core operations: set_content(), set_order(), set_title(), remove_title()"
+          - "Soft delete: mark_deleted()"
+          - "Query methods: is_heading, heading_level, is_image"
+          - "Domain events: BlockCreated, BlockContentChanged, BlockReordered, BlockTitleChanged, BlockDeleted"
+        core_methods:
+          - "create(book_id, block_type, content, order)"
+          - "set_content(new_content)"
+          - "set_order(new_order)"
+          - "set_title(title, level)"
+          - "remove_title()"
+          - "mark_deleted()"
+
+      service_layer:
+        file: "backend/api/app/modules/domains/block/service.py"
+        lines_of_code: 90
+        percentage: "8-10%"
+        responsibilities:
+          - "Orchestration: create_block() with Book validation"
+          - "Content management: update_block_content() with permission check"
+          - "Ordering: reorder_block() with permission check"
+          - "Soft delete: delete_block() with permission check"
+          - "Retrieval: get_block(), list_blocks()"
+        permission_validations:
+          - "Verify Book exists (repository.get_by_id)"
+          - "Verify user ownership via Library (user_id → library.user_id match)"
+          - "Validate book_id consistency"
+        methods:
+          - "create_block(book_id, block_type, content, order, user_id)"
+          - "update_block_content(block_id, new_content, user_id)"
+          - "reorder_block(block_id, new_order, user_id)"
+          - "delete_block(block_id, user_id)"
+          - "get_block(block_id)"
+          - "list_blocks(book_id)"
+
+      repository_layer:
+        file: "backend/api/app/modules/domains/block/repository.py"
+        responsibilities:
+          - "get_by_id(block_id)"
+          - "get_by_book_id(book_id)"
+          - "save(block)"
+          - "Query soft-deleted blocks: get_deleted_blocks()"
 
     invariants:
       RULE-013:
         title: "Block 可无限创建"
-        statement: "用户可在 Book 下无限创建 Block，无数量限制。"
+        statement: "用户可在 Book 下无限创建 Block，无数量限制。每个 Block 独立操作。"
         type: "invariant"
         priority: "critical"
-        status: "planned"
+        status: "implemented"
+
+        design_note: "独立聚合根模式：Block 不嵌套在 Book 内，编辑时无需锁 整个 Book"
 
         implementation:
-          domain_file: "backend/api/app/modules/block/domain.py"
+          domain_file: "backend/api/app/modules/domains/block/domain.py (Line: create())"
 
         devlog_entry: "D33-Block-Unlimited"
 
       RULE-014:
         title: "Block 必须有 type"
-        statement: "每个 Block 必须有 type（text|code|image|table|checkpoint|translation|media|etc.）。"
+        statement: "每个 Block 必须有 type（TEXT|HEADING_1-3|IMAGE|CODE|TABLE|QUOTE|LIST）。"
         type: "invariant"
         priority: "critical"
-        status: "planned"
+        status: "implemented"
 
         code_example: |
           class Block(AggregateRoot):
               id: UUID
-              book_id: UUID
-              type: str  # Enum: text, code, image, ...
-              content: str  # 主要内容
-              metadata: Dict  # 类型特定的数据
-              order: int  # 排序位置
+              book_id: UUID        # ← FK（不是 Book 对象）
+              bookshelf_id: UUID   # ← 冗余 FK（用于 Bookshelf 删除时级联）
+              library_id: UUID     # ← 冗余 FK（用于权限检查）
+              block_type: BlockType  # Enum: TEXT, CODE, IMAGE, ...
+              content: str         # 主要内容
+              order: int           # 排序位置
+              title: Optional[BlockTitle]  # 可选：用于层级标题
 
         implementation:
-          domain_file: "backend/api/app/modules/block/domain.py"
+          domain_file: "backend/api/app/modules/domains/block/domain.py (Line: __init__)"
+
+        design_note: "采用 Enum 而非字符串，类型安全"
 
         devlog_entry: "D33-Block-MustHaveType"
 
       RULE-015:
         title: "Block 有序排列"
-        statement: "Block 通过 order 字段按升序排列，移动 Block 时重新计算顺序。"
+        statement: "Block 通过 order 字段按升序排列，移动 Block 时重新计算顺序。支持拖拽排序。"
         type: "invariant"
         priority: "high"
-        status: "planned"
+        status: "implemented"
+
+        design_note: "Flat structure，不支持嵌套 Marker"
+
+        implementation:
+          domain_file: "backend/api/app/modules/domains/block/domain.py (Line: set_order())"
 
         devlog_entry: "D33-Block-Ordering"
 
       RULE-016:
         title: "Block 必须属于一个 Book"
-        statement: "每个 Block 必须持有其所属 Book 的 ID（FK: book_id），不能孤立。"
+        statement: |
+          每个 Block 必须持有其所属 Book 的 ID（FK: book_id）。
+          同时持有 bookshelf_id 和 library_id 用于级联和权限。
         type: "invariant"
         priority: "critical"
-        status: "planned"
+        status: "implemented"
+
+        design_note: "独立聚合根模式：冗余 FK 用于优化查询和级联操作"
+
+        implementation:
+          domain_file: "backend/api/app/modules/domains/block/domain.py (Line: __init__)"
 
         devlog_entry: "D33-Block-BelongsToBook"
 
       RULE-017:
-        title: "Block 类型特定的元数据"
+        title: "Block 支持标题层级（可选）"
         statement: |
-          不同 type 的 Block 支持不同的 metadata 字段：
-          - text: { language: str, formatting: {...} }
-          - code: { language: str, theme: str, lineNumbers: bool }
-          - image: { alt: str, width: int, height: int, caption: str }
-          - checkpoint: { status: str, completed_at: datetime }
-          - translation: { source_lang: str, target_lang: str, nested_blocks: [...] }
-          - media: { mime_type: str, duration: int }
+          Block 可选择设置 title 和 title_level（1-3）用于建立层级结构。
+          - title_level=1: H1 级标题
+          - title_level=2: H2 级标题
+          - title_level=3: H3 级标题
+          - title_level=None: 普通内容块
         type: "invariant"
-        priority: "medium"
-        status: "planned"
+        priority: "high"
+        status: "implemented"
 
-        devlog_entry: "D33-Block-Metadata"
+        code_example: |
+          # 设置标题
+          block.set_title("Introduction", level=1)
+          # 或移除标题
+          block.remove_title()
+
+        implementation:
+          domain_file: "backend/api/app/modules/domains/block/domain.py (set_title/remove_title methods)"
+
+        design_note: "Flat structure with title hierarchy，比嵌套更简单"
+
+        devlog_entry: "D33-Block-TitleHierarchy"
 
     policies:
-      POLICY-007:
-        title: "Block 删除策略"
-        statement: "删除 Block 时，自动清理关联的媒体资源（如果有）。"
+      POLICY-008:
+        title: "Block 删除策略（软删除）"
+        statement: "删除 Block 时，不硬删除，而是标记为 soft_deleted。由定期 purge job 清理 30+ 天的 Block 及其媒体。"
         type: "policy"
-        status: "planned"
+        status: "implemented"
 
-        devlog_entry: "D33-Block-DeletionCleanup"
+        implementation:
+          service_file: "backend/api/app/modules/domains/block/service.py (Line: delete_block())"
+          domain_file: "backend/api/app/modules/domains/block/domain.py (Line: mark_deleted())"
+
+        devlog_entry: "D33-Block-SoftDelete (ADR-007)"
+
+      POLICY-009:
+        title: "Bookshelf 删除时的 Block 级联"
+        statement: |
+          Bookshelf 删除时，需清理其内所有 Books 的所有 Blocks。
+          实现方式：
+          1. 查询所有 bookshelf_id = X 的 Blocks（冗余 FK）
+          2. 仅标记为 soft_deleted（不硬删除）
+          3. 由 purge job 在 30+ 天后硬删除及其媒体
+          4. 然后删除 Books
+        type: "policy"
+        status: "implemented"
+
+        implementation:
+          service_file: "backend/api/app/modules/domains/bookshelf/service.py"
+
+        devlog_entry: "D33-Bookshelf-BlockCascade (ADR-007)"
+
+    events:
+      BlockCreated:
+        description: "新 Block 被创建"
+        fields:
+          - block_id: UUID
+          - book_id: UUID
+          - block_type: BlockType
+          - order: int
+
+      BlockContentChanged:
+        description: "Block 内容被修改"
+        fields:
+          - block_id: UUID
+          - occurred_at: datetime
+
+      BlockReordered:
+        description: "Block 顺序被改变（拖拽）"
+        fields:
+          - block_id: UUID
+          - old_order: int
+          - new_order: int
+
+      BlockTitleSet:
+        description: "Block 标题被设置或变更"
+        fields:
+          - block_id: UUID
+          - title_level: Optional[int]
+          - title_text: Optional[str]
+
+      BlockDeleted:
+        description: "Block 被删除"
+        fields:
+          - block_id: UUID
+          - book_id: UUID
 
       POLICY-008:
         title: "Block 类型检验"
