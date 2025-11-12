@@ -2,14 +2,27 @@
 Library Repository - Data access abstraction
 
 Defines the interface and implementation for persisting Library aggregates.
+
+Responsibilities:
+- Translating between Domain model and ORM model
+- Executing database queries
+- Handling database constraints and errors
+- No business logic here - that's the Domain's job
 """
 
+import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 from uuid import UUID
 
-from domains.library.domain import Library
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
+
+from domains.library.domain import Library, LibraryName
 from domains.library.models import LibraryModel
+from domains.library.exceptions import LibraryAlreadyExistsError
+
+logger = logging.getLogger(__name__)
 
 
 class LibraryRepository(ABC):
@@ -114,53 +127,99 @@ class LibraryRepositoryImpl(LibraryRepository):
         Save Library aggregate to database
 
         Translates from Domain model to ORM model.
+        Handles constraint violations by converting to Domain exceptions.
+
+        Raises:
+            LibraryAlreadyExistsError: If unique constraint violated (user_id)
         """
-        model = LibraryModel(
-            id=library.id,
-            user_id=library.user_id,
-            name=library.name.value,
-            created_at=library.created_at,
-            updated_at=library.updated_at,
-        )
-        self.session.add(model)
-        # Note: Session commit is handled at application level (Unit of Work pattern)
+        try:
+            model = LibraryModel(
+                id=library.id,
+                user_id=library.user_id,
+                name=library.name.value,
+                created_at=library.created_at,
+                updated_at=library.updated_at,
+            )
+            self.session.add(model)
+            # Note: Session commit is handled at application level (Unit of Work pattern)
+        except IntegrityError as e:
+            # Transform database constraint violation into Domain exception
+            error_str = str(e).lower()
+            if "user_id" in error_str or "unique" in error_str:
+                logger.warning(f"Integrity constraint violated: {e}")
+                raise LibraryAlreadyExistsError(
+                    "User already has a Library (database constraint)"
+                )
+            # Re-raise other integrity errors
+            logger.error(f"Unexpected integrity error: {e}")
+            raise
 
     async def get_by_id(self, library_id: UUID) -> Optional[Library]:
         """
         Retrieve Library by ID
 
         Translates from ORM model to Domain model.
-        """
-        model = await self.session.get(LibraryModel, library_id)
-        if not model:
-            return None
 
-        from domains.library.domain import LibraryName
-        return Library(
-            library_id=model.id,
-            user_id=model.user_id,
-            name=LibraryName(value=model.name),
-            created_at=model.created_at,
-            updated_at=model.updated_at,
-        )
+        Raises:
+            Exception: If database query fails
+        """
+        try:
+            model = await self.session.get(LibraryModel, library_id)
+            if not model:
+                logger.debug(f"Library not found: {library_id}")
+                return None
+            return self._to_domain(model)
+        except Exception as e:
+            logger.error(f"Error fetching Library {library_id}: {e}")
+            raise
 
     async def get_by_user_id(self, user_id: UUID) -> Optional[Library]:
         """
-        Retrieve Library by user ID
+        Retrieve Library by user ID (unique: 1 Library per user)
+
+        Per RULE-001, each user can have at most one Library.
+        This method enforces that invariant.
+
+        Raises:
+            Exception: If database query fails or multiple Libraries found
         """
-        from sqlalchemy import select
-        stmt = select(LibraryModel).where(LibraryModel.user_id == user_id)
-        result = await self.session.execute(stmt)
-        model = result.scalars().first()
+        try:
+            stmt = select(LibraryModel).where(LibraryModel.user_id == user_id)
+            result = await self.session.execute(stmt)
+            models = result.scalars().all()
 
-        if not model:
-            return None
+            if not models:
+                logger.debug(f"No Library found for user: {user_id}")
+                return None
 
-        from domains.library.domain import LibraryName
+            # RULE-001 violation detection
+            if len(models) > 1:
+                logger.error(
+                    f"RULE-001 violation: User {user_id} has {len(models)} Libraries! "
+                    f"Returning first one, but this indicates data corruption."
+                )
+
+            model = models[0]
+            return self._to_domain(model)
+        except Exception as e:
+            logger.error(f"Error fetching Library for user {user_id}: {e}")
+            raise
+
+    def _to_domain(self, model: LibraryModel) -> Library:
+        """
+        Convert ORM model to Domain model (DRY principle)
+
+        Args:
+            model: LibraryModel instance
+
+        Returns:
+            Library domain object
+        """
         return Library(
             library_id=model.id,
             user_id=model.user_id,
             name=LibraryName(value=model.name),
+            basement_bookshelf_id=getattr(model, 'basement_bookshelf_id', None),
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -168,14 +227,35 @@ class LibraryRepositoryImpl(LibraryRepository):
     async def delete(self, library_id: UUID) -> None:
         """
         Delete Library by ID
+
+        Side Effects:
+            - Removes database record
+            - Cascade delete rules handled at DB level
         """
-        model = await self.session.get(LibraryModel, library_id)
-        if model:
-            await self.session.delete(model)
+        try:
+            model = await self.session.get(LibraryModel, library_id)
+            if model:
+                await self.session.delete(model)
+                logger.info(f"Library deleted: {library_id}")
+            else:
+                logger.debug(f"Library not found for deletion: {library_id}")
+        except Exception as e:
+            logger.error(f"Error deleting Library {library_id}: {e}")
+            raise
 
     async def exists(self, library_id: UUID) -> bool:
         """
         Check if Library exists
+
+        Args:
+            library_id: UUID of the Library
+
+        Returns:
+            True if Library exists, False otherwise
         """
-        model = await self.session.get(LibraryModel, library_id)
-        return model is not None
+        try:
+            model = await self.session.get(LibraryModel, library_id)
+            return model is not None
+        except Exception as e:
+            logger.error(f"Error checking Library existence {library_id}: {e}")
+            raise
