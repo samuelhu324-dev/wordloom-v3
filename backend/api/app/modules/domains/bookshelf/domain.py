@@ -14,7 +14,7 @@ Architecture:
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID, uuid4
 from enum import Enum
@@ -49,7 +49,7 @@ class BookshelfCreated(DomainEvent):
     bookshelf_id: UUID
     library_id: UUID
     name: str
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -62,7 +62,7 @@ class BookshelfRenamed(DomainEvent):
     bookshelf_id: UUID
     old_name: str
     new_name: str
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -75,7 +75,7 @@ class BookshelfStatusChanged(DomainEvent):
     bookshelf_id: UUID
     old_status: BookshelfStatus
     new_status: BookshelfStatus
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -84,10 +84,10 @@ class BookshelfStatusChanged(DomainEvent):
 
 @dataclass
 class BookshelfDeleted(DomainEvent):
-    """Emitted when Bookshelf is deleted"""
+    """Emitted when Bookshelf is deleted (soft delete)"""
     bookshelf_id: UUID
     library_id: UUID
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -182,8 +182,8 @@ class Bookshelf(AggregateRoot):
         self.is_favorite = is_favorite
         self.status = status
         self.book_count = book_count
-        self.created_at = created_at or datetime.utcnow()
-        self.updated_at = updated_at or datetime.utcnow()
+        self.created_at = created_at or datetime.now(timezone.utc)
+        self.updated_at = updated_at or datetime.now(timezone.utc)
         self.events: List[DomainEvent] = []
 
     # ========================================================================
@@ -214,7 +214,7 @@ class Bookshelf(AggregateRoot):
         bookshelf_id = uuid4()
         bookshelf_name = BookshelfName(value=name)
         bookshelf_desc = BookshelfDescription(value=description)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         bookshelf = cls(
             bookshelf_id=bookshelf_id,
@@ -250,7 +250,7 @@ class Bookshelf(AggregateRoot):
 
         old_name = self.name.value
         self.name = new_bookshelf_name
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
         self.emit(
             BookshelfRenamed(
@@ -275,7 +275,7 @@ class Bookshelf(AggregateRoot):
 
         old_status = self.status
         self.status = new_status
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
         self.emit(
             BookshelfStatusChanged(
@@ -289,7 +289,7 @@ class Bookshelf(AggregateRoot):
     def mark_deleted(self) -> None:
         """Mark Bookshelf as deleted (软删除)"""
         self.change_status(BookshelfStatus.DELETED)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         self.emit(
             BookshelfDeleted(
@@ -314,7 +314,7 @@ class Bookshelf(AggregateRoot):
             raise ValueError("Cannot convert non-normal shelf to basement")
         self.type = BookshelfType.BASEMENT
         self.is_hidden = True
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     # ========================================================================
     # Utility Methods

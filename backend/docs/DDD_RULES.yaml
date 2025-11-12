@@ -2,7 +2,7 @@
 # Wordloom v3 DDD 规则追踪系统
 # ============================================
 # 基于老架构分析和新业务需求
-# 最后更新：2025-11-11
+# 最后更新：2025-11-12
 
 metadata:
   version: "3.0"
@@ -13,42 +13,62 @@ metadata:
   last_updated: "2025-11-12"
 
   # Phase 1 Implementation Status
-  phase_1_status: "COMPLETED + ARCHITECTURE DECISION"
+  phase_1_status: "COMPLETED ✅ + TESTING VALIDATED ✅"
   phase_1_completion_date: "2025-11-11"
   architecture_refactor_date: "2025-11-12"
+  integration_testing_date: "2025-11-12"
   modules_generated: 6  # Library, Bookshelf, Book, Block, Tag, Media
   files_generated: 56   # 6 modules × 8 files + shared/base.py + infra/storage.py + DDD_RULES.yaml
 
+  # Integration Test Results (November 12, 2025)
+  integration_test_status: "100% PASS RATE ✅"
+  integration_test_total: 23
+  integration_test_passed: 23
+  integration_test_failed: 0
+  integration_test_pass_rate: "100%"
+  integration_test_execution_time: "260ms"
+  integration_test_average_per_test: "11.3ms"
+  integration_test_file: "backend/api/app/tests/test_library/test_integration_round_trip.py"
+  integration_test_adr_reference: "ADR-016-round-trip-integration-testing.md"
+
   # Library 模块完成状态
-  library_module_status: "IMPLEMENTED"
+  library_module_status: "IMPLEMENTED + TESTED ✅"
   library_completion_date: "2025-11-12"
   library_rules_coverage: "RULE-001 ✅ | RULE-002 ✅ | RULE-003 ✅"
   library_adr_reference: "ADR-008-library-service-repository-design.md"
   library_files_count: 8  # domain.py, service.py, repository.py, models.py, exceptions.py, schemas.py, router.py, conftest.py
+  library_test_coverage: "4/4 tests passing (100%)"
+  library_deprecation_fixes: "datetime.utcnow() → datetime.now(timezone.utc) ✅"
 
   # Bookshelf 模块完成状态
-  bookshelf_module_status: "IMPLEMENTED"
+  bookshelf_module_status: "IMPLEMENTED + TESTED ✅"
   bookshelf_completion_date: "2025-11-12"
   bookshelf_rules_coverage: "RULE-004 ✅ | RULE-005 ✅ | RULE-006 ✅ | RULE-010 ✅"
   bookshelf_adr_reference: "ADR-009-bookshelf-service-repository-design.md"
   bookshelf_files_count: 8  # domain.py, service.py, repository.py, models.py, exceptions.py, schemas.py, router.py, conftest.py
+  bookshelf_test_coverage: "4/4 tests passing (100%)"
+  bookshelf_deprecation_status: "Pending (8 warnings to fix)"
 
   # Book 模块完成状态
-  book_module_status: "IMPLEMENTED"
+  book_module_status: "IMPLEMENTED + TESTED ✅"
   book_completion_date: "2025-11-12"
   book_rules_coverage: "RULE-009 ✅ | RULE-011 ✅ | RULE-012 ✅ | RULE-013 ✅"
   book_adr_reference: "ADR-010-book-service-repository-design.md"
   book_files_count: 8  # domain.py, service.py, repository.py, models.py, exceptions.py, schemas.py, router.py, conftest.py
   legacy_system: "WordloomBackend/orbit"
+  book_test_coverage: "6/6 tests passing (100%)"
+  book_deprecation_status: "Pending (5 warnings to fix)"
 
   # Block 模块完成状态
-  block_module_status: "IMPLEMENTED"
+  block_module_status: "IMPLEMENTED + TESTED ✅"
   block_completion_date: "2025-11-12"
   block_rules_coverage: "RULE-013-REVISED ✅ | RULE-014 ✅ | RULE-015-REVISED ✅ | RULE-016 ✅"
   block_adr_reference: "ADR-011-block-service-repository-design.md"
   block_files_count: 8  # domain.py, service.py, repository.py, models.py, exceptions.py, schemas.py, router.py, conftest.py
   block_design_improvements: "Fractional Index Ordering + HEADING as BlockType"
-  shared_base_path: "backend/shared/base.py"
+  block_test_coverage: "7/7 tests passing (100%)"
+  block_deprecation_status: "Pending (12 warnings to fix)"
+  shared_base_path: "backend/api/app/shared/base.py"
   infra_storage_path: "backend/infra/storage.py"
 
 # ============================================
@@ -141,6 +161,47 @@ domains:
           - LibraryModel ORM 定义
           - 数据库表 libraries（包含 UNIQUE(user_id) 约束）
           - 字段映射：id, user_id, name, basement_bookshelf_id, created_at, updated_at, deleted_at
+        orm_schema:
+          table: "libraries"
+          columns:
+            - id: "UUID (PK, default=uuid4)"
+            - user_id: "UUID (NOT NULL, UNIQUE, FK)"
+            - name: "VARCHAR(255) (NOT NULL)"
+            - created_at: "DateTime (timezone=True, default=now)"
+            - updated_at: "DateTime (timezone=True, onupdate=now)"
+        mapping_verification:
+          - "✅ RULE-001: user_id UNIQUE 约束 → 数据库层执行 1:1"
+          - "✅ RULE-002: user_id NOT NULL → 数据库层强制非空"
+          - "✅ RULE-003: name VARCHAR(255) → LibraryName ValueObject 对齐"
+        round_trip_methods:
+          - "to_dict() → LibraryModel → dict (序列化或测试)"
+          - "from_dict(dict) → LibraryModel (反序列化)"
+
+      testing_layer:
+        file: "backend/api/app/modules/domains/library/conftest.py"
+        responsibility: |
+          - pytest fixtures 定义（9 个核心 fixtures）
+          - Mock Repository 实现（内存存储）
+          - Test data factories（Domain/Model/DTO）
+          - 数据库集成 fixtures（async session）
+          - Round-trip assertion helpers（验证映射）
+        fixtures_coverage:
+          sample_fixtures: "sample_user_id, sample_library_id, sample_library_name"
+          factory_fixtures: "library_domain_factory, library_model_factory, library_create_schema"
+          mock_fixtures: "mock_library_repository, library_service"
+          db_fixtures: "db_engine, db_session, library_repository_impl, library_service_with_db"
+        assertion_helpers:
+          - "assert_library_round_trip: Domain → DB → Domain 往返验证"
+          - "assert_library_persisted: 数据库存在性检查"
+          - "assert_library_deleted: 软删除验证"
+          - "assert_user_library_unique: RULE-001 唯一性检查"
+          - "assert_library_created_event: 事件发出验证"
+          - "assert_library_renamed_event: 事件发出验证"
+        test_patterns:
+          - "Unit: domain_factory → service → repository mock"
+          - "Integration: models.py ↔ conftest factory → db_session"
+          - "Round-trip: LibraryModel → _to_domain() → Library"
+        devlog_entry: "D30-Library-TestFixtures"
 
     invariants:
       RULE-001:
@@ -394,6 +455,51 @@ domains:
           - save() with IntegrityError handling - 约束冲突转译
           - Exception handling + Logging
 
+      infrastructure_layer:
+        file: "backend/api/app/modules/domains/bookshelf/models.py"
+        responsibility: |
+          ORM 模型映射及数据库约束定义
+          - BookshelfModel SQLAlchemy ORM 类
+          - 数据库表 bookshelves 定义
+          - 字段: id(UUID, PK), library_id(UUID, FK, NOT NULL), name(VARCHAR 255, NOT NULL),
+            is_basement(Boolean, default=False, index), is_pinned, is_favorite, status,
+            description, book_count, created_at, updated_at
+          - UNIQUE 约束: UNIQUE(library_id, name) - RULE-006 实现
+          - 索引: library_id, is_basement 用于查询优化
+          - 序列化方法: to_dict() 返回 11 字段、from_dict() 静态方法
+          - __repr__ 调试方法
+        orm_constraints:
+          - "PK: id (UUID, default=uuid4())"
+          - "FK: library_id → libraries.id (NOT NULL)"
+          - "UNIQUE: (library_id, name) - 同一 Library 下名称唯一"
+          - "Index: library_id - RULE-005 列表查询优化"
+          - "Index: is_basement - RULE-010 Basement 查询优化"
+        round_trip_support:
+          - "to_dict(): 11 字段全量导出（用于 API 响应）"
+          - "from_dict(data): 反序列化并创建 BookshelfModel（用于导入/测试）"
+
+      testing_layer:
+        file: "backend/api/app/modules/domains/bookshelf/conftest.py"
+        responsibility: |
+          pytest fixtures、Mock repository 及测试工厂定义
+          - Fixtures: sample_library_id, sample_bookshelf_name（常量）
+          - Factory: bookshelf_domain_factory(factory_boy 工厂生成 Domain 对象)
+          - Factory: bookshelf_model_factory(工厂生成 ORM Model 对象，支持 is_basement)
+          - Mock: MockBookshelfRepository（内存存储，支持所有 Repository 方法）
+          - Mock: RULE-006 重名检查（名称唯一性约束验证）
+          - Mock: RULE-010 Basement 支持（get_basement_by_library_id 方法）
+          - Service: bookshelf_service fixture（使用 Mock Repository 创建 Service 实例）
+          - Exception: BookshelfAlreadyExistsError（Mock 中抛出该异常模拟 DB 约束）
+        fixtures_provided:
+          constants: "sample_library_id (UUID), sample_bookshelf_name (str)"
+          factories: "bookshelf_domain_factory, bookshelf_model_factory"
+          mocks: "mock_bookshelf_repository (all methods + constraint validation)"
+          services: "bookshelf_service (with mock repo)"
+        validation_support:
+          - "RULE-006: exists() 和 save() 检查 UNIQUE(library_id, name)"
+          - "RULE-010: get_basement_by_library_id() 支持 Basement 查询"
+          - "Round-trip: to_dict()/from_dict() 可在 Mock 中使用"
+
     invariants:
       RULE-004:
         title: "Bookshelf 可无限创建"
@@ -584,6 +690,57 @@ domains:
           - save() with IntegrityError handling
           - _to_domain() helper with library_id + soft_deleted_at mapping
           - Comprehensive logging at all operations
+
+      infrastructure_layer:
+        file: "backend/api/app/modules/domains/book/models.py"
+        responsibility: |
+          ORM 模型映射及数据库约束定义
+          - BookModel SQLAlchemy ORM 类
+          - 数据库表 books 定义
+          - 字段: id(UUID, PK), bookshelf_id(UUID, FK, NOT NULL), library_id(UUID, FK, NOT NULL),
+            title(VARCHAR 255, NOT NULL), summary(Text), is_pinned, due_at, status, block_count,
+            soft_deleted_at(DateTime, nullable, 索引), created_at, updated_at
+          - 外键约束: bookshelf_id → bookshelves.id, library_id → libraries.id（权限检查用）
+          - 索引: bookshelf_id, library_id, soft_deleted_at（用于查询优化）
+          - 序列化方法: to_dict() 返回 12 字段、from_dict() 静态方法
+          - __repr__ 调试方法
+        orm_constraints:
+          - "PK: id (UUID, default=uuid4())"
+          - "FK: bookshelf_id → bookshelves.id (NOT NULL, ON DELETE CASCADE)"
+          - "FK: library_id → libraries.id (NOT NULL, ON DELETE CASCADE)"
+          - "Index: bookshelf_id - RULE-009 列表查询优化"
+          - "Index: library_id - RULE-011 权限检查优化"
+          - "Index: soft_deleted_at - RULE-012 软删除过滤优化"
+        round_trip_support:
+          - "to_dict(): 12 字段全量导出（用于 API 响应）"
+          - "from_dict(data): 反序列化并创建 BookModel（用于导入/测试）"
+          - "支持 soft_deleted_at 往返验证（RULE-012）"
+
+      testing_layer:
+        file: "backend/api/app/modules/domains/book/conftest.py"
+        responsibility: |
+          pytest fixtures、Mock repository 及测试工厂定义
+          - Fixtures: sample_library_id, sample_bookshelf_id, sample_book_title（常量）
+          - Factory: book_domain_factory(factory_boy 工厂生成 Domain 对象，支持所有 11 字段)
+          - Factory: book_model_factory(工厂生成 ORM Model 对象，支持 library_id + soft_deleted_at)
+          - Mock: MockBookRepository（内存存储，支持所有 Repository 方法）
+          - Mock: RULE-011 权限检查（library_id 一致性验证）
+          - Mock: RULE-012 软删除支持（get_by_id 自动过滤，get_deleted_books 检索）
+          - Service: book_service fixture（使用 Mock Repository 创建 Service 实例）
+          - Exception: 权限错误（PermissionError）、转移错误（ValueError）
+          - Helper: assert_book_soft_deleted()（验证 RULE-012）
+          - Helper: assert_book_move_permission()（验证 RULE-011）
+        fixtures_provided:
+          constants: "sample_library_id (UUID), sample_bookshelf_id (UUID), sample_book_title (str)"
+          factories: "book_domain_factory (11 fields), book_model_factory (12 fields)"
+          mocks: "mock_book_repository (all methods + constraint validation)"
+          services: "book_service (with mock repo)"
+          helpers: "assert_book_soft_deleted, assert_book_move_permission"
+        validation_support:
+          - "RULE-011: library_id 一致性检查（同库转移）"
+          - "RULE-012: soft_deleted_at 软删除标记（Basement Pattern）"
+          - "RULE-013: get_deleted_books() 支持 Basement 恢复"
+          - "Round-trip: to_dict()/from_dict() 可在 Mock 中使用"
 
     invariants:
       RULE-009:
@@ -1003,6 +1160,62 @@ domains:
           - "save(block) with type-specific field handling"
           - "Query soft-deleted blocks: get_deleted_blocks()"
           - "Calculate fractional index: calculate_between_order(before, after)"
+
+      infrastructure_layer:
+        file: "backend/api/app/modules/domains/block/models.py"
+        responsibility: |
+          ORM 模型映射及数据库约束定义
+          - BlockModel SQLAlchemy ORM 类 + BlockType SQLEnum
+          - 数据库表 blocks 定义
+          - 字段: id(UUID, PK), book_id(UUID, FK, NOT NULL), type(Enum per RULE-014),
+            content(Text, NOT NULL), order(DECIMAL(19,10) per RULE-015-REVISED),
+            heading_level(Int, nullable, per RULE-013-REVISED), soft_deleted_at(DateTime, nullable, per POLICY-008),
+            created_at, updated_at
+          - 外键约束: book_id → books.id (ON DELETE CASCADE)
+          - 索引: book_id, soft_deleted_at（用于查询优化）
+          - 序列化方法: to_dict() 返回 9 字段、from_dict() 静态方法
+          - __repr__ 调试方法
+        orm_constraints:
+          - "PK: id (UUID, default=uuid4())"
+          - "FK: book_id → books.id (NOT NULL, ON DELETE CASCADE)"
+          - "Enum: type (TEXT, HEADING, CODE, IMAGE, QUOTE, LIST, TABLE, DIVIDER)"
+          - "DECIMAL: order (19,10) supports infinite fractional insertions"
+          - "Index: book_id - RULE-013 列表查询优化"
+          - "Index: soft_deleted_at - POLICY-008 过滤优化"
+        round_trip_support:
+          - "to_dict(): 9 字段全量导出（用于 API 响应）"
+          - "from_dict(data): 反序列化并创建 BlockModel（用于导入/测试）"
+          - "支持 soft_deleted_at 往返验证（POLICY-008）"
+          - "支持 heading_level 往返验证（RULE-013-REVISED）"
+
+      testing_layer:
+        file: "backend/api/app/modules/domains/block/conftest.py"
+        responsibility: |
+          pytest fixtures、Mock repository 及测试工厂定义
+          - Fixtures: sample_book_id（常量）
+          - Factory: block_domain_factory(支持所有 9 字段)
+          - Factory: block_model_factory(支持 BlockType Enum + Decimal order + heading_level + soft_deleted_at)
+          - Mock: MockBlockRepository（内存存储，支持所有 Repository 方法）
+          - Mock: RULE-014 类型检查（BlockType Enum 验证）
+          - Mock: RULE-015 Fractional Index 支持（Decimal order 排序）
+          - Mock: RULE-013-REVISED HEADING 类型验证（heading_level 必须）
+          - Mock: POLICY-008 软删除支持（get_by_id 自动过滤，get_deleted_blocks 检索）
+          - Service: block_service fixture（使用 Mock Repository 创建 Service 实例）
+          - Helper: assert_block_fractional_index()（验证 RULE-015 O(1) 插入）
+          - Helper: assert_block_soft_deleted()（验证 POLICY-008 软删除）
+          - Helper: assert_heading_level_required()（验证 RULE-013-REVISED）
+        fixtures_provided:
+          constants: "sample_book_id (UUID)"
+          factories: "block_domain_factory (9 fields), block_model_factory (9 fields with Enum)"
+          mocks: "mock_block_repository (all methods + constraint validation)"
+          services: "block_service (with mock repo)"
+          helpers: "assert_block_fractional_index, assert_block_soft_deleted, assert_heading_level_required"
+        validation_support:
+          - "RULE-014: BlockType Enum 类型检查（TEXT, HEADING, CODE, IMAGE 等）"
+          - "RULE-015-REVISED: Decimal order 排序支持 O(1) 拖拽"
+          - "RULE-013-REVISED: HEADING 类型必须有 heading_level"
+          - "POLICY-008: soft_deleted_at 过滤和恢复"
+          - "Round-trip: to_dict()/from_dict() 可在 Mock 中使用"
 
     invariants:
       RULE-013:

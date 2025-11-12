@@ -19,7 +19,7 @@ Architecture:
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID, uuid4
 from enum import Enum
@@ -55,7 +55,7 @@ class BlockCreated(DomainEvent):
     book_id: UUID
     block_type: BlockType
     order: Decimal
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -66,7 +66,7 @@ class BlockCreated(DomainEvent):
 class BlockContentChanged(DomainEvent):
     """Emitted when Block content is modified"""
     block_id: UUID
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -79,7 +79,7 @@ class BlockReordered(DomainEvent):
     block_id: UUID
     old_order: Decimal
     new_order: Decimal
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -88,10 +88,10 @@ class BlockReordered(DomainEvent):
 
 @dataclass
 class BlockDeleted(DomainEvent):
-    """Emitted when Block is deleted"""
+    """Emitted when Block is deleted (soft delete)"""
     block_id: UUID
     book_id: UUID
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -162,8 +162,8 @@ class Block(AggregateRoot):
         self.content = content
         self.order = order
         self.heading_level = heading_level if block_type == BlockType.HEADING else None
-        self.created_at = created_at or datetime.utcnow()
-        self.updated_at = updated_at or datetime.utcnow()
+        self.created_at = created_at or datetime.now(timezone.utc)
+        self.updated_at = updated_at or datetime.now(timezone.utc)
         self.events: List[DomainEvent] = []
 
     # ========================================================================
@@ -180,7 +180,7 @@ class Block(AggregateRoot):
         """Create a TEXT block"""
         block_id = uuid4()
         block_content = BlockContent(value=content)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         block = cls(
             block_id=block_id,
@@ -218,7 +218,7 @@ class Block(AggregateRoot):
 
         block_id = uuid4()
         block_content = BlockContent(value=content)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         block = cls(
             block_id=block_id,
@@ -256,7 +256,7 @@ class Block(AggregateRoot):
         # For now, include in content comment or as separate field
         block_id = uuid4()
         block_content = BlockContent(value=content)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         block = cls(
             block_id=block_id,
@@ -289,7 +289,7 @@ class Block(AggregateRoot):
         """Create an IMAGE block (placeholder content)"""
         block_id = uuid4()
         block_content = BlockContent(value="[image]")
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         block = cls(
             block_id=block_id,
@@ -323,7 +323,7 @@ class Block(AggregateRoot):
         """Create a QUOTE block"""
         block_id = uuid4()
         block_content = BlockContent(value=content)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         block = cls(
             block_id=block_id,
@@ -357,7 +357,7 @@ class Block(AggregateRoot):
         """Create a LIST block"""
         block_id = uuid4()
         block_content = BlockContent(value=content)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         block = cls(
             block_id=block_id,
@@ -393,7 +393,7 @@ class Block(AggregateRoot):
             return
 
         self.content = new_block_content
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
         self.emit(
             BlockContentChanged(
@@ -412,7 +412,7 @@ class Block(AggregateRoot):
 
         old_order = self.order
         self.order = new_order
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
         self.emit(
             BlockReordered(
@@ -425,7 +425,7 @@ class Block(AggregateRoot):
 
     def mark_deleted(self) -> None:
         """Mark Block as deleted (soft delete)"""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         self.updated_at = now
 
         self.emit(

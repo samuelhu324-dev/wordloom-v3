@@ -2,31 +2,40 @@
 
 from uuid import UUID
 from datetime import datetime
-from typing import Any, Dict
-from pydantic import BaseModel
+from typing import Any, Dict, Optional
+from dataclasses import dataclass
 
 # ============================================
 # Domain Base Classes
 # ============================================
 
-class DomainObject(BaseModel):
+class DomainObject:
     """所有 Domain Objects 的基类"""
-
-    class Config:
-        arbitrary_types_allowed = True
+    pass
 
 
 class Entity(DomainObject):
     """有身份的对象（有 ID）"""
-    id: UUID
+    def __init__(self):
+        self.id: Optional[UUID] = None
 
 
 class AggregateRoot(Entity):
     """聚合根基类"""
-    created_at: datetime
-    updated_at: datetime
+    def __init__(self):
+        super().__init__()
+        self.created_at: Optional[datetime] = None
+        self.updated_at: Optional[datetime] = None
+        self.events: list = []
+
+    def emit(self, event):
+        """Emit a domain event"""
+        if not hasattr(self, 'events') or self.events is None:
+            self.events = []
+        self.events.append(event)
 
 
+@dataclass(frozen=True)
 class ValueObject(DomainObject):
     """值对象基类（无 ID，通过值比较）"""
 
@@ -36,7 +45,11 @@ class ValueObject(DomainObject):
         return self.__dict__ == other.__dict__
 
     def __hash__(self):
-        return hash(tuple(self.__dict__.values()))
+        try:
+            return hash(tuple(sorted(self.__dict__.items())))
+        except TypeError:
+            # 如果有不可哈希的值，使用 id
+            return id(self)
 
 
 # ============================================
@@ -45,9 +58,7 @@ class ValueObject(DomainObject):
 
 class DomainEvent(DomainObject):
     """Domain Event 基类"""
-    aggregate_id: UUID
-    occurred_at: datetime = datetime.now()
-    event_version: int = 1
+    pass
 
 
 # ============================================

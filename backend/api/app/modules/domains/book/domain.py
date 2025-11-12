@@ -15,7 +15,7 @@ Architecture:
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID, uuid4
 from enum import Enum
@@ -45,7 +45,7 @@ class BookCreated(DomainEvent):
     book_id: UUID
     bookshelf_id: UUID
     title: str
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -58,7 +58,7 @@ class BookRenamed(DomainEvent):
     book_id: UUID
     old_title: str
     new_title: str
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -71,7 +71,7 @@ class BookStatusChanged(DomainEvent):
     book_id: UUID
     old_status: BookStatus
     new_status: BookStatus
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -83,7 +83,7 @@ class BookDeleted(DomainEvent):
     """Emitted when Book is deleted"""
     book_id: UUID
     bookshelf_id: UUID
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -95,7 +95,7 @@ class BlocksUpdated(DomainEvent):
     """Emitted when Book's Blocks are updated"""
     book_id: UUID
     block_count: int
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -109,7 +109,7 @@ class BookMovedToBookshelf(DomainEvent):
     old_bookshelf_id: UUID
     new_bookshelf_id: UUID
     moved_at: datetime
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -123,7 +123,7 @@ class BookMovedToBasement(DomainEvent):
     old_bookshelf_id: UUID
     basement_bookshelf_id: UUID
     deleted_at: datetime
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -137,7 +137,7 @@ class BookRestoredFromBasement(DomainEvent):
     basement_bookshelf_id: UUID
     restored_to_bookshelf_id: UUID
     restored_at: datetime
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -229,8 +229,8 @@ class Book(AggregateRoot):
         self.status = status
         self.block_count = block_count
         self.soft_deleted_at = soft_deleted_at  # ← 标记是否在 Basement
-        self.created_at = created_at or datetime.utcnow()
-        self.updated_at = updated_at or datetime.utcnow()
+        self.created_at = created_at or datetime.now(timezone.utc)
+        self.updated_at = updated_at or datetime.now(timezone.utc)
         self.events: List[DomainEvent] = []
 
     # ========================================================================
@@ -263,7 +263,7 @@ class Book(AggregateRoot):
         book_id = uuid4()
         book_title = BookTitle(value=title)
         book_summary = BookSummary(value=summary)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         book = cls(
             book_id=book_id,
@@ -300,7 +300,7 @@ class Book(AggregateRoot):
 
         old_title = self.title.value
         self.title = new_book_title
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
         self.emit(
             BookRenamed(
@@ -318,7 +318,7 @@ class Book(AggregateRoot):
 
         old_status = self.status
         self.status = new_status
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
         self.emit(
             BookStatusChanged(
@@ -332,7 +332,7 @@ class Book(AggregateRoot):
     def mark_deleted(self) -> None:
         """Mark Book as deleted (soft delete)"""
         self.change_status(BookStatus.DELETED)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         self.emit(
             BookDeleted(
@@ -364,7 +364,7 @@ class Book(AggregateRoot):
         # 真实转移（一行代码）
         old_bookshelf_id = self.bookshelf_id
         self.bookshelf_id = new_bookshelf_id
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
         # 发出事件
         self.emit(BookMovedToBookshelf(
@@ -384,7 +384,7 @@ class Book(AggregateRoot):
             basement_bookshelf_id: Basement 的 Bookshelf ID
         """
         old_bookshelf_id = self.bookshelf_id
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # 实际转移
         self.bookshelf_id = basement_bookshelf_id
@@ -409,7 +409,7 @@ class Book(AggregateRoot):
             raise ValueError("Book is not in Basement")
 
         basement_id = self.bookshelf_id
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # 转移回来
         self.bookshelf_id = restore_to_bookshelf_id
@@ -426,7 +426,7 @@ class Book(AggregateRoot):
     def update_block_count(self, count: int) -> None:
         """Update block count (called when Blocks are modified)"""
         self.block_count = count
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
         self.emit(
             BlocksUpdated(

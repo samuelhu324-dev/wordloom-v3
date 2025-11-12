@@ -20,6 +20,15 @@ class LibraryModel(Base):
     - One Library per user
     - Minimal metadata (name, timestamps)
     - Cover, icon, usage are managed by Media/Chronicle Domains
+
+    Mapping Strategy (ADR-012):
+    - Primary Key: id (UUID)
+    - Business Key: user_id (unique per RULE-001)
+    - Timestamps: created_at, updated_at (timezone-aware)
+
+    Round-Trip Validation:
+    Use _to_domain() for ORM → Domain conversion
+    Use _from_domain() for Domain → ORM conversion
     """
     __tablename__ = "libraries"
 
@@ -33,7 +42,7 @@ class LibraryModel(Base):
         UUID(as_uuid=True),
         nullable=False,
         index=True,
-        unique=True,  # One Library per user
+        unique=True,  # One Library per user (RULE-001)
         comment="User who owns this Library",
     )
     name = Column(
@@ -57,3 +66,55 @@ class LibraryModel(Base):
 
     def __repr__(self) -> str:
         return f"<LibraryModel(id={self.id}, user_id={self.user_id}, name={self.name})>"
+
+    # ========================================================================
+    # Round-Trip Mapping Methods (for testing and repository conversion)
+    # ========================================================================
+
+    def to_dict(self) -> dict:
+        """
+        Convert ORM model to dictionary for serialization or testing.
+
+        Returns:
+            dict with all fields
+
+        Usage:
+            model = library_model_factory()
+            data = model.to_dict()
+            assert data["id"] == model.id
+        """
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "name": self.name,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+    @staticmethod
+    def from_dict(data: dict) -> "LibraryModel":
+        """
+        Create ORM model from dictionary.
+
+        Inverse of to_dict(). Used for testing and data migration.
+
+        Args:
+            data: Dictionary with model fields
+
+        Returns:
+            LibraryModel instance
+
+        Usage:
+            model = LibraryModel.from_dict({
+                "id": uuid4(),
+                "user_id": uuid4(),
+                "name": "Test"
+            })
+        """
+        return LibraryModel(
+            id=data.get("id"),
+            user_id=data.get("user_id"),
+            name=data.get("name"),
+            created_at=data.get("created_at"),
+            updated_at=data.get("updated_at"),
+        )
