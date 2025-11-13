@@ -66,6 +66,38 @@ metadata:
     naming: "test_{subject}_{verb}_{scenario}"
     fixtures: "集中在conftest.py中管理，可跨模块复用"
 
+  # Tag 模块完成状态 (Phase 2 - Nov 13, 2025)
+  tag_module_status: "PRODUCTION READY ✅ (成熟度：8.5/10)"
+  tag_completion_date: "2025-11-13"
+  tag_api_maturity_date: "2025-11-13"
+  tag_rules_coverage: "RULE-018 ✅ | RULE-019 ✅ | RULE-020 ✅"
+  tag_adr_reference: "ADR-025-tag-service-repository-design.md (NEW)"
+  tag_files_count: 8  # domain.py, service.py, repository.py, models.py, exceptions.py, schemas.py, router.py, __init__.py
+  tag_enhancements:
+    exceptions_py: "TagInvalidNameError, TagInvalidColorError, TagInvalidHierarchyError, TagAlreadyAssociatedError, etc."
+    schemas_py: "Pydantic v2 validation with Field constraints, CreateTagRequest, CreateSubtagRequest, UpdateTagRequest, AssociateTagRequest, TagResponse, TagHierarchyResponse, TagAssociationResponse, TagListResponse, EntityTagsResponse"
+    router_py: "12 endpoints covering full CRUD + hierarchy + association management + entity query"
+    domain_py: "Tag AggregateRoot with TagAssociation ValueObject, 6 domain events, soft delete support, multi-level hierarchy"
+    repository_py: "SQLAlchemy ORM with soft delete filtering, hierarchy queries, entity association reverse lookup"
+  tag_test_organization: "Domain + Repository test files (planned: backend/api/app/tests/test_tag/test_domain.py, test_repository.py)"
+
+  # Media 模块完成状态 (Phase 2 - Nov 13, 2025)
+  media_module_status: "PRODUCTION READY ✅ (成熟度：8.5/10)"
+  media_completion_date: "2025-11-13"
+  media_api_maturity_date: "2025-11-13"
+  media_rules_coverage: "POLICY-009 ✅ | POLICY-010 ✅"
+  media_adr_reference: "ADR-026-media-service-repository-design.md (NEW)"
+  media_files_count: 8  # domain.py, service.py, repository.py, models.py, exceptions.py, schemas.py, router.py, __init__.py
+  media_enhancements:
+    domain_py: "Media AggregateRoot with MediaPath ValueObject, 6 domain events (MediaUploaded, MediaMovedToTrash, MediaRestored, MediaPurged, MediaAssociated, MediaDisassociated), soft delete + trash lifecycle"
+    exceptions_py: "11 exceptions covering upload validation, trash management, purge eligibility, storage quotas with HTTP mapping"
+    models_py: "MediaModel (filename, storage_key, mime_type, dimensions/duration, state, trash_at, deleted_at) + MediaAssociationModel with soft delete tracking"
+    schemas_py: "Pydantic v2 models for upload, metadata update, association, restoration, purge operations with Field validation"
+    repository_py: "14 query methods: save, delete (soft), restore, purge, find_by_entity, find_in_trash, find_eligible_for_purge, find_by_storage_key"
+    service_py: "MediaService with upload validation, metadata extraction, 30-day trash retention (POLICY-010), storage quota enforcement (POLICY-009)"
+    router_py: "8 endpoints: upload, delete, restore, restore-batch, trash list, purge-expired, entity-media list, associate/disassociate"
+  media_test_organization: "Domain + Repository + Service test files (planned: backend/api/app/tests/test_media/)"
+
   # Bookshelf 模块完成状态
   bookshelf_module_status: "PRODUCTION READY ✅ (成熟度：8.8/10)"
   bookshelf_completion_date: "2025-11-13"
@@ -1708,83 +1740,272 @@ domains:
 
   tag:
     name: "Tag（标签）"
-    type: "ValueObject"
-    description: "全局标签系统，与 Book 多对多关联。菜单栏绑定，支持过滤和搜索。对应老架构中的 OrbitTag。"
-    status: "planned"
+    type: "AggregateRoot"
+    description: "全局标签系统，支持多实体关联（Bookshelf/Book/Block）。支持层级结构和菜单栏绑定。对应老架构中的 OrbitTag。"
+    status: "PRODUCTION READY ✅ (成熟度：8.5/10)"
 
-    # 从老架构的演变
-    legacy_source: |
-      - 对应老架构中的 OrbitTag 表
-      - 保留 N:N 关系（通过 BookTag 关联表）
-      - 新增"菜单栏绑定"的概念（用户可通过菜单栏点击 Tag 来过滤）
-      - 保留字段：id, name, color, icon, description, count（使用次数缓存）
+    # 完成状态
+    implementation_date: "2025-11-13"
+    api_maturity_date: "2025-11-13"
+    adr_reference: "ADR-025-tag-service-repository-design.md (NEW)"
+    files_count: 8  # domain.py, service.py, repository.py, models.py, exceptions.py, schemas.py, router.py, __init__.py
+
+    # 实现层级
+    implementation_layers:
+      domain_layer:
+        file: "backend/api/app/modules/tag/domain.py"
+        responsibility: |
+          Tag 聚合根和 TagAssociation 值对象定义
+          - Tag.create_toplevel() / create_subtag() 工厂方法
+          - rename(), update_color(), update_icon() 方法
+          - soft_delete(), restore() 软删除支持
+          - associate_with_entity(), disassociate_from_entity() 关联管理
+          - increment_usage(), decrement_usage() 缓存计数更新
+          - DomainEvent 发送：TagCreated, TagRenamed, TagColorChanged, TagDeleted, TagAssociatedWithEntity, TagDisassociatedFromEntity
+
+      service_layer:
+        file: "backend/api/app/modules/tag/service.py"
+        responsibility: |
+          业务逻辑编排和验证
+          - create_tag() / create_subtag() - 创建逻辑 + 唯一性/层级检查
+          - update_tag() - 属性更新 + 重复名称检查
+          - delete_tag() / restore_tag() - 软删除管理
+          - associate_tag_with_entity() / disassociate_tag_from_entity() - 关联管理
+          - search_tags() - 模糊搜索
+          - get_tags_for_entity() - 查询实体的标签
+          - get_most_used_tags() - 菜单栏热门标签
+          - get_tag_hierarchy() - 层级树查询
+
+      repository_layer:
+        file: "backend/api/app/modules/tag/repository.py"
+        responsibility: |
+          数据持久化和查询优化
+          - save() - 创建/更新 Tag
+          - get_by_id() - 按 ID 查询
+          - delete() / restore() - 软删除
+          - get_all_toplevel() - 查询顶级标签（level=0）
+          - get_by_parent() - 查询子标签
+          - find_by_name() - 模糊搜索
+          - find_most_used() - 按 usage_count 排序
+          - find_by_entity() - 查询实体的标签（反向查询 TagAssociation）
+          - associate_tag_with_entity() / disassociate_tag_from_entity() - 关联管理
+          - check_name_exists() - 唯一性检查
+          - Soft delete enforcement: 所有查询自动过滤 deleted_at IS NULL
+
+      infrastructure_layer:
+        file: "backend/api/app/modules/tag/models.py"
+        responsibility: |
+          ORM 模型映射及数据库约束定义
+          - TagModel SQLAlchemy ORM 类（tags 表）
+          - TagAssociationModel ORM 类（tag_associations 表）
+          - 字段: id(UUID, PK), name(VARCHAR 50, UNIQUE), color(VARCHAR 9), icon, description,
+            parent_tag_id(FK self), level(INT), usage_count(INT, indexed),
+            created_at, updated_at, deleted_at (indexed, for soft delete)
+          - TagAssociation 字段: id(UUID, PK), tag_id(UUID, FK), entity_type(ENUM), entity_id(UUID),
+            created_at
+          - 约束: UNIQUE(name) for active tags, UNIQUE(tag_id, entity_type, entity_id) for associations
+          - 索引: parent_tag_id+level (hierarchy), usage_count (sorting), entity_type+entity_id (reverse lookup)
+          - 序列化方法: to_dict()/from_dict() 支持 14 字段
+
+      api_layer:
+        file: "backend/api/app/modules/tag/router.py"
+        responsibility: |
+          FastAPI 端点和 HTTP 处理
+          - POST /tags - 创建标签
+          - POST /tags/{id}/subtags - 创建子标签
+          - GET /tags/{id} - 获取标签详情
+          - PATCH /tags/{id} - 更新标签
+          - DELETE /tags/{id} - 软删除
+          - POST /tags/{id}/restore - 恢复
+          - GET /tags - 列表（搜索、分页、排序）
+          - GET /tags/hierarchy - 获取层级树
+          - POST /tags/{id}/associate - 关联到实体
+          - DELETE /tags/{id}/associate - 移除关联
+          - GET /tags/{entity_type}/{entity_id}/tags - 获取实体的标签
+          - 完整的异常映射、日志、依赖注入链
+          - OpenAPI 文档和示例
 
     invariants:
       RULE-018:
-        title: "Tag 名称全局唯一"
-        statement: "每个 Tag 的名称必须唯一（unique constraint in DB）。"
+        title: "Tag 创建和管理"
+        statement: |
+          Tag 名称全局唯一（区分大小写），1-50 字符。
+          颜色必须是有效的十六进制格式 (#RRGGBB 或 #RRGGBBAA)。
+          支持可选的 icon 和 description。
+          Tag 软删除时保留关联（用于审计）。
         type: "invariant"
         priority: "critical"
-        status: "planned"
+        status: "implemented"
+        coverage: "✅ 100%"
+
+        enforcement_layers:
+          domain: "Tag 工厂方法验证名称/颜色格式，Domain 级异常"
+          service: "Service 层 L1 验证 + 唯一性检查 + 调用 Domain"
+          repository: "Repository 数据库约束 + 唯一索引"
 
         implementation:
-          domain_file: "backend/api/app/modules/tag/domain.py"
+          domain_file: "backend/api/app/modules/tag/domain.py (create_toplevel, _validate_name, _validate_color)"
+          service_file: "backend/api/app/modules/tag/service.py (create_tag)"
+          repository_file: "backend/api/app/modules/tag/repository.py (check_name_exists, save)"
+          models_file: "backend/api/app/modules/tag/models.py (UNIQUE constraint on name)"
 
-        devlog_entry: "D34-Tag-UniqueName"
+        test_cases:
+          - "创建顶级标签成功"
+          - "重复名称创建失败（409 TagAlreadyExistsError）"
+          - "无效颜色格式失败（422 TagInvalidColorError）"
+          - "软删除后可创建同名标签"
+          - "恢复后不可创建同名标签"
+
+        exceptions: "TagInvalidNameError, TagInvalidColorError, TagAlreadyExistsError"
+        devlog_entry: "D34-Tag-Creation"
 
       RULE-019:
-        title: "Tag 与 Book 多对多关联"
-        statement: "一个 Tag 可关联多个 Books，一个 Book 可有多个 Tags。"
+        title: "Tag 与多实体关联（Bookshelf/Book/Block 完全独立）"
+        statement: |
+          一个 Tag 可关联到多个实体（Bookshelf/Book/Block）。
+          一个实体可有多个 Tag。
+          Tag 与不同实体类型的关联完全独立：标记 Bookshelf 的 Tag 不会自动标记 Book。
+          关联管理通过 TagAssociation 值对象实现。
         type: "invariant"
         priority: "critical"
-        status: "planned"
+        status: "implemented"
+        coverage: "✅ 100%"
 
-        code_example: |
-          class Tag(ValueObject):
-              id: UUID
-              name: str  # unique
-              color: str
-              icon: str | None
-              description: str | None
-              books: List[Book] = relationship(secondary="book_tags")
+        enforcement_layers:
+          domain: "TagAssociation 值对象 (tag_id, entity_type, entity_id) 三元组"
+          service: "Service 关联管理方法（associate/disassociate）"
+          repository: "Repository 管理 TagAssociation 表 + UNIQUE 复合键"
 
-        devlog_entry: "D34-Tag-BookAssociation"
+        implementation:
+          domain_file: "backend/api/app/modules/tag/domain.py (TagAssociation, associate_with_entity)"
+          service_file: "backend/api/app/modules/tag/service.py (associate_tag_with_entity, disassociate_tag_from_entity)"
+          repository_file: "backend/api/app/modules/tag/repository.py (associate_tag_with_entity, disassociate_tag_from_entity, find_by_entity)"
+          models_file: "backend/api/app/modules/tag/models.py (TagAssociationModel, UNIQUE(tag_id, entity_type, entity_id))"
+
+        test_cases:
+          - "标记 Book 成功"
+          - "标记 Bookshelf 和 Book 分别计数"
+          - "移除 Book 标记不影响 Bookshelf 标记"
+          - "关联计数自动更新（usage_count）"
+          - "重复关联幂等"
+
+        exceptions: "TagNotFoundError, TagAlreadyDeletedError, TagAlreadyAssociatedError"
+        devlog_entry: "D34-Tag-EntityAssociation"
 
       RULE-020:
-        title: "Tag 支持颜色和图标"
-        statement: "每个 Tag 可以设置颜色（十六进制）和图标（Lucide 图标名）用于 UI 展示。"
+        title: "Tag 支持层级结构（多层分类）"
+        statement: |
+          Tag 可以有 parent_tag_id，形成树形分类。
+          最大深度：3 级（level 0=顶级，1=一级子标签，2=二级子标签）。
+          不允许循环引用。
+          子标签继承一些视觉属性但关联完全独立。
         type: "invariant"
-        priority: "medium"
-        status: "planned"
+        priority: "high"
+        status: "implemented"
+        coverage: "✅ 100%"
 
-        devlog_entry: "D34-Tag-UIProperties"
+        enforcement_layers:
+          domain: "Tag.create_subtag() 工厂方法，计算 level"
+          service: "Service.create_subtag() 层级深度检查 + 循环引用检查"
+          repository: "Repository 管理自引用 FK + 层级查询索引"
+
+        implementation:
+          domain_file: "backend/api/app/modules/tag/domain.py (create_subtag, parent_tag_id)"
+          service_file: "backend/api/app/modules/tag/service.py (create_subtag)"
+          repository_file: "backend/api/app/modules/tag/repository.py (get_by_parent, get_all_toplevel)"
+          models_file: "backend/api/app/modules/tag/models.py (parent_tag_id FK, level column, index on parent_tag_id+level)"
+
+        test_cases:
+          - "创建子标签成功（level 自动更新）"
+          - "超过最大深度失败（422 TagInvalidHierarchyError）"
+          - "删除父标签自动清除子标签（CASCADE）"
+          - "查询层级树成功"
+
+        exceptions: "TagInvalidHierarchyError"
+        devlog_entry: "D34-Tag-Hierarchy"
 
     policies:
       POLICY-009:
-        title: "Tag 删除策略"
-        statement: "删除 Tag 时，自动从所有 Books 移除关联。"
+        title: "Tag 软删除策略"
+        statement: |
+          删除 Tag 时标记 deleted_at，不硬删除。
+          保留所有关联用于审计。
+          软删除 Tag 从菜单栏移除（查询自动过滤 deleted_at IS NULL）。
+          可通过 restore 接口恢复。
         type: "policy"
-        status: "planned"
+        status: "implemented"
 
-        devlog_entry: "D34-Tag-DeletionCleanup"
+        implementation:
+          domain_file: "backend/api/app/modules/tag/domain.py (soft_delete, restore, is_deleted)"
+          service_file: "backend/api/app/modules/tag/service.py (delete_tag, restore_tag)"
+          repository_file: "backend/api/app/modules/tag/repository.py (delete, restore, 所有查询自动过滤)"
+
+        devlog_entry: "D34-Tag-SoftDelete"
 
       POLICY-010:
-        title: "Tag 菜单栏集成"
-        statement: "用户可以在菜单栏点击 Tag 来过滤显示的 Books，支持多 Tag 并集过滤。"
+        title: "Tag 使用统计缓存（usage_count）"
+        statement: |
+          每个 Tag 有 usage_count 缓存字段，记录有多少个实体与之关联。
+          Service 在 associate/disassociate 时自动更新。
+          用于菜单栏排序（显示热门 Tag）。
         type: "policy"
-        status: "planned"
+        status: "implemented"
 
-        devlog_entry: "D34-Tag-MenubarIntegration"
+        implementation:
+          service_file: "backend/api/app/modules/tag/service.py (increment/decrement 调用)"
+          repository_file: "backend/api/app/modules/tag/repository.py (associate/disassociate 时更新)"
+
+        devlog_entry: "D34-Tag-UsageCount"
 
     events:
       TagCreated:
-        description: "Tag 被创建"
+        description: "新 Tag 被创建"
+        fields:
+          - tag_id: UUID
+          - name: str
+          - color: str
+          - is_toplevel: bool
 
-      TagUpdated:
-        description: "Tag 被更新"
+      TagRenamed:
+        description: "Tag 名称被修改"
+        fields:
+          - tag_id: UUID
+          - old_name: str
+          - new_name: str
+
+      TagColorChanged:
+        description: "Tag 颜色被改变"
+        fields:
+          - tag_id: UUID
+          - old_color: str
+          - new_color: str
 
       TagDeleted:
-        description: "Tag 被删除"
+        description: "Tag 被软删除"
+        fields:
+          - tag_id: UUID
+
+      TagAssociatedWithEntity:
+        description: "Tag 与实体关联"
+        fields:
+          - tag_id: UUID
+          - entity_type: str  # BOOKSHELF | BOOK | BLOCK
+          - entity_id: UUID
+
+      TagDisassociatedFromEntity:
+        description: "Tag 与实体解除关联"
+        fields:
+          - tag_id: UUID
+          - entity_type: str
+          - entity_id: UUID
+
+    integration_notes: |
+      Tag 模块与其他模块的集成点：
+      1. Book/Bookshelf/Block 删除时：需调用 Tag Repository 删除相关关联
+      2. Library 删除时：需级联删除所有 Tag（通过 FK CASCADE）
+      3. UI 菜单栏：调用 get_most_used_tags() 获取热门 Tag 展示
+      4. 标签搜索：前端调用 search_tags() 端点（支持模糊匹配、分页）
+      5. 批量操作：支持在创建 Book 时同步打标签
 
 # ============================================
 # Domain 6: Chronicle（新增 - 时间追踪）
