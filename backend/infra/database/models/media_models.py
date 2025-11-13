@@ -1,0 +1,381 @@
+"""Media Models - SQLAlchemy ORM models
+
+Mapping Strategy (ADR-026: Media Models & Trash Lifecycle):
+===========================================================
+- Primary Key: id (UUID)
+- Business Keys: storage_key (Unique)
+- Soft Delete: state (ACTIVE | TRASH) + trash_at timestamp
+- Purge: deleted_at (hard delete marker after 30 days)
+- Metadata: filename, mime_type, dimensions, duration
+- Association: media can link to Books/Bookshelves/Blocks
+
+Tables:
+  - media: Main media file definitions with lifecycle tracking
+  - media_associations: N:N relationship with Books/Bookshelves/Blocks
+
+Invariants Enforced:
+✅ POLICY-010: state (ACTIVE|TRASH) with trash_at tracking
+✅ POLICY-010: 30-day retention before hard delete (via application logic)
+✅ Media metadata extracted after upload (width/height for images, duration for videos)
+✅ storage_key uniqueness (maps to actual file location)
+
+Round-Trip Validation:
+Use to_dict() for ORM → dict conversion
+Use from_dict() for dict → ORM conversion
+"""
+import datetime as dt
+from uuid import uuid4, UUID
+from enum import Enum as PyEnum
+from datetime import datetime
+
+from sqlalchemy import (
+    Column, String, DateTime, Text, Integer, ForeignKey,
+    UniqueConstraint, Index, Enum as SQLEnum
+)
+from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
+from sqlalchemy.orm import relationship
+
+from api.core.database import Base
+
+
+# ============================================================================
+# Enums
+# ============================================================================
+
+class MediaType(PyEnum):
+    """Type of media"""
+    IMAGE = "image"
+    VIDEO = "video"
+
+
+class MediaMimeType(PyEnum):
+    """Supported MIME types"""
+    # Images
+    JPEG = "image/jpeg"
+    PNG = "image/png"
+    WEBP = "image/webp"
+    GIF = "image/gif"
+
+    # Videos
+    MP4 = "video/mp4"
+    WEBM = "video/webm"
+    OGG = "video/ogg"
+
+
+class MediaState(PyEnum):
+    """Current state of media"""
+    ACTIVE = "active"
+    TRASH = "trash"
+
+
+class EntityTypeForMedia(PyEnum):
+    """Entity types that can reference media"""
+    BOOKSHELF = "bookshelf"
+    BOOK = "book"
+    BLOCK = "block"
+
+
+# ============================================================================
+# ORM Models
+# ============================================================================
+
+class MediaModel(Base):
+    """Media ORM Model
+
+    Represents a Media (Image/Video) file in the system.
+
+    Key Features:
+    - Centralized media storage with soft delete to trash
+    - 30-day retention in trash before hard delete (POLICY-010)
+    - Metadata extraction for images (dimensions) and videos (duration)
+    - Storage key denormalization for direct file access
+    - Relationships managed through MediaAssociation (not direct foreign keys)
+
+    Database Constraints:
+    - PK: id (UUID, auto-generated)
+    - UNIQUE: storage_key (maps to actual file location)
+    - Soft Delete: state (ACTIVE|TRASH) + trash_at timestamp
+    - Hard Delete: deleted_at (only set after 30 days in trash)
+
+    Query Patterns:
+    - All active media: WHERE state = 'active' AND deleted_at IS NULL
+    - All trash media: WHERE state = 'trash' AND deleted_at IS NULL
+    - Media eligible for purge: WHERE state = 'trash' AND trash_at <= (NOW - 30 days)
+    - Search by filename: WHERE filename LIKE ? AND state = 'active'
+    - Find media by entity: JOIN media_associations WHERE entity_type=? AND entity_id=?
+    """
+    __tablename__ = "media"
+
+    # Primary key
+    id = Column(
+        PostgresUUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+        comment="Media ID (UUID)"
+    )
+
+    # File information
+    filename = Column(
+        String(255),
+        nullable=False,
+        index=True,
+        comment="Original filename with extension"
+    )
+
+    storage_key = Column(
+        String(512),
+        nullable=False,
+        unique=True,
+        index=True,
+        comment="Unique identifier in storage backend (S3 key or local path)"
+    )
+
+    media_type = Column(
+        SQLEnum(MediaType, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        index=True,
+        comment="Type: IMAGE or VIDEO"
+    )
+
+    mime_type = Column(
+        SQLEnum(MediaMimeType, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        comment="MIME type (image/jpeg, video/mp4, etc.)"
+    )
+
+    file_size = Column(
+        Integer,
+        nullable=False,
+        comment="File size in bytes"
+    )
+
+    # Image metadata
+    width = Column(
+        Integer,
+        nullable=True,
+        comment="Image width in pixels (NULL for videos)"
+    )
+
+    height = Column(
+        Integer,
+        nullable=True,
+        comment="Image height in pixels (NULL for videos)"
+    )
+
+    # Video metadata
+    duration_ms = Column(
+        Integer,
+        nullable=True,
+        comment="Video duration in milliseconds (NULL for images)"
+    )
+
+    # State management (POLICY-010)
+    state = Column(
+        SQLEnum(MediaState, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        default=MediaState.ACTIVE.value,
+        index=True,
+        comment="Current state: ACTIVE or TRASH"
+    )
+
+    trash_at = Column(
+        DateTime,
+        nullable=True,
+        index=True,
+        comment="Timestamp when moved to trash (NULL if active, used for 30-day retention)"
+    )
+
+    deleted_at = Column(
+        DateTime,
+        nullable=True,
+        index=True,
+        comment="Hard delete timestamp (after 30 days in trash, NULL=not purged)"
+    )
+
+    # Metadata
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(dt.timezone.utc),
+        comment="Upload timestamp (immutable)"
+    )
+
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(dt.timezone.utc),
+        onupdate=lambda: datetime.now(dt.timezone.utc),
+        comment="Last update timestamp"
+    )
+
+    # Relationships
+    media_associations = relationship(
+        "MediaAssociationModel",
+        cascade="all, delete-orphan",
+        back_populates="media",
+        foreign_keys="MediaAssociationModel.media_id"
+    )
+
+    # Constraints
+    __table_args__ = (
+        Index(
+            "ix_media_state",
+            "state",
+            comment="Index for finding active vs trash media"
+        ),
+        Index(
+            "ix_media_trash_at",
+            "trash_at",
+            comment="Index for finding media eligible for purge"
+        ),
+        Index(
+            "ix_media_created_at",
+            "created_at",
+            comment="Index for sorting by upload time"
+        ),
+    )
+
+    def to_dict(self) -> dict:
+        """Convert ORM model to dictionary"""
+        return {
+            "id": str(self.id),
+            "filename": self.filename,
+            "storage_key": self.storage_key,
+            "media_type": self.media_type.value,
+            "mime_type": self.mime_type.value,
+            "file_size": self.file_size,
+            "width": self.width,
+            "height": self.height,
+            "duration_ms": self.duration_ms,
+            "state": self.state.value,
+            "trash_at": self.trash_at.isoformat() if self.trash_at else None,
+            "deleted_at": self.deleted_at.isoformat() if self.deleted_at else None,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+        }
+
+    @staticmethod
+    def from_dict(data: dict) -> "MediaModel":
+        """Create ORM model from dictionary"""
+        return MediaModel(
+            id=UUID(data["id"]) if "id" in data else uuid4(),
+            filename=data["filename"],
+            storage_key=data["storage_key"],
+            media_type=MediaType[data["media_type"].upper()],
+            mime_type=MediaMimeType[data["mime_type"].replace("/", "_").upper()],
+            file_size=data["file_size"],
+            width=data.get("width"),
+            height=data.get("height"),
+            duration_ms=data.get("duration_ms"),
+            state=MediaState[data.get("state", "active").upper()],
+            trash_at=dt.datetime.fromisoformat(data["trash_at"]) if data.get("trash_at") else None,
+            deleted_at=dt.datetime.fromisoformat(data["deleted_at"]) if data.get("deleted_at") else None,
+            created_at=dt.datetime.fromisoformat(data["created_at"]) if "created_at" in data else datetime.now(dt.timezone.utc),
+            updated_at=dt.datetime.fromisoformat(data["updated_at"]) if "updated_at" in data else datetime.now(dt.timezone.utc),
+        )
+
+
+class MediaAssociationModel(Base):
+    """MediaAssociation ORM Model
+
+    Represents the N:N relationship between Media and entities (Books/Bookshelves/Blocks).
+
+    Key Features:
+    - Links a Media file to a specific entity (Book/Bookshelf/Block)
+    - entity_type determines the target entity class
+    - Denormalized model for query performance (avoid separate tables per type)
+    - Hard delete (not soft delete) - when entity is deleted, association is cleaned up
+
+    Database Constraints:
+    - PK: id (UUID, auto-generated)
+    - FK: media_id (references media.id, cascade delete)
+    - UNIQUE: (media_id, entity_type, entity_id) - prevent duplicate associations
+    - Indexes on (entity_type, entity_id) for fast reverse lookup
+
+    Query Patterns:
+    - Get all media for a book: SELECT * FROM media_associations WHERE entity_type='book' AND entity_id=?
+    - Get all entities with a media: SELECT * FROM media_associations WHERE media_id=?
+    - Check if association exists: SELECT COUNT(*) FROM media_associations WHERE media_id=? AND entity_type=? AND entity_id=?
+    """
+    __tablename__ = "media_associations"
+
+    # Primary key
+    id = Column(
+        PostgresUUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+        comment="Association ID (UUID)"
+    )
+
+    # Foreign keys
+    media_id = Column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("media.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        comment="Media ID (cascade delete)"
+    )
+
+    # Entity reference (denormalized)
+    entity_type = Column(
+        SQLEnum(EntityTypeForMedia, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        comment="Type of entity referencing media (BOOKSHELF|BOOK|BLOCK)"
+    )
+
+    entity_id = Column(
+        PostgresUUID(as_uuid=True),
+        nullable=False,
+        index=True,
+        comment="ID of the entity referencing media"
+    )
+
+    # Metadata
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(dt.timezone.utc),
+        comment="Association creation timestamp"
+    )
+
+    # Relationships
+    media = relationship(
+        "MediaModel",
+        back_populates="media_associations",
+        foreign_keys=[media_id]
+    )
+
+    # Constraints
+    __table_args__ = (
+        UniqueConstraint(
+            "media_id", "entity_type", "entity_id",
+            name="uq_media_associations_media_entity",
+            comment="Prevent duplicate media on same entity"
+        ),
+        Index(
+            "ix_media_associations_entity",
+            "entity_type", "entity_id",
+            comment="Index for finding media on a specific entity"
+        ),
+    )
+
+    def to_dict(self) -> dict:
+        """Convert ORM model to dictionary"""
+        return {
+            "id": str(self.id),
+            "media_id": str(self.media_id),
+            "entity_type": self.entity_type.value,
+            "entity_id": str(self.entity_id),
+            "created_at": self.created_at.isoformat(),
+        }
+
+    @staticmethod
+    def from_dict(data: dict) -> "MediaAssociationModel":
+        """Create ORM model from dictionary"""
+        return MediaAssociationModel(
+            id=UUID(data["id"]) if "id" in data else uuid4(),
+            media_id=UUID(data["media_id"]),
+            entity_type=EntityTypeForMedia[data["entity_type"].upper()],
+            entity_id=UUID(data["entity_id"]),
+            created_at=dt.datetime.fromisoformat(data["created_at"]) if "created_at" in data else datetime.now(dt.timezone.utc),
+        )
