@@ -14,7 +14,7 @@ Architecture:
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID, uuid4
 
@@ -31,7 +31,7 @@ class LibraryCreated(DomainEvent):
     library_id: UUID
     user_id: UUID
     name: str
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -44,7 +44,7 @@ class LibraryRenamed(DomainEvent):
     library_id: UUID
     old_name: str
     new_name: str
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -56,7 +56,20 @@ class LibraryDeleted(DomainEvent):
     """Domain event emitted when Library is deleted"""
     library_id: UUID
     user_id: UUID
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.library_id
+
+
+@dataclass
+class BasementCreated(DomainEvent):
+    """Domain event emitted when Basement (recycle bin) is automatically created with Library"""
+    basement_bookshelf_id: UUID
+    library_id: UUID
+    user_id: UUID
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def aggregate_id(self) -> UUID:
@@ -119,15 +132,20 @@ class Library(AggregateRoot):
         library_id: UUID,
         user_id: UUID,
         name: LibraryName,
+        basement_bookshelf_id: UUID = None,
         created_at: datetime = None,
         updated_at: datetime = None,
+        soft_deleted_at: Optional[datetime] = None,
     ):
+        super().__init__()
         self.id = library_id
         self.user_id = user_id
         self.name = name
-        self.created_at = created_at or datetime.utcnow()
-        self.updated_at = updated_at or datetime.utcnow()
-        self.events: List[DomainEvent] = []
+        self.basement_bookshelf_id = basement_bookshelf_id  # ← 特殊的 Basement 书架
+        self.created_at = created_at or datetime.now(timezone.utc)
+        self.updated_at = updated_at or datetime.now(timezone.utc)
+        self.soft_deleted_at = soft_deleted_at
+        self.events = []
 
     # ========================================================================
     # Factory Methods
@@ -143,28 +161,40 @@ class Library(AggregateRoot):
             name: The name of the Library
 
         Returns:
-            New Library instance with LibraryCreated event
+            New Library instance with LibraryCreated and BasementCreated events
 
         Raises:
             ValueError: If name is invalid
         """
         library_id = uuid4()
+        basement_id = uuid4()  # ← 自动为每个 Library 创建 Basement
         library_name = LibraryName(value=name)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         library = cls(
             library_id=library_id,
             user_id=user_id,
             name=library_name,
+            basement_bookshelf_id=basement_id,
             created_at=now,
             updated_at=now,
         )
 
+        # 发出两个事件：Library 创建 + Basement 创建
         library.emit(
             LibraryCreated(
                 library_id=library_id,
                 user_id=user_id,
                 name=name,
+                occurred_at=now,
+            )
+        )
+
+        library.emit(
+            BasementCreated(
+                basement_bookshelf_id=basement_id,
+                library_id=library_id,
+                user_id=user_id,
                 occurred_at=now,
             )
         )
@@ -197,7 +227,7 @@ class Library(AggregateRoot):
 
         old_name = self.name.value
         self.name = new_library_name
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
         self.emit(
             LibraryRenamed(
@@ -219,7 +249,7 @@ class Library(AggregateRoot):
         Side Effects:
             - Emits LibraryDeleted event
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         self.updated_at = now
 
         self.emit(

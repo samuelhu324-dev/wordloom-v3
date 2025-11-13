@@ -28,6 +28,11 @@ class AggregateRoot(Entity):
         self.updated_at: Optional[datetime] = None
         self.events: list = []
 
+    @property
+    def domain_events(self) -> list:
+        """Alias for events (backward compatibility)"""
+        return self.events
+
     def emit(self, event):
         """Emit a domain event"""
         if not hasattr(self, 'events') or self.events is None:
