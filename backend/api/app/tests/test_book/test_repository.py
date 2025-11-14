@@ -4,62 +4,68 @@ Test Suite: Book Repository Layer
 Tests for BookRepository operations:
 - CRUD operations
 - Query by bookshelf
-- Query by is_deleted flag
+- Query by soft_deleted_at field
 - Exception handling
-- Soft delete patterns
+- Soft delete patterns via soft_deleted_at
 
 对应 DDD_RULES:
   ✓ RULE-009: Repository allows unlimited creation
+  ✓ RULE-010: Repository enforces book-belongs-to-bookshelf
   ✓ RULE-011: Repository supports book transfer between bookshelves
-  ✓ RULE-012: Repository handles soft delete to Basement
-  ✓ RULE-013: Repository handles restoration from Basement
+  ✓ RULE-012: Repository handles soft delete via soft_deleted_at
+  ✓ RULE-013: Repository handles restoration (soft_deleted_at cleared)
 """
 
 import pytest
 from uuid import uuid4
 from datetime import datetime, timezone
 
-from modules.book.domain import Book, BookTitle
-from modules.book.exceptions import BookNotFoundError
+from modules.book import (
+    Book,
+    BookTitle,
+    BookSummary,
+    BookNotFoundError,
+)
 
 
 class MockBookRepository:
-    """In-memory mock repository"""
+    """In-memory mock repository for testing (synchronous)"""
 
     def __init__(self):
         self.store = {}  # book_id -> Book
 
-    async def save(self, book: Book) -> Book:
+    def save(self, book: Book) -> Book:
         """Save or update book"""
-        self.store[book.book_id] = book
+        self.store[book.id] = book
         return book
 
-    async def find_by_id(self, book_id) -> Book:
-        """Find book by ID"""
+    def find_by_id(self, book_id) -> Book:
+        """Find book by ID (ignores soft delete)"""
         if book_id not in self.store:
             raise BookNotFoundError(f"Book {book_id} not found")
         return self.store[book_id]
 
-    async def find_by_bookshelf_id(self, bookshelf_id, include_deleted=False) -> list[Book]:
-        """Find books in a bookshelf"""
+    def find_by_bookshelf_id(self, bookshelf_id, include_deleted=False) -> list[Book]:
+        """Find books in a bookshelf by bookshelf_id"""
         books = [b for b in self.store.values() if b.bookshelf_id == bookshelf_id]
         if not include_deleted:
-            books = [b for b in books if not b.is_deleted]
+            # Exclude soft-deleted books (soft_deleted_at IS NOT NULL)
+            books = [b for b in books if b.soft_deleted_at is None]
         return books
 
-    async def find_deleted(self) -> list[Book]:
-        """Find all deleted books (in Basement)"""
-        return [b for b in self.store.values() if b.is_deleted]
+    def find_deleted(self) -> list[Book]:
+        """Find all soft-deleted books (soft_deleted_at IS NOT NULL)"""
+        return [b for b in self.store.values() if b.soft_deleted_at is not None]
 
-    async def delete(self, book_id) -> None:
-        """Delete book"""
+    def delete(self, book_id) -> None:
+        """Delete book from store"""
         if book_id not in self.store:
             raise BookNotFoundError(f"Book {book_id} not found")
         del self.store[book_id]
 
-    async def list_all(self) -> list[Book]:
-        """List all books"""
-        return list(self.store.values())
+    def list_all(self) -> list[Book]:
+        """List all books (active only)"""
+        return [b for b in self.store.values() if b.soft_deleted_at is None]
 
 
 @pytest.fixture
@@ -71,241 +77,253 @@ def repository():
 class TestBookRepositoryCRUD:
     """CRUD Operations"""
 
-    @pytest.mark.asyncio
-    async def test_save_book_creates_new(self, repository):
+    def test_save_book_creates_new(self, repository):
         """✓ save() creates a new Book"""
         book = Book(
             book_id=uuid4(),
             bookshelf_id=uuid4(),
+            library_id=uuid4(),
             title=BookTitle(value="New Book"),
-            is_deleted=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
         )
 
-        saved = await repository.save(book)
+        saved = repository.save(book)
 
-        assert saved.book_id == book.book_id
+        assert saved.id == book.id
 
-    @pytest.mark.asyncio
-    async def test_find_by_id_returns_book(self, repository):
+    def test_find_by_id_returns_book(self, repository):
         """✓ find_by_id() retrieves Book"""
         book = Book(
             book_id=uuid4(),
             bookshelf_id=uuid4(),
+            library_id=uuid4(),
             title=BookTitle(value="Test"),
-            is_deleted=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
         )
 
-        await repository.save(book)
-        found = await repository.find_by_id(book.book_id)
+        repository.save(book)
+        found = repository.find_by_id(book.id)
 
-        assert found.book_id == book.book_id
+        assert found.id == book.id
 
-    @pytest.mark.asyncio
-    async def test_find_by_id_not_found(self, repository):
-        """✗ find_by_id() raises error"""
+    def test_find_by_id_not_found(self, repository):
+        """✗ find_by_id() raises error when not found"""
         with pytest.raises(BookNotFoundError):
-            await repository.find_by_id(uuid4())
+            repository.find_by_id(uuid4())
 
-    @pytest.mark.asyncio
-    async def test_find_by_bookshelf_id(self, repository):
-        """✓ RULE-009: find_by_bookshelf_id() returns books"""
+    def test_find_by_bookshelf_id(self, repository):
+        """✓ RULE-009: find_by_bookshelf_id() returns active books"""
         bookshelf_id = uuid4()
+        library_id = uuid4()
 
         for i in range(3):
             book = Book(
                 book_id=uuid4(),
                 bookshelf_id=bookshelf_id,
+                library_id=library_id,
                 title=BookTitle(value=f"Book {i}"),
-                is_deleted=False,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
             )
-            await repository.save(book)
+            repository.save(book)
 
-        books = await repository.find_by_bookshelf_id(bookshelf_id)
+        books = repository.find_by_bookshelf_id(bookshelf_id)
 
         assert len(books) == 3
 
-    @pytest.mark.asyncio
-    async def test_find_by_bookshelf_excludes_deleted(self, repository):
-        """✓ RULE-012: find_by_bookshelf_id excludes deleted by default"""
+    def test_find_by_bookshelf_excludes_deleted(self, repository):
+        """✓ RULE-012: find_by_bookshelf_id excludes soft-deleted by default"""
         bookshelf_id = uuid4()
+        library_id = uuid4()
 
         active_book = Book(
             book_id=uuid4(),
             bookshelf_id=bookshelf_id,
+            library_id=library_id,
             title=BookTitle(value="Active"),
-            is_deleted=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            soft_deleted_at=None,  # Active
         )
 
         deleted_book = Book(
             book_id=uuid4(),
-            bookshelf_id=uuid4(),  # Different (Basement) bookshelf
+            bookshelf_id=bookshelf_id,
+            library_id=library_id,
             title=BookTitle(value="Deleted"),
-            is_deleted=True,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            soft_deleted_at=datetime.now(timezone.utc),  # In Basement
         )
 
-        await repository.save(active_book)
-        await repository.save(deleted_book)
+        repository.save(active_book)
+        repository.save(deleted_book)
 
-        books = await repository.find_by_bookshelf_id(bookshelf_id, include_deleted=False)
+        books = repository.find_by_bookshelf_id(bookshelf_id, include_deleted=False)
 
         assert len(books) == 1
-        assert books[0].is_deleted is False
+        assert books[0].soft_deleted_at is None
 
-    @pytest.mark.asyncio
-    async def test_find_deleted_returns_basement_books(self, repository):
-        """✓ RULE-012,013: find_deleted() returns books in Basement"""
+    def test_find_deleted_returns_basement_books(self, repository):
+        """✓ RULE-012,013: find_deleted() returns books with soft_deleted_at"""
         deleted_book = Book(
             book_id=uuid4(),
             bookshelf_id=uuid4(),
+            library_id=uuid4(),
             title=BookTitle(value="Deleted"),
-            is_deleted=True,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            soft_deleted_at=datetime.now(timezone.utc),
         )
 
-        await repository.save(deleted_book)
+        repository.save(deleted_book)
 
-        deleted = await repository.find_deleted()
+        deleted = repository.find_deleted()
 
         assert len(deleted) == 1
-        assert deleted[0].is_deleted is True
+        assert deleted[0].soft_deleted_at is not None
 
-    @pytest.mark.asyncio
-    async def test_delete_book(self, repository):
-        """✓ delete() removes book"""
+    def test_delete_book(self, repository):
+        """✓ delete() removes book from store"""
         book = Book(
             book_id=uuid4(),
             bookshelf_id=uuid4(),
+            library_id=uuid4(),
             title=BookTitle(value="To Delete"),
-            is_deleted=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
         )
 
-        await repository.save(book)
-        await repository.delete(book.book_id)
+        repository.save(book)
+        repository.delete(book.id)
 
         with pytest.raises(BookNotFoundError):
-            await repository.find_by_id(book.book_id)
+            repository.find_by_id(book.id)
 
 
 class TestBookRepositoryInvariants:
-    """Invariant Enforcement"""
+    """Invariant Enforcement via Repository"""
 
-    @pytest.mark.asyncio
-    async def test_rule_009_unlimited_creation(self, repository):
-        """✓ RULE-009: Can create unlimited books"""
+    def test_rule_009_unlimited_creation(self, repository):
+        """✓ RULE-009: Can create unlimited books in repository"""
         bookshelf_id = uuid4()
+        library_id = uuid4()
 
         for i in range(10):
             book = Book(
                 book_id=uuid4(),
                 bookshelf_id=bookshelf_id,
+                library_id=library_id,
                 title=BookTitle(value=f"Book {i}"),
-                is_deleted=False,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
             )
-            await repository.save(book)
+            repository.save(book)
 
-        books = await repository.find_by_bookshelf_id(bookshelf_id)
+        books = repository.find_by_bookshelf_id(bookshelf_id)
 
         assert len(books) == 10
 
-    @pytest.mark.asyncio
-    async def test_rule_011_book_transfer(self, repository):
-        """✓ RULE-011: Book can transfer between bookshelves"""
+    def test_rule_010_book_must_have_bookshelf(self, repository):
+        """✓ RULE-010: Every book in repository has bookshelf_id"""
         book = Book(
             book_id=uuid4(),
             bookshelf_id=uuid4(),
-            title=BookTitle(value="Transferable"),
-            is_deleted=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            library_id=uuid4(),
+            title=BookTitle(value="Has Bookshelf"),
         )
 
-        await repository.save(book)
+        saved = repository.save(book)
+
+        assert saved.bookshelf_id is not None
+
+    def test_rule_011_book_transfer_between_bookshelves(self, repository):
+        """✓ RULE-011: Book can transfer between bookshelves via repository"""
+        library_id = uuid4()
+        original_shelf = uuid4()
+        target_shelf = uuid4()
+
+        original_book = Book(
+            book_id=uuid4(),
+            bookshelf_id=original_shelf,
+            library_id=library_id,
+            title=BookTitle(value="Transferable"),
+        )
+
+        repository.save(original_book)
 
         # Simulate transfer: update bookshelf_id
-        new_bookshelf_id = uuid4()
         transferred_book = Book(
-            book_id=book.book_id,
-            bookshelf_id=new_bookshelf_id,
-            title=book.title,
-            is_deleted=book.is_deleted,
-            created_at=book.created_at,
-            updated_at=datetime.now(timezone.utc),
+            book_id=original_book.id,
+            bookshelf_id=target_shelf,  # Changed
+            library_id=library_id,
+            title=original_book.title,
+            summary=original_book.summary,
+            is_pinned=original_book.is_pinned,
+            due_at=original_book.due_at,
+            status=original_book.status,
+            block_count=original_book.block_count,
         )
 
-        await repository.save(transferred_book)
-        found = await repository.find_by_id(book.book_id)
+        repository.save(transferred_book)
+        found = repository.find_by_id(original_book.id)
 
-        assert found.bookshelf_id == new_bookshelf_id
+        assert found.bookshelf_id == target_shelf
 
-    @pytest.mark.asyncio
-    async def test_rule_012_soft_delete(self, repository):
-        """✓ RULE-012: Book can be soft-deleted"""
-        book = Book(
+    def test_rule_012_soft_delete_via_soft_deleted_at(self, repository):
+        """✓ RULE-012: Book soft-deletion sets soft_deleted_at timestamp"""
+        library_id = uuid4()
+        bookshelf_id = uuid4()
+
+        original_book = Book(
             book_id=uuid4(),
-            bookshelf_id=uuid4(),
+            bookshelf_id=bookshelf_id,
+            library_id=library_id,
             title=BookTitle(value="To Delete"),
-            is_deleted=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            soft_deleted_at=None,  # Not deleted
         )
 
-        await repository.save(book)
+        repository.save(original_book)
 
-        # Mark as deleted
+        # Soft delete: set soft_deleted_at
+        deletion_time = datetime.now(timezone.utc)
         deleted_book = Book(
-            book_id=book.book_id,
-            bookshelf_id=book.bookshelf_id,
-            title=book.title,
-            is_deleted=True,
-            created_at=book.created_at,
-            updated_at=datetime.now(timezone.utc),
+            book_id=original_book.id,
+            bookshelf_id=bookshelf_id,
+            library_id=library_id,
+            title=original_book.title,
+            summary=original_book.summary,
+            is_pinned=original_book.is_pinned,
+            due_at=original_book.due_at,
+            status=original_book.status,
+            block_count=original_book.block_count,
+            soft_deleted_at=deletion_time,  # ← Marks as deleted
         )
 
-        await repository.save(deleted_book)
-        found = await repository.find_by_id(book.book_id)
+        repository.save(deleted_book)
+        found = repository.find_by_id(original_book.id)
 
-        assert found.is_deleted is True
+        assert found.soft_deleted_at is not None
+        assert found.soft_deleted_at == deletion_time
 
-    @pytest.mark.asyncio
-    async def test_rule_013_restore_from_basement(self, repository):
-        """✓ RULE-013: Book can be restored from Basement"""
+    def test_rule_013_restore_from_basement(self, repository):
+        """✓ RULE-013: Book can be restored from Basement (soft_deleted_at cleared)"""
+        library_id = uuid4()
+        basement_shelf = uuid4()
+        restore_shelf = uuid4()
+
         basement_book = Book(
             book_id=uuid4(),
-            bookshelf_id=uuid4(),
+            bookshelf_id=basement_shelf,
+            library_id=library_id,
             title=BookTitle(value="In Basement"),
-            is_deleted=True,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            soft_deleted_at=datetime.now(timezone.utc),  # In Basement
         )
 
-        await repository.save(basement_book)
+        repository.save(basement_book)
 
-        # Restore
+        # Restore: clear soft_deleted_at and move to target shelf
         restored_book = Book(
-            book_id=basement_book.book_id,
-            bookshelf_id=uuid4(),  # Different bookshelf
+            book_id=basement_book.id,
+            bookshelf_id=restore_shelf,  # Moved
+            library_id=library_id,
             title=basement_book.title,
-            is_deleted=False,
-            created_at=basement_book.created_at,
-            updated_at=datetime.now(timezone.utc),
+            summary=basement_book.summary,
+            is_pinned=basement_book.is_pinned,
+            due_at=basement_book.due_at,
+            status=basement_book.status,
+            block_count=basement_book.block_count,
+            soft_deleted_at=None,  # ← Cleared - no longer in Basement
         )
 
-        await repository.save(restored_book)
-        found = await repository.find_by_id(basement_book.book_id)
+        repository.save(restored_book)
+        found = repository.find_by_id(basement_book.id)
 
-        assert found.is_deleted is False
+        assert found.soft_deleted_at is None
+        assert found.bookshelf_id == restore_shelf

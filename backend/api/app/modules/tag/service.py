@@ -24,10 +24,10 @@ from typing import List, Optional, Set
 from uuid import UUID
 from datetime import datetime, timezone
 
-from domain import Tag, EntityType, TagCreated
-from models import TagModel
-from repository import TagRepository
-from exceptions import (
+from .domain import Tag, EntityType, TagCreated
+from .models import TagModel
+from .repository import TagRepository
+from .exceptions import (
     TagNotFoundError,
     TagAlreadyExistsError,
     TagInvalidNameError,

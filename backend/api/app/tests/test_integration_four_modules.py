@@ -3,13 +3,13 @@ Phase 1.5 Complete Integration Test Suite
 ==========================================
 
 Tests the complete 4-module hierarchy before final component isolation:
-    Library → Bookshelf → Book → Block
+    Library �?Bookshelf �?Book �?Block
 
 Test Scope:
-    ✅ Library module (domain + service + repository + models + schemas + router)
-    ✅ Bookshelf module (domain + service + repository + models + schemas + router)
-    ✅ Book module (domain + service + repository + models + schemas + router)
-    ✅ Block module (domain + service + repository + models + schemas + router)
+    �?Library module (domain + service + repository + models + schemas + router)
+    �?Bookshelf module (domain + service + repository + models + schemas + router)
+    �?Book module (domain + service + repository + models + schemas + router)
+    �?Block module (domain + service + repository + models + schemas + router)
 
 Test Organization:
     1. Domain Layer Tests (invariants, business rules, events)
@@ -17,7 +17,7 @@ Test Organization:
     3. Service Layer Tests (orchestration, validation, error handling)
     4. Schema Layer Tests (request/response validation, serialization)
     5. Router Layer Tests (HTTP endpoints, status codes, DI chain)
-    6. Round-Trip Integration Tests (full stack: domain → db → domain)
+    6. Round-Trip Integration Tests (full stack: domain �?db �?domain)
     7. Cross-Module Tests (relationships, cascading operations)
 
 Quality Gates:
@@ -131,10 +131,10 @@ class TestLibraryRepository:
     @pytest.mark.asyncio
     async def test_library_save_and_retrieve(self, db_session):
         """Repository: Save and retrieve Library"""
-        from modules.library.repository import LibraryRepositoryImpl
+        from infra.storage.library_repository_impl import SQLAlchemyLibraryRepository
         from modules.library.domain import Library
 
-        repo = LibraryRepositoryImpl(db_session)
+        repo = SQLAlchemyLibraryRepository(db_session)
         user_id = uuid4()
         library = Library.create(user_id=user_id, name="Test Library")
 
@@ -152,10 +152,10 @@ class TestLibraryRepository:
     @pytest.mark.asyncio
     async def test_library_get_by_user_id(self, db_session):
         """RULE-001: Get Library by user_id (1:1 relationship)"""
-        from modules.library.repository import LibraryRepositoryImpl
+        from infra.storage.library_repository_impl import SQLAlchemyLibraryRepository
         from modules.library.domain import Library
 
-        repo = LibraryRepositoryImpl(db_session)
+        repo = SQLAlchemyLibraryRepository(db_session)
         user_id = uuid4()
         library = Library.create(user_id=user_id, name="User Library")
 
@@ -168,11 +168,11 @@ class TestLibraryRepository:
     @pytest.mark.asyncio
     async def test_library_already_exists_error(self, db_session):
         """RULE-001: Cannot create duplicate Library for same user (UNIQUE constraint)"""
-        from modules.library.repository import LibraryRepositoryImpl
+        from infra.storage.library_repository_impl import SQLAlchemyLibraryRepository
         from modules.library.domain import Library
         from modules.library.exceptions import LibraryAlreadyExistsError
 
-        repo = LibraryRepositoryImpl(db_session)
+        repo = SQLAlchemyLibraryRepository(db_session)
         user_id = uuid4()
         lib1 = Library.create(user_id=user_id, name="Lib1")
         lib2 = Library.create(user_id=user_id, name="Lib2")
@@ -186,10 +186,10 @@ class TestLibraryRepository:
     @pytest.mark.asyncio
     async def test_library_soft_delete_filter(self, db_session):
         """POLICY-008: Soft deleted Library not returned by get_by_id"""
-        from modules.library.repository import LibraryRepositoryImpl
+        from infra.storage.library_repository_impl import SQLAlchemyLibraryRepository
         from modules.library.domain import Library
 
-        repo = LibraryRepositoryImpl(db_session)
+        repo = SQLAlchemyLibraryRepository(db_session)
         library = Library.create(user_id=uuid4(), name="Test")
         await repo.save(library)
 
@@ -341,10 +341,10 @@ class TestBookshelfRepository:
     @pytest.mark.asyncio
     async def test_bookshelf_save_and_retrieve(self, db_session):
         """Repository: Save and retrieve Bookshelf"""
-        from modules.bookshelf.repository import BookshelfRepositoryImpl
+        from infra.storage.bookshelf_repository_impl import SQLAlchemyBookshelfRepository
         from modules.bookshelf.domain import Bookshelf
 
-        repo = BookshelfRepositoryImpl(db_session)
+        repo = SQLAlchemyBookshelfRepository(db_session)
         library_id = uuid4()
         shelf = Bookshelf.create(library_id=library_id, name="Test Shelf", is_basement=False)
 
@@ -358,10 +358,10 @@ class TestBookshelfRepository:
     @pytest.mark.asyncio
     async def test_bookshelf_get_by_library_id(self, db_session):
         """Repository: Query bookshelves by library_id"""
-        from modules.bookshelf.repository import BookshelfRepositoryImpl
+        from infra.storage.bookshelf_repository_impl import SQLAlchemyBookshelfRepository
         from modules.bookshelf.domain import Bookshelf
 
-        repo = BookshelfRepositoryImpl(db_session)
+        repo = SQLAlchemyBookshelfRepository(db_session)
         library_id = uuid4()
         shelf1 = Bookshelf.create(library_id=library_id, name="Shelf1", is_basement=False)
         shelf2 = Bookshelf.create(library_id=library_id, name="Shelf2", is_basement=False)
@@ -441,10 +441,10 @@ class TestBookRepository:
     @pytest.mark.asyncio
     async def test_book_save_and_retrieve(self, db_session):
         """Repository: Save and retrieve Book"""
-        from modules.book.repository import BookRepositoryImpl
+        from infra.storage.book_repository_impl import SQLAlchemyBookRepository
         from modules.book.domain import Book
 
-        repo = BookRepositoryImpl(db_session)
+        repo = SQLAlchemyBookRepository(db_session)
         bookshelf_id = uuid4()
         book = Book.create(bookshelf_id=bookshelf_id, title="Test Book")
 
@@ -458,10 +458,10 @@ class TestBookRepository:
     @pytest.mark.asyncio
     async def test_book_get_by_bookshelf_id(self, db_session):
         """Repository: Query books by bookshelf_id"""
-        from modules.book.repository import BookRepositoryImpl
+        from infra.storage.book_repository_impl import SQLAlchemyBookRepository
         from modules.book.domain import Book
 
-        repo = BookRepositoryImpl(db_session)
+        repo = SQLAlchemyBookRepository(db_session)
         bookshelf_id = uuid4()
         book1 = Book.create(bookshelf_id=bookshelf_id, title="Book1")
         book2 = Book.create(bookshelf_id=bookshelf_id, title="Book2")
@@ -475,10 +475,10 @@ class TestBookRepository:
     @pytest.mark.asyncio
     async def test_book_soft_delete_filter(self, db_session):
         """POLICY-008: Soft deleted books not returned by queries"""
-        from modules.book.repository import BookRepositoryImpl
+        from infra.storage.book_repository_impl import SQLAlchemyBookRepository
         from modules.book.domain import Book
 
-        repo = BookRepositoryImpl(db_session)
+        repo = SQLAlchemyBookRepository(db_session)
         book = Book.create(bookshelf_id=uuid4(), title="Test")
         await repo.save(book)
 
@@ -629,7 +629,7 @@ class TestBlockRepository:
     @pytest.mark.asyncio
     async def test_block_save_and_retrieve(self, db_session):
         """Repository: Save and retrieve Block"""
-        from modules.block.repository import BlockRepositoryImpl
+        from infra.storage.block_repository_impl import SQLAlchemyBlockRepository
         from modules.block.domain import Block
 
         repo = BlockRepositoryImpl(db_session)
@@ -650,7 +650,7 @@ class TestBlockRepository:
     @pytest.mark.asyncio
     async def test_block_get_by_book_id_ordered(self, db_session):
         """Repository: Query blocks by book_id, ordered by fractional index"""
-        from modules.block.repository import BlockRepositoryImpl
+        from infra.storage.block_repository_impl import SQLAlchemyBlockRepository
         from modules.block.domain import Block
 
         repo = BlockRepositoryImpl(db_session)
@@ -674,7 +674,7 @@ class TestBlockRepository:
     @pytest.mark.asyncio
     async def test_block_list_paginated(self, db_session):
         """Repository: Paginated query with total count"""
-        from modules.block.repository import BlockRepositoryImpl
+        from infra.storage.block_repository_impl import SQLAlchemyBlockRepository
         from modules.block.domain import Block
 
         repo = BlockRepositoryImpl(db_session)
@@ -704,7 +704,7 @@ class TestBlockRepository:
     @pytest.mark.asyncio
     async def test_block_soft_delete_filter(self, db_session):
         """POLICY-008: Soft deleted blocks not returned"""
-        from modules.block.repository import BlockRepositoryImpl
+        from infra.storage.block_repository_impl import SQLAlchemyBlockRepository
         from modules.block.domain import Block
 
         repo = BlockRepositoryImpl(db_session)
@@ -727,14 +727,14 @@ class TestCrossModuleIntegration:
 
     @pytest.mark.asyncio
     async def test_library_to_bookshelf_relationship(self, db_session):
-        """Integration: Library → Bookshelf (FK constraint)"""
-        from modules.library.repository import LibraryRepositoryImpl
-        from modules.bookshelf.repository import BookshelfRepositoryImpl
+        """Integration: Library �?Bookshelf (FK constraint)"""
+        from infra.storage.library_repository_impl import SQLAlchemyLibraryRepository
+        from infra.storage.bookshelf_repository_impl import SQLAlchemyBookshelfRepository
         from modules.library.domain import Library
         from modules.bookshelf.domain import Bookshelf
 
-        lib_repo = LibraryRepositoryImpl(db_session)
-        shelf_repo = BookshelfRepositoryImpl(db_session)
+        lib_repo = SQLAlchemyLibraryRepository(db_session)
+        shelf_repo = SQLAlchemyBookshelfRepository(db_session)
 
         library = Library.create(user_id=uuid4(), name="Test Library")
         await lib_repo.save(library)
@@ -755,14 +755,14 @@ class TestCrossModuleIntegration:
 
     @pytest.mark.asyncio
     async def test_bookshelf_to_book_relationship(self, db_session):
-        """Integration: Bookshelf → Book (FK constraint)"""
-        from modules.bookshelf.repository import BookshelfRepositoryImpl
-        from modules.book.repository import BookRepositoryImpl
+        """Integration: Bookshelf �?Book (FK constraint)"""
+        from infra.storage.bookshelf_repository_impl import SQLAlchemyBookshelfRepository
+        from infra.storage.book_repository_impl import SQLAlchemyBookRepository
         from modules.bookshelf.domain import Bookshelf
         from modules.book.domain import Book
 
-        shelf_repo = BookshelfRepositoryImpl(db_session)
-        book_repo = BookRepositoryImpl(db_session)
+        shelf_repo = SQLAlchemyBookshelfRepository(db_session)
+        book_repo = SQLAlchemyBookRepository(db_session)
 
         shelf = Bookshelf.create(library_id=uuid4(), name="Test", is_basement=False)
         await shelf_repo.save(shelf)
@@ -778,14 +778,14 @@ class TestCrossModuleIntegration:
 
     @pytest.mark.asyncio
     async def test_book_to_block_relationship(self, db_session):
-        """Integration: Book → Block (FK constraint)"""
-        from modules.book.repository import BookRepositoryImpl
-        from modules.block.repository import BlockRepositoryImpl
+        """Integration: Book �?Block (FK constraint)"""
+        from infra.storage.book_repository_impl import SQLAlchemyBookRepository
+        from infra.storage.block_repository_impl import SQLAlchemyBlockRepository
         from modules.book.domain import Book
         from modules.block.domain import Block
 
-        book_repo = BookRepositoryImpl(db_session)
-        block_repo = BlockRepositoryImpl(db_session)
+        book_repo = SQLAlchemyBookRepository(db_session)
+        block_repo = SQLAlchemyBlockRepository(db_session)
 
         book = Book.create(bookshelf_id=uuid4(), title="Test")
         await book_repo.save(book)
@@ -805,20 +805,20 @@ class TestCrossModuleIntegration:
 
     @pytest.mark.asyncio
     async def test_full_hierarchy_round_trip(self, db_session):
-        """Integration: Complete Library → Bookshelf → Book → Block hierarchy"""
-        from modules.library.repository import LibraryRepositoryImpl
-        from modules.bookshelf.repository import BookshelfRepositoryImpl
-        from modules.book.repository import BookRepositoryImpl
-        from modules.block.repository import BlockRepositoryImpl
+        """Integration: Complete Library �?Bookshelf �?Book �?Block hierarchy"""
+        from infra.storage.library_repository_impl import SQLAlchemyLibraryRepository
+        from infra.storage.bookshelf_repository_impl import SQLAlchemyBookshelfRepository
+        from infra.storage.book_repository_impl import SQLAlchemyBookRepository
+        from infra.storage.block_repository_impl import SQLAlchemyBlockRepository
         from modules.library.domain import Library
         from modules.bookshelf.domain import Bookshelf
         from modules.book.domain import Book
         from modules.block.domain import Block
 
-        lib_repo = LibraryRepositoryImpl(db_session)
-        shelf_repo = BookshelfRepositoryImpl(db_session)
-        book_repo = BookRepositoryImpl(db_session)
-        block_repo = BlockRepositoryImpl(db_session)
+        lib_repo = SQLAlchemyLibraryRepository(db_session)
+        shelf_repo = SQLAlchemyBookshelfRepository(db_session)
+        book_repo = SQLAlchemyBookRepository(db_session)
+        block_repo = SQLAlchemyBlockRepository(db_session)
 
         # Create full hierarchy
         user_id = uuid4()
@@ -854,19 +854,19 @@ class TestCrossModuleIntegration:
     @pytest.mark.asyncio
     async def test_soft_delete_policy_enforcement(self, db_session):
         """POLICY-008: Soft delete consistently enforced across all modules"""
-        from modules.library.repository import LibraryRepositoryImpl
-        from modules.bookshelf.repository import BookshelfRepositoryImpl
-        from modules.book.repository import BookRepositoryImpl
-        from modules.block.repository import BlockRepositoryImpl
+        from infra.storage.library_repository_impl import SQLAlchemyLibraryRepository
+        from infra.storage.bookshelf_repository_impl import SQLAlchemyBookshelfRepository
+        from infra.storage.book_repository_impl import SQLAlchemyBookRepository
+        from infra.storage.block_repository_impl import SQLAlchemyBlockRepository
         from modules.library.domain import Library
         from modules.bookshelf.domain import Bookshelf
         from modules.book.domain import Book
         from modules.block.domain import Block
 
-        lib_repo = LibraryRepositoryImpl(db_session)
-        shelf_repo = BookshelfRepositoryImpl(db_session)
-        book_repo = BookRepositoryImpl(db_session)
-        block_repo = BlockRepositoryImpl(db_session)
+        lib_repo = SQLAlchemyLibraryRepository(db_session)
+        shelf_repo = SQLAlchemyBookshelfRepository(db_session)
+        book_repo = SQLAlchemyBookRepository(db_session)
+        block_repo = SQLAlchemyBlockRepository(db_session)
 
         # Create items
         lib = Library.create(user_id=uuid4(), name="Lib")
@@ -907,19 +907,19 @@ class TestSchemasAndSerialization:
     """Test request/response schemas and serialization across all modules"""
 
     def test_library_dto_round_trip(self):
-        """Schema: LibraryDTO round-trip domain → DTO → response"""
+        """Schema: LibraryDTO round-trip domain �?DTO �?response"""
         from modules.library.schemas import LibraryDTO
         from modules.library.domain import Library
 
         # Create domain object
         library = Library.create(user_id=uuid4(), name="Test")
 
-        # Domain → DTO
+        # Domain �?DTO
         dto = LibraryDTO.from_domain(library)
         assert dto.id == library.id
         assert dto.name == library.name.value
 
-        # DTO → Response
+        # DTO �?Response
         response = dto.to_response()
         assert response.id == library.id
         assert response.name == "Test"
@@ -987,7 +987,7 @@ class TestExceptionHandling:
     """Test exception hierarchy and HTTP status code mapping"""
 
     def test_library_not_found_exception(self):
-        """Exception: LibraryNotFoundError → 404"""
+        """Exception: LibraryNotFoundError �?404"""
         from modules.library.exceptions import LibraryNotFoundError
 
         exc = LibraryNotFoundError(library_id=uuid4())
@@ -995,7 +995,7 @@ class TestExceptionHandling:
         assert exc.code == "LIBRARY_NOT_FOUND"
 
     def test_library_already_exists_exception(self):
-        """Exception: LibraryAlreadyExistsError → 409"""
+        """Exception: LibraryAlreadyExistsError �?409"""
         from modules.library.exceptions import LibraryAlreadyExistsError
 
         exc = LibraryAlreadyExistsError(user_id=uuid4())
@@ -1003,7 +1003,7 @@ class TestExceptionHandling:
         assert exc.code == "LIBRARY_ALREADY_EXISTS"
 
     def test_invalid_heading_level_exception(self):
-        """Exception: InvalidHeadingLevelError → 422"""
+        """Exception: InvalidHeadingLevelError �?422"""
         from modules.block.exceptions import InvalidHeadingLevelError
 
         exc = InvalidHeadingLevelError(provided=5, allowed=[1, 2, 3])
@@ -1011,7 +1011,7 @@ class TestExceptionHandling:
         assert exc.code == "INVALID_HEADING_LEVEL"
 
     def test_fractional_index_error_exception(self):
-        """Exception: FractionalIndexError → 422"""
+        """Exception: FractionalIndexError �?422"""
         from modules.block.exceptions import FractionalIndexError
 
         exc = FractionalIndexError(message="Precision limit reached")
@@ -1019,7 +1019,7 @@ class TestExceptionHandling:
         assert exc.code == "FRACTIONAL_INDEX_ERROR"
 
     def test_block_in_basement_exception(self):
-        """Exception: BlockInBasementError → 409"""
+        """Exception: BlockInBasementError �?409"""
         from modules.block.exceptions import BlockInBasementError
 
         exc = BlockInBasementError(block_id=uuid4())

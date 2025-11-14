@@ -245,6 +245,31 @@ class LibraryOperationError(LibraryException):
         )
 
 
+class LibraryAlreadyDeletedError(LibraryException):
+    """
+    Raised when attempting to delete an already deleted Library.
+
+    HTTP Status: 409 Conflict
+    """
+    code = "LIBRARY_ALREADY_DELETED"
+    http_status = 409
+
+    def __init__(
+        self,
+        library_id: str,
+    ):
+        message = f"Library {library_id} is already deleted"
+
+        super().__init__(
+            message=message,
+            code=self.code,
+            http_status=self.http_status,
+            details={
+                "library_id": str(library_id),
+            }
+        )
+
+
 # ============================================
 # Infrastructure/Repository Exceptions
 # ============================================
@@ -297,6 +322,7 @@ class LibraryPersistenceError(RepositoryException):
 EXCEPTION_HTTP_STATUS_MAP = {
     LibraryNotFoundError: 404,
     LibraryAlreadyExistsError: 409,
+    LibraryAlreadyDeletedError: 409,
     InvalidLibraryNameError: 422,
     LibraryUserAssociationError: 422,
     LibraryOperationError: 500,

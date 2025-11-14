@@ -7,8 +7,9 @@ Block 模块领域事件定义
 from dataclasses import dataclass
 from uuid import UUID
 from typing import Optional
+from datetime import datetime, timezone
 
-from ....infra.event_bus import DomainEvent, EventType
+from shared.base import DomainEvent
 
 
 @dataclass
@@ -20,8 +21,8 @@ class BlockCreated(DomainEvent):
     content: str = ""
 
     def __post_init__(self):
-        self.event_type = EventType.BLOCK_CREATED
         self.aggregate_type = "block"
+        self.occurred_at = datetime.now(timezone.utc)
 
 
 @dataclass
@@ -31,19 +32,19 @@ class BlockUpdated(DomainEvent):
     content: Optional[str] = None
 
     def __post_init__(self):
-        self.event_type = EventType.BLOCK_UPDATED
         self.aggregate_type = "block"
+        self.occurred_at = datetime.now(timezone.utc)
 
 
 @dataclass
 class BlockReordered(DomainEvent):
     """块重新排序事件"""
 
-    new_index: float = 0
+    new_order: Optional[object] = None
 
     def __post_init__(self):
-        self.event_type = EventType.BLOCK_REORDERED
         self.aggregate_type = "block"
+        self.occurred_at = datetime.now(timezone.utc)
 
 
 @dataclass
@@ -53,8 +54,8 @@ class BlockDeleted(DomainEvent):
     soft_deleted: bool = True
 
     def __post_init__(self):
-        self.event_type = EventType.BLOCK_DELETED
         self.aggregate_type = "block"
+        self.occurred_at = datetime.now(timezone.utc)
 
 
 @dataclass
@@ -62,8 +63,8 @@ class BlockRestored(DomainEvent):
     """块恢复事件（从逻辑删除恢复）"""
 
     def __post_init__(self):
-        self.event_type = EventType.BLOCK_RESTORED
         self.aggregate_type = "block"
+        self.occurred_at = datetime.now(timezone.utc)
 
 
 __all__ = [

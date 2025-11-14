@@ -1,22 +1,58 @@
 """
-Library 应用层 - Use Cases & Ports
+Application Layer - Use Cases and Ports
 
-应用层（Hexagonal 中间环）编排域逻辑。
+Purpose:
+- Orchestrate Domain logic with Infrastructure
+- Define contracts (Ports) for external dependencies
+- Implement business workflows (UseCases)
 
-结构:
-  application/
-  ├── ports/
-  │   ├── input.py       - UseCase 接口（输入端口）
-  │   └── output.py      - Repository 接口（输出端口）
-  ├── use_cases/
-  │   ├── get_user_library.py
-  │   ├── create_library.py
-  │   └── delete_library.py
-  └── __init__.py
+Structure:
+- ports/: Port interfaces (Input Ports + Output Ports)
+  - input.py: UseCase interfaces + Request/Response DTOs
+  - output.py: Repository interface
+- use_cases/: UseCase implementations
+  - create_library.py: CreateLibraryUseCase
+  - get_library.py: GetLibraryUseCase
+  - delete_library.py: DeleteLibraryUseCase
 
-依赖流向:
-  UseCase ← Repository (输出端口)
-  Router → UseCase (输入端口)
-
-RULE-001: 每个用户一个 Library（在 Use Case 中强制）
+Cross-Reference:
+- HEXAGONAL_RULES.yaml: step_5 (UseCase splitting) + step_6 (Input Ports)
+- DDD_RULES.yaml: library.implementation_layers.application_layer
 """
+
+from .ports import (
+    ICreateLibraryUseCase,
+    IGetLibraryUseCase,
+    IDeleteLibraryUseCase,
+    ILibraryRepository,
+    CreateLibraryRequest,
+    CreateLibraryResponse,
+    GetLibraryRequest,
+    GetLibraryResponse,
+    DeleteLibraryRequest,
+)
+
+from .use_cases import (
+    CreateLibraryUseCase,
+    GetLibraryUseCase,
+    DeleteLibraryUseCase,
+)
+
+__all__ = [
+    # Input Ports (UseCase interfaces)
+    "ICreateLibraryUseCase",
+    "IGetLibraryUseCase",
+    "IDeleteLibraryUseCase",
+    # Output Ports (Repository interface)
+    "ILibraryRepository",
+    # Request/Response DTOs
+    "CreateLibraryRequest",
+    "CreateLibraryResponse",
+    "GetLibraryRequest",
+    "GetLibraryResponse",
+    "DeleteLibraryRequest",
+    # UseCase implementations
+    "CreateLibraryUseCase",
+    "GetLibraryUseCase",
+    "DeleteLibraryUseCase",
+]

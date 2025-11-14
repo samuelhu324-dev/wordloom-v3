@@ -1,41 +1,43 @@
 """
-Library Ports - 所有 Input 和 Output Port 接口
+Application Ports Module
 
-Output Ports (repository.py):
-  - LibraryRepository
-
-Input Ports (input.py):
-  - GetUserLibraryUseCase
-  - DeleteLibraryUseCase
-
-Request/Response DTOs:
-  - GetUserLibraryRequest, LibraryResponse
-  - DeleteLibraryRequest
+Exports:
+- Input Ports: UseCase interfaces + DTOs
+- Output Ports: Repository interface
 """
 
-# Output ports (repository)
-from .output import LibraryRepository
-
-# Input ports (use cases) + DTOs
 from .input import (
-    GetUserLibraryUseCase,
-    DeleteLibraryUseCase,
-    # Request DTOs
-    GetUserLibraryRequest,
+    CreateLibraryRequest,
+    CreateLibraryResponse,
+    ICreateLibraryUseCase,
+    GetLibraryRequest,
+    GetLibraryResponse,
+    IGetLibraryUseCase,
     DeleteLibraryRequest,
-    # Response DTOs
-    LibraryResponse,
+    IDeleteLibraryUseCase,
+    RenameLibraryRequest,
+    RenameLibraryResponse,
+    IRenameLibraryUseCase,
 )
 
+from .output import ILibraryRepository
+
 __all__ = [
-    # Output ports
-    "LibraryRepository",
-    # Input ports
-    "GetUserLibraryUseCase",
-    "DeleteLibraryUseCase",
-    # Request DTOs
-    "GetUserLibraryRequest",
+    # Input Ports - CreateLibrary
+    "CreateLibraryRequest",
+    "CreateLibraryResponse",
+    "ICreateLibraryUseCase",
+    # Input Ports - GetLibrary
+    "GetLibraryRequest",
+    "GetLibraryResponse",
+    "IGetLibraryUseCase",
+    # Input Ports - DeleteLibrary
     "DeleteLibraryRequest",
-    # Response DTOs
-    "LibraryResponse",
+    "IDeleteLibraryUseCase",
+    # Input Ports - RenameLibrary
+    "RenameLibraryRequest",
+    "RenameLibraryResponse",
+    "IRenameLibraryUseCase",
+    # Output Ports
+    "ILibraryRepository",
 ]

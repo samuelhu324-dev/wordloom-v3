@@ -6,3 +6,7 @@ Contains:
   - migrations/: Alembic database migration scripts
   - session.py: Database session management
 """
+
+from .models import Base
+
+__all__ = ["Base"]

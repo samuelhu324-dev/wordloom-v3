@@ -8,9 +8,11 @@ Book UseCase 层 - 业务操作编排
   - update_book.py         - UpdateBookUseCase
   - delete_book.py         - DeleteBookUseCase
   - restore_book.py        - RestoreBookUseCase
-  - list_deleted_books.py  - ListDeletedBooksUseCase
+  - move_book.py           - MoveBookUseCase (RULE-011)
+  - list_deleted_books.py  - ListDeletedBooksUseCase (RULE-012)
 
-RULE-012: 书籍支持软删除，通过 soft_deleted_at 时间戳
+RULE-011: 书籍可以跨 Bookshelf 转移
+RULE-012: 书籍支持软删除到 Basement，通过 soft_deleted_at 时间戳
 """
 
 from .create_book import CreateBookUseCase
@@ -19,6 +21,7 @@ from .get_book import GetBookUseCase
 from .update_book import UpdateBookUseCase
 from .delete_book import DeleteBookUseCase
 from .restore_book import RestoreBookUseCase
+from .move_book import MoveBookUseCase
 from .list_deleted_books import ListDeletedBooksUseCase
 
 __all__ = [
@@ -28,5 +31,6 @@ __all__ = [
     "UpdateBookUseCase",
     "DeleteBookUseCase",
     "RestoreBookUseCase",
+    "MoveBookUseCase",
     "ListDeletedBooksUseCase",
 ]

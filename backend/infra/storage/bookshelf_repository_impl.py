@@ -22,16 +22,19 @@ from sqlalchemy import select, and_
 from sqlalchemy.orm import Session
 
 from api.app.modules.bookshelf.domain import (
-    Bookshelf, BookshelfName, BookshelfDescription, BookshelfStatus
+    Bookshelf,
+    BookshelfName,
+    BookshelfDescription,
+    BookshelfStatus,
 )
 from api.app.modules.bookshelf.exceptions import BookshelfAlreadyExistsError
-from api.app.modules.bookshelf.application.ports.output import BookshelfRepository
-from infra.database.models import BookshelfModel
+from api.app.modules.bookshelf.application.ports.output import IBookshelfRepository
+from infra.database.models.bookshelf_models import BookshelfModel
 
 logger = logging.getLogger(__name__)
 
 
-class SQLAlchemyBookshelfRepository(BookshelfRepository):
+class SQLAlchemyBookshelfRepository(IBookshelfRepository):
     """SQLAlchemy implementation of BookshelfRepository (Infrastructure Adapter)
 
     This is an ADAPTER in Hexagonal architecture - it implements the

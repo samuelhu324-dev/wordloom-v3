@@ -1,30 +1,28 @@
 """
-Bookshelf UseCase 层 - 业务操作编排
+Bookshelf Application Layer - UseCase Implementations
 
-每个文件包含一个 UseCase 类：
-  - create_bookshelf.py   - CreateBookshelfUseCase
-  - list_bookshelves.py   - ListBookshelvesUseCase
-  - get_bookshelf.py      - GetBookshelfUseCase
-  - update_bookshelf.py   - UpdateBookshelfUseCase
-  - delete_bookshelf.py   - DeleteBookshelfUseCase
-  - get_basement.py       - GetBasementUseCase
+Core 4 UseCases (Standard Pattern):
+  - create_bookshelf.py  → CreateBookshelfUseCase(ICreateBookshelfUseCase)
+  - get_bookshelf.py     → GetBookshelfUseCase(IGetBookshelfUseCase)
+  - delete_bookshelf.py  → DeleteBookshelfUseCase(IDeleteBookshelfUseCase)
+  - rename_bookshelf.py  → RenameBookshelfUseCase(IRenameBookshelfUseCase)
 
-RULE-006: Bookshelf 名称在每个 Library 内唯一
-RULE-010: Basement 是每个 Library 自动创建的特殊书架，不能删除
+Design: Each UseCase orchestrates domain behavior with repository
+- Validates business rules (RULE-006: name uniqueness, RULE-010: no Basement deletion)
+- Calls domain methods (create, rename, mark_deleted)
+- Handles persistence (save, queries)
+- Publishes domain events implicitly
 """
 
 from .create_bookshelf import CreateBookshelfUseCase
-from .list_bookshelves import ListBookshelvesUseCase
 from .get_bookshelf import GetBookshelfUseCase
-from .update_bookshelf import UpdateBookshelfUseCase
 from .delete_bookshelf import DeleteBookshelfUseCase
-from .get_basement import GetBasementUseCase
+from .rename_bookshelf import RenameBookshelfUseCase
 
 __all__ = [
     "CreateBookshelfUseCase",
-    "ListBookshelvesUseCase",
     "GetBookshelfUseCase",
-    "UpdateBookshelfUseCase",
     "DeleteBookshelfUseCase",
-    "GetBasementUseCase",
+    "RenameBookshelfUseCase",
 ]
+

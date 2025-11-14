@@ -1,50 +1,88 @@
-"""DeleteBookshelf UseCase - Delete a bookshelf
+"""DeleteBookshelf UseCase - Soft delete (mark as DELETED) a Bookshelf
 
-This use case handles:
-- Validating bookshelf exists
-- Preventing deletion of Basement bookshelf
-- Soft or hard delete
-- Handling cascading deletion
+Responsibilities:
+- Load bookshelf from repository by ID
+- Validate not Basement type (RULE-010)
+- Call bookshelf.mark_deleted() to change status
+- Persist updated bookshelf to repository
+- Publish BookshelfDeletedEvent via domain events
+- Return response
 
-RULE-010: Basement bookshelf cannot be deleted
+RULE-010: Basement bookshelf cannot be deleted (it's the recycle bin)
+RULE-005: Deletion is soft (status → DELETED, not removed from database)
+
+Design Pattern: UseCase (Application Layer)
+- Orchestrates domain behavior with persistence
+- Handles business rule validation (no Basement deletion)
+- Coordinates event publication
 """
 
-from uuid import UUID
-
-from ...domain import Bookshelf
-from ...application.ports.output import BookshelfRepository
-from ...exceptions import (
-    BookshelfNotFoundError,
-    BookshelfOperationError,
+from api.app.modules.bookshelf.application.ports.input import (
+    DeleteBookshelfRequest,
+    DeleteBookshelfResponse,
+    IDeleteBookshelfUseCase,
 )
+from api.app.modules.bookshelf.application.ports.output import IBookshelfRepository
 
 
-class DeleteBookshelfUseCase:
-    """Delete a bookshelf"""
+class DeleteBookshelfUseCase(IDeleteBookshelfUseCase):
+    """Implementation of DeleteBookshelf UseCase
 
-    def __init__(self, repository: BookshelfRepository):
-        self.repository = repository
+    Orchestrates:
+    1. Load bookshelf from repository
+    2. Validate not Basement type
+    3. Call domain method: bookshelf.mark_deleted()
+    4. Persist updated bookshelf
+    5. Return response with updated status
+    """
 
-    async def execute(self, bookshelf_id: UUID) -> None:
+    def __init__(self, repository: IBookshelfRepository):
         """
-        Delete bookshelf
+        Initialize DeleteBookshelfUseCase
 
         Args:
-            bookshelf_id: Bookshelf ID to delete
+            repository: IBookshelfRepository implementation for persistence
+        """
+        self.repository = repository
+
+    async def execute(self, request: DeleteBookshelfRequest) -> DeleteBookshelfResponse:
+        """
+        Execute bookshelf deletion (soft delete)
+
+        Args:
+            request: DeleteBookshelfRequest with bookshelf_id
+
+        Returns:
+            DeleteBookshelfResponse with updated bookshelf status
 
         Raises:
-            BookshelfNotFoundError: If bookshelf not found
-            BookshelfOperationError: If basement or on persistence error
+            ValueError: If bookshelf not found or if Basement type
+            Exception: On unexpected repository errors
         """
-        bookshelf = await self.repository.get_by_id(bookshelf_id)
+
+        # Step 1: Load bookshelf from repository
+        bookshelf = await self.repository.get_by_id(request.bookshelf_id)
+
+        # Step 2: Validate existence
         if not bookshelf:
-            raise BookshelfNotFoundError(bookshelf_id)
+            raise ValueError(f"Bookshelf {request.bookshelf_id} not found")
 
-        # Check if basement (RULE-010)
-        if bookshelf.is_basement():
-            raise BookshelfOperationError("Cannot delete Basement bookshelf")
+        # Step 3: Validate not Basement (RULE-010)
+        if bookshelf.is_basement:
+            raise ValueError(
+                f"Cannot delete Basement bookshelf {request.bookshelf_id} - it serves as recycle bin"
+            )
 
-        try:
-            await self.repository.delete(bookshelf_id)
-        except Exception as e:
-            raise BookshelfOperationError(f"Failed to delete bookshelf: {str(e)}")
+        # Step 4: Call domain method to mark as deleted
+        # This changes status to DELETED and publishes BookshelfDeletedEvent
+        bookshelf.mark_deleted()
+
+        # Step 5: Persist updated bookshelf
+        await self.repository.save(bookshelf)
+
+        # Step 6: Return response with updated status
+        return DeleteBookshelfResponse(
+            id=bookshelf.id,
+            status=bookshelf.status.value,
+            deleted_at=bookshelf.updated_at.isoformat() if bookshelf.updated_at else "",
+        )

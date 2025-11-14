@@ -1,10 +1,13 @@
-"""RestoreBook UseCase - Restore a soft-deleted book
+"""RestoreBook UseCase - Restore a soft-deleted book from Basement
 
 This use case handles:
-- Validating book exists
-- Clearing soft_deleted_at timestamp
+- Validating book exists and is in Basement
+- Calling domain.restore_from_basement() to clear soft_deleted_at
+- Publishing BookRestoredFromBasement event
 - Making book active again
 - Persisting via repository
+
+RULE-013: Restore soft-deleted books from Basement to target bookshelf
 """
 
 from uuid import UUID
@@ -14,35 +17,43 @@ from ...application.ports.output import BookRepository
 from ...exceptions import (
     BookNotFoundError,
     BookOperationError,
+    BookNotInBasementError,
 )
 
 
 class RestoreBookUseCase:
-    """Restore a soft-deleted book"""
+    """Restore a soft-deleted book from Basement"""
 
     def __init__(self, repository: BookRepository):
         self.repository = repository
 
-    async def execute(self, book_id: UUID) -> Book:
+    async def execute(self, request) -> Book:
         """
-        Restore book
+        Restore book from Basement
 
         Args:
-            book_id: Book ID to restore
+            request: RestoreBookRequest with book_id and target_bookshelf_id
 
         Returns:
             Restored Book domain object
 
         Raises:
             BookNotFoundError: If book not found
+            BookNotInBasementError: If book is not soft-deleted
             BookOperationError: On persistence error
         """
-        book = await self.repository.get_by_id(book_id)
+        book = await self.repository.get_by_id(request.book_id)
         if not book:
-            raise BookNotFoundError(book_id)
+            raise BookNotFoundError(request.book_id)
+
+        # Validate book is in Basement (soft_deleted_at is not None)
+        if book.soft_deleted_at is None:
+            raise BookNotInBasementError(request.book_id)
 
         try:
-            book.restore()
+            # Call domain method to trigger BookRestoredFromBasement event
+            book.restore_from_basement(request.target_bookshelf_id)
+            # Persist with soft_deleted_at cleared by domain method
             restored_book = await self.repository.save(book)
             return restored_book
         except Exception as e:

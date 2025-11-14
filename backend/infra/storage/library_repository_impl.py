@@ -23,13 +23,13 @@ from sqlalchemy.orm import Session
 
 from api.app.modules.library.domain import Library, LibraryName
 from api.app.modules.library.exceptions import LibraryAlreadyExistsError
-from api.app.modules.library.application.ports.output import LibraryRepository
+from api.app.modules.library.application.ports.output import ILibraryRepository
 from infra.database.models import LibraryModel
 
 logger = logging.getLogger(__name__)
 
 
-class SQLAlchemyLibraryRepository(LibraryRepository):
+class SQLAlchemyLibraryRepository(ILibraryRepository):
     """SQLAlchemy implementation of LibraryRepository (Infrastructure Adapter)
 
     This is an ADAPTER in Hexagonal architecture - it implements the

@@ -30,7 +30,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from uuid import uuid4
 from enum import Enum as PyEnum
-from core.database import Base
+from infra.database import Base
 
 
 class EntityType(PyEnum):

@@ -1,63 +1,55 @@
 """
-Bookshelf Ports - 所有 Input 和 Output Port 接口
+Bookshelf Ports - All Input and Output Port Interfaces
 
-Output Ports (repository.py):
-  - BookshelfRepository
+Output Ports (output.py):
+  - IBookshelfRepository
 
 Input Ports (input.py):
-  - CreateBookshelfUseCase
-  - ListBookshelvesUseCase
-  - GetBookshelfUseCase
-  - UpdateBookshelfUseCase
-  - DeleteBookshelfUseCase
-  - GetBasementUseCase
+  - ICreateBookshelfUseCase
+  - IGetBookshelfUseCase
+  - IDeleteBookshelfUseCase
+  - IRenameBookshelfUseCase
 
 Request/Response DTOs:
-  - CreateBookshelfRequest, BookshelfResponse
-  - ListBookshelvesRequest
-  - UpdateBookshelfRequest
-  - ...
+  - CreateBookshelfRequest, CreateBookshelfResponse
+  - GetBookshelfRequest, GetBookshelfResponse
+  - DeleteBookshelfRequest
+  - RenameBookshelfRequest, RenameBookshelfResponse
 """
 
 # Output ports (repository)
-from .output import BookshelfRepository
+from .output import IBookshelfRepository
 
 # Input ports (use cases) + DTOs
 from .input import (
-    CreateBookshelfUseCase,
-    ListBookshelvesUseCase,
-    GetBookshelfUseCase,
-    UpdateBookshelfUseCase,
-    DeleteBookshelfUseCase,
-    GetBasementUseCase,
-    # Request DTOs
+    ICreateBookshelfUseCase,
+    IGetBookshelfUseCase,
+    IDeleteBookshelfUseCase,
+    IRenameBookshelfUseCase,
     CreateBookshelfRequest,
-    ListBookshelvesRequest,
+    CreateBookshelfResponse,
     GetBookshelfRequest,
-    UpdateBookshelfRequest,
+    GetBookshelfResponse,
     DeleteBookshelfRequest,
-    GetBasementRequest,
-    # Response DTOs
-    BookshelfResponse,
+    RenameBookshelfRequest,
+    RenameBookshelfResponse,
 )
 
 __all__ = [
     # Output ports
-    "BookshelfRepository",
+    "IBookshelfRepository",
     # Input ports
-    "CreateBookshelfUseCase",
-    "ListBookshelvesUseCase",
-    "GetBookshelfUseCase",
-    "UpdateBookshelfUseCase",
-    "DeleteBookshelfUseCase",
-    "GetBasementUseCase",
+    "ICreateBookshelfUseCase",
+    "IGetBookshelfUseCase",
+    "IDeleteBookshelfUseCase",
+    "IRenameBookshelfUseCase",
     # Request DTOs
     "CreateBookshelfRequest",
-    "ListBookshelvesRequest",
     "GetBookshelfRequest",
-    "UpdateBookshelfRequest",
     "DeleteBookshelfRequest",
-    "GetBasementRequest",
+    "RenameBookshelfRequest",
     # Response DTOs
-    "BookshelfResponse",
+    "CreateBookshelfResponse",
+    "GetBookshelfResponse",
+    "RenameBookshelfResponse",
 ]

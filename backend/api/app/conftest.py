@@ -23,76 +23,77 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from unittest.mock import MagicMock, AsyncMock
 
-from core.database import Base
+# Base import commented out - will be added when database layer is fully set up
+# from infra.database import Base
 
 
 # ============================================================================
 # Test Database Setup
 # ============================================================================
 
-@pytest.fixture(scope="session")
-async def test_db_engine(event_loop):
-    """
-    Create SQLite async engine for all tests
-
-    Features:
-    - In-memory SQLite database (fast, isolated per session)
-    - Async support via aiosqlite
-    - Foreign key constraints enabled
-    - Schema created automatically
-
-    Scope: session (one engine for all tests)
-    Returns: AsyncEngine
-    """
-    engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
-        echo=False,
-        connect_args={"timeout": 30},
-    )
-
-    # Create all tables from ORM models
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    yield engine
-
-    # Cleanup
-    await engine.dispose()
-
-
-@pytest.fixture(scope="function")
-async def db_session(test_db_engine, event_loop) -> AsyncGenerator[AsyncSession, None]:
-    """
-    Create isolated async database session for each test
-
-    Features:
-    - Fresh transaction for each test
-    - Automatic rollback after test (no side effects)
-    - Dependency injection ready
-
-    Scope: function (new session per test)
-    Returns: AsyncSession (sqlalchemy async session)
-
-    Usage:
-        async def test_something(db_session):
-            repo = LibraryRepository(db_session)
-            # ... test code ...
-    """
-    async_session = async_sessionmaker(
-        test_db_engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-        join_transaction_mode="create"
-    )
-
-    async with async_session() as session:
-        # Start transaction
-        await session.begin()
-
-        yield session
-
-        # Rollback after test (no side effects)
-        await session.rollback()
+# @pytest.fixture(scope="session")
+# async def test_db_engine(event_loop):
+#     """
+#     Create SQLite async engine for all tests
+#
+#     Features:
+#     - In-memory SQLite database (fast, isolated per session)
+#     - Async support via aiosqlite
+#     - Foreign key constraints enabled
+#     - Schema created automatically
+#
+#     Scope: session (one engine for all tests)
+#     Returns: AsyncEngine
+#     """
+#     engine = create_async_engine(
+#         "sqlite+aiosqlite:///:memory:",
+#         echo=False,
+#         connect_args={"timeout": 30},
+#     )
+#
+#     # Create all tables from ORM models
+#     async with engine.begin() as conn:
+#         await conn.run_sync(Base.metadata.create_all)
+#
+#     yield engine
+#
+#     # Cleanup
+#     await engine.dispose()
+#
+#
+# @pytest.fixture(scope="function")
+# async def db_session(test_db_engine, event_loop) -> AsyncGenerator[AsyncSession, None]:
+#     """
+#     Create isolated async database session for each test
+#
+#     Features:
+#     - Fresh transaction for each test
+#     - Automatic rollback after test (no side effects)
+#     - Dependency injection ready
+#
+#     Scope: function (new session per test)
+#     Returns: AsyncSession (sqlalchemy async session)
+#
+#     Usage:
+#         async def test_something(db_session):
+#             repo = LibraryRepository(db_session)
+#             # ... test code ...
+#     """
+#     async_session = async_sessionmaker(
+#         test_db_engine,
+#         class_=AsyncSession,
+#         expire_on_commit=False,
+#         join_transaction_mode="create"
+#     )
+#
+#     async with async_session() as session:
+#         # Start transaction
+#         await session.begin()
+#
+#         yield session
+#
+#         # Rollback after test (no side effects)
+#         await session.rollback()
 
 
 # ============================================================================

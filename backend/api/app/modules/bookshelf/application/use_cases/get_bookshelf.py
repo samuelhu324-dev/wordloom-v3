@@ -1,46 +1,63 @@
-"""GetBookshelf UseCase - Get a bookshelf by ID
+"""GetBookshelf UseCase - Retrieve a Bookshelf by ID
 
-This use case handles:
-- Validating bookshelf exists
-- Returning Bookshelf domain object
+Responsibilities:
+- Query bookshelf from repository by ID
+- Handle not-found case (raise exception or return empty)
+- Return response DTO with bookshelf data
+
+Design Pattern: UseCase (Application Layer)
+- Read-only operation (Query)
+- No state changes, no events published
+- Simple pass-through from repository to Router
 """
 
-from uuid import UUID
-
-from ...domain import Bookshelf
-from ...application.ports.output import BookshelfRepository
-from ...exceptions import (
-    BookshelfNotFoundError,
-    BookshelfOperationError,
+from api.app.modules.bookshelf.application.ports.input import (
+    GetBookshelfRequest,
+    GetBookshelfResponse,
+    IGetBookshelfUseCase,
 )
+from api.app.modules.bookshelf.application.ports.output import IBookshelfRepository
 
 
-class GetBookshelfUseCase:
-    """Get a bookshelf by ID"""
+class GetBookshelfUseCase(IGetBookshelfUseCase):
+    """Implementation of GetBookshelf UseCase
 
-    def __init__(self, repository: BookshelfRepository):
-        self.repository = repository
+    Orchestrates:
+    1. Query repository by ID
+    2. Validate result (not None)
+    3. Convert domain object to response DTO
+    """
 
-    async def execute(self, bookshelf_id: UUID) -> Bookshelf:
+    def __init__(self, repository: IBookshelfRepository):
         """
-        Get bookshelf
+        Initialize GetBookshelfUseCase
 
         Args:
-            bookshelf_id: Bookshelf ID
+            repository: IBookshelfRepository implementation for queries
+        """
+        self.repository = repository
+
+    async def execute(self, request: GetBookshelfRequest) -> GetBookshelfResponse:
+        """
+        Execute bookshelf retrieval
+
+        Args:
+            request: GetBookshelfRequest with bookshelf_id
 
         Returns:
-            Bookshelf domain object
+            GetBookshelfResponse with bookshelf data
 
         Raises:
-            BookshelfNotFoundError: If bookshelf not found
-            BookshelfOperationError: On query error
+            ValueError: If bookshelf not found
+            Exception: On unexpected repository errors
         """
-        try:
-            bookshelf = await self.repository.get_by_id(bookshelf_id)
-            if not bookshelf:
-                raise BookshelfNotFoundError(bookshelf_id)
-            return bookshelf
-        except Exception as e:
-            if isinstance(e, BookshelfNotFoundError):
-                raise
-            raise BookshelfOperationError(f"Failed to get bookshelf: {str(e)}")
+
+        # Step 1: Query repository by ID
+        bookshelf = await self.repository.get_by_id(request.bookshelf_id)
+
+        # Step 2: Validate existence
+        if not bookshelf:
+            raise ValueError(f"Bookshelf {request.bookshelf_id} not found")
+
+        # Step 3: Convert to response DTO and return
+        return GetBookshelfResponse.from_domain(bookshelf)

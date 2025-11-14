@@ -9,8 +9,8 @@ from typing import List, Optional
 from uuid import UUID
 import logging
 
-from dependencies import DIContainer, get_di_container_provider
-from app.modules.bookshelf.application.ports.input import (
+from api.app.dependencies import DIContainer, get_di_container_provider
+from api.app.modules.bookshelf.application.ports.input import (
     CreateBookshelfRequest,
     ListBookshelvesRequest,
     GetBookshelfRequest,
@@ -19,7 +19,7 @@ from app.modules.bookshelf.application.ports.input import (
     GetBasementRequest,
     BookshelfResponse,
 )
-from app.modules.bookshelf.domain.exceptions import (
+from api.app.modules.bookshelf.exceptions import (
     BookshelfNotFoundError,
     BookshelfAlreadyExistsError,
     DomainException,

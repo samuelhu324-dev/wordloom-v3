@@ -168,6 +168,11 @@ class BlockDTO(BaseModel):
     order: Decimal  # ← Internal Decimal representation
     heading_level: Optional[int] = None
     soft_deleted_at: Optional[datetime] = None
+    # === NEW: Paperballs fields (Doc 8 Integration) ===
+    deleted_prev_id: Optional[UUID] = None
+    deleted_next_id: Optional[UUID] = None
+    deleted_section_path: Optional[str] = None
+    recovery_hint: Optional[str] = None  # "Level X: ..." for UI display
     created_at: datetime
     updated_at: datetime
 
@@ -181,7 +186,12 @@ class BlockDTO(BaseModel):
             content=block_domain.content.value,  # Value Object
             order=block_domain.order,
             heading_level=block_domain.heading_level,
-            soft_deleted_at=block_domain.soft_deleted_at,
+            soft_deleted_at=getattr(block_domain, 'soft_deleted_at', None),
+            # === NEW: Paperballs fields ===
+            deleted_prev_id=getattr(block_domain, 'deleted_prev_id', None),
+            deleted_next_id=getattr(block_domain, 'deleted_next_id', None),
+            deleted_section_path=getattr(block_domain, 'deleted_section_path', None),
+            recovery_hint=getattr(block_domain, 'recovery_hint', None),
             created_at=block_domain.created_at,
             updated_at=block_domain.updated_at,
         )
@@ -210,6 +220,25 @@ class BlockDTO(BaseModel):
             heading_level=self.heading_level,
             char_count=len(self.content),
             soft_deleted_at=self.soft_deleted_at,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+        )
+
+    def to_deleted_response(self) -> "DeletedBlockDTO":
+        """Convert DTO to deleted block response with recovery metadata"""
+        return DeletedBlockDTO(
+            id=self.id,
+            book_id=self.book_id,
+            block_type=self.block_type,
+            content=self.content,
+            order=str(self.order),
+            heading_level=self.heading_level,
+            soft_deleted_at=self.soft_deleted_at,
+            # === Paperballs metadata ===
+            deleted_prev_id=self.deleted_prev_id,
+            deleted_next_id=self.deleted_next_id,
+            deleted_section_path=self.deleted_section_path,
+            recovery_hint=self.recovery_hint,
             created_at=self.created_at,
             updated_at=self.updated_at,
         )
@@ -285,6 +314,99 @@ class BlockPaginatedResponse(BaseModel):
     page: int = Field(..., ge=1, description="Current page number")
     page_size: int = Field(..., ge=1, le=100, description="Page size (1-100)")
     has_more: bool = Field(..., description="Whether more pages exist")
+
+
+# ========== NEW: Paperballs Recovery Response Schemas (Doc 8 Integration) ==========
+
+class DeletedBlockDTO(BaseModel):
+    """Deleted Block response with Paperballs recovery metadata"""
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": "550e8400-e29b-41d4-a716-446655440000",
+                "book_id": "550e8400-e29b-41d4-a716-446655440001",
+                "block_type": "text",
+                "content": "This is a deleted text block",
+                "order": "100.5",
+                "heading_level": None,
+                "soft_deleted_at": "2025-11-14T10:00:00Z",
+                "deleted_prev_id": "550e8400-e29b-41d4-a716-446655440002",
+                "deleted_next_id": None,
+                "deleted_section_path": "introduction",
+                "recovery_hint": "Level 1: 在前驱节点之后恢复",
+                "created_at": "2025-11-13T10:00:00Z",
+                "updated_at": "2025-11-13T10:00:00Z",
+            }
+        }
+    )
+
+    id: UUID
+    book_id: UUID
+    block_type: BlockTypeEnum
+    content: str
+    order: str
+    heading_level: Optional[int] = None
+    soft_deleted_at: datetime
+    # === Paperballs recovery fields ===
+    deleted_prev_id: Optional[UUID] = Field(None, description="Level 1 recovery reference")
+    deleted_next_id: Optional[UUID] = Field(None, description="Level 2 recovery reference")
+    deleted_section_path: Optional[str] = Field(None, description="Level 3 recovery reference")
+    recovery_hint: Optional[str] = Field(None, description="Human-readable recovery strategy")
+    # === Audit ===
+    created_at: datetime
+    updated_at: datetime
+
+
+class ListDeletedBlocksResponse(BaseModel):
+    """List deleted blocks response with recovery metadata"""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "book_id": "550e8400-e29b-41d4-a716-446655440001",
+                "deleted_blocks": [],
+                "total_count": 5,
+                "recovery_stats": {
+                    "level_1": 2,
+                    "level_2": 1,
+                    "level_3": 1,
+                    "level_4": 0
+                }
+            }
+        }
+    )
+
+    book_id: UUID
+    deleted_blocks: List[DeletedBlockDTO]
+    total_count: int = Field(..., ge=0, description="Total deleted blocks")
+    recovery_stats: dict = Field(
+        default_factory=lambda: {"level_1": 0, "level_2": 0, "level_3": 0, "level_4": 0},
+        description="Recovery strategy distribution across deleted blocks"
+    )
+
+
+class RestoreBlockResponse(BaseModel):
+    """Block restoration response with recovery level information"""
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": "550e8400-e29b-41d4-a716-446655440000",
+                "book_id": "550e8400-e29b-41d4-a716-446655440001",
+                "success": True,
+                "recovery_level": 1,
+                "new_order": "100.5",
+                "message": "Block restored successfully at Level 1 (after previous sibling)"
+            }
+        }
+    )
+
+    id: UUID
+    book_id: UUID
+    success: bool = Field(..., description="Whether restoration succeeded")
+    recovery_level: int = Field(..., ge=1, le=4, description="Recovery level used (1-4)")
+    new_order: str = Field(..., description="New fractional index after restoration")
+    message: str = Field(..., description="Human-readable restoration status")
 
 
 class BlockErrorResponse(BaseModel):

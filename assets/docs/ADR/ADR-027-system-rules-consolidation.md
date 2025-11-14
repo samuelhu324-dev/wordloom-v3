@@ -5,25 +5,12 @@
 **DecisionMaker:** Architecture Team
 **Supersedes:** DDD_RULES.yaml (v3.0)
 **Related ADRs:** ADR-001, ADR-008 through ADR-026
-**Reference:** backend/docs/SYSTEM_RULES.yaml (v3.1 - Complete)
 
 ---
 
 ## 摘要
 
-整合分散的 DDD 规则和 Hexagonal 架构约束为单一统一的系统规则库（**SYSTEM_RULES.yaml v3.1**），形成整个 Wordloom 后端系统的"架构宪法"。
-
-### 关键数据
-- **总聚合根**: 6 个（Library, Bookshelf, Book, Block, Tag, Media）
-- **不变量**: 26 条（RULE-001 to RULE-026）
-- **业务政策**: 14 条（POLICY-001 to POLICY-014）
-- **域事件**: 27 个（完整清单）
-- **Use Cases**: 41 个
-- **HTTP 端点**: 42 个
-- **文件数**: 135+
-- **代码行数**: 5000+
-- **六边形转换**: 8/8 步完成 ✅
-- **系统成熟度**: 8.5/10 (Enterprise Grade)
+整合分散的 DDD 规则和 Hexagonal 架构约束为单一统一的系统规则库（**SYSTEM_RULES.yaml**），形成整个 Wordloom 后端系统的"架构宪法"。
 
 ---
 
@@ -528,3 +515,4 @@ python -c "import yaml; yaml.safe_load(open('backend/docs/SYSTEM_RULES.yaml'))"
 
 *文档生成时间：2025-11-13*
 *下一步：实施 Phase 1 - 创建 SYSTEM_RULES.yaml 并更新所有 ADR 引用*
+

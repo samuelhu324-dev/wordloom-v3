@@ -240,3 +240,19 @@ class SQLAlchemyBookRepository(BookRepository):
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
+
+    async def exists_by_id(self, book_id: UUID) -> bool:
+        """Check if Book exists (excluding soft-deleted)"""
+        try:
+            exists = self.session.query(
+                self.session.query(BookModel).filter(
+                    and_(
+                        BookModel.id == book_id,
+                        BookModel.soft_deleted_at.is_(None)
+                    )
+                ).exists()
+            ).scalar()
+            return bool(exists)
+        except Exception as e:
+            logger.error(f"Error checking if Book exists: {e}")
+            raise

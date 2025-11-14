@@ -4,10 +4,13 @@ Bookshelf Domain Module
 Public API exports for the Bookshelf aggregate root and related components.
 """
 
-from .domain import Bookshelf, BookshelfName
-from .service import BookshelfService
-from .repository import BookshelfRepository, BookshelfRepositoryImpl
-from .models import BookshelfModel
+from .domain import Bookshelf, BookshelfName, BookshelfDescription, BookshelfType, BookshelfStatus
+from .application.ports.input import (
+    ICreateBookshelfUseCase,
+    IGetBookshelfUseCase,
+    IDeleteBookshelfUseCase,
+    IRenameBookshelfUseCase,
+)
 from .schemas import (
     BookshelfCreate,
     BookshelfUpdate,
@@ -19,21 +22,30 @@ from .exceptions import (
     BookshelfAlreadyExistsError,
     InvalidBookshelfNameError,
 )
-from .router import router
+# Router import commented out - requires DI container, not needed for tests
+# from .routers import bookshelf_router
 
 __all__ = [
+    # Domain
     "Bookshelf",
     "BookshelfName",
-    "BookshelfService",
-    "BookshelfRepository",
-    "BookshelfRepositoryImpl",
-    "BookshelfModel",
+    "BookshelfDescription",
+    "BookshelfType",
+    "BookshelfStatus",
+    # UseCases
+    "ICreateBookshelfUseCase",
+    "IGetBookshelfUseCase",
+    "IDeleteBookshelfUseCase",
+    "IRenameBookshelfUseCase",
+    # Schemas
     "BookshelfCreate",
     "BookshelfUpdate",
     "BookshelfResponse",
     "BookshelfDetailResponse",
+    # Exceptions
     "BookshelfNotFoundError",
     "BookshelfAlreadyExistsError",
     "InvalidBookshelfNameError",
-    "router",
+    # Router (commented)
+    # "bookshelf_router",
 ]

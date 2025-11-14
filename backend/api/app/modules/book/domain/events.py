@@ -1,63 +1,140 @@
 """
-Book 模块领域事件定义
+Book Domain Events
 
-定义 Book 聚合根产生的所有领域事件。
+Events emitted by the Book aggregate root to communicate state changes
+to other bounded contexts and infrastructure layers.
+
+Events follow DDD patterns:
+- Immutable domain objects
+- Include all relevant context (aggregate_id, entity IDs, state changes)
+- Published through event bus to Infrastructure layer
 """
 
-from dataclasses import dataclass
+from __future__ import annotations
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from uuid import UUID
+from enum import Enum
 
-from ....infra.event_bus import DomainEvent, EventType
+from shared.base import DomainEvent
 
+
+# ============================================================================
+# Enums (needed by events)
+# ============================================================================
+
+class BookStatus(str, Enum):
+    """Status of a Book"""
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    ARCHIVED = "archived"
+    DELETED = "deleted"
+
+
+# ============================================================================
+# Domain Events
+# ============================================================================
 
 @dataclass
 class BookCreated(DomainEvent):
-    """书籍创建事件"""
+    """Emitted when a new Book is created"""
+    book_id: UUID
+    bookshelf_id: UUID
+    title: str
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    bookshelf_id: UUID = None
-    title: str = ""
-    description: str = ""
-
-    def __post_init__(self):
-        self.event_type = EventType.BOOK_CREATED
-        self.aggregate_type = "book"
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.book_id
 
 
 @dataclass
-class BookUpdated(DomainEvent):
-    """书籍更新事件"""
+class BookRenamed(DomainEvent):
+    """Emitted when Book title is changed"""
+    book_id: UUID
+    old_title: str
+    new_title: str
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    title: str = None
-    description: str = None
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.book_id
 
-    def __post_init__(self):
-        self.event_type = EventType.BOOK_UPDATED
-        self.aggregate_type = "book"
+
+@dataclass
+class BookStatusChanged(DomainEvent):
+    """Emitted when Book status changes"""
+    book_id: UUID
+    old_status: BookStatus
+    new_status: BookStatus
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.book_id
 
 
 @dataclass
 class BookDeleted(DomainEvent):
-    """书籍删除事件（逻辑删除）"""
+    """Emitted when Book is deleted"""
+    book_id: UUID
+    bookshelf_id: UUID
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    soft_deleted: bool = True
-
-    def __post_init__(self):
-        self.event_type = EventType.BOOK_DELETED
-        self.aggregate_type = "book"
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.book_id
 
 
 @dataclass
-class BookRestored(DomainEvent):
-    """书籍恢复事件（从逻辑删除恢复）"""
+class BlocksUpdated(DomainEvent):
+    """Emitted when Book's Blocks are updated"""
+    book_id: UUID
+    block_count: int
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    def __post_init__(self):
-        self.event_type = EventType.BOOK_RESTORED
-        self.aggregate_type = "book"
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.book_id
 
 
-__all__ = [
-    "BookCreated",
-    "BookUpdated",
-    "BookDeleted",
-    "BookRestored",
-]
+@dataclass
+class BookMovedToBookshelf(DomainEvent):
+    """Emitted when Book is moved to a different Bookshelf (RULE-011)"""
+    book_id: UUID
+    old_bookshelf_id: UUID
+    new_bookshelf_id: UUID
+    moved_at: datetime
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.book_id
+
+
+@dataclass
+class BookMovedToBasement(DomainEvent):
+    """Emitted when Book is moved to Basement (soft delete, RULE-012)"""
+    book_id: UUID
+    old_bookshelf_id: UUID
+    basement_bookshelf_id: UUID
+    deleted_at: datetime
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.book_id
+
+
+@dataclass
+class BookRestoredFromBasement(DomainEvent):
+    """Emitted when Book is restored from Basement (RULE-013)"""
+    book_id: UUID
+    basement_bookshelf_id: UUID
+    restored_to_bookshelf_id: UUID
+    restored_at: datetime
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.book_id
