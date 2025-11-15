@@ -1,17 +1,41 @@
 """
-Event Bus Module - Domain Event Handling
+Event Bus Module - Domain Event Handling Infrastructure
 
-Infrastructure for publishing and handling domain events.
+Provides the core infrastructure for asynchronous domain event publishing and handling.
 
-Structure:
-  - event_bus.py: Event bus adapter (interface + implementation)
-  - handlers/: Event handlers (one handler per event type)
+Components:
+  - event_handler_registry.py: Central registry for event handlers
+  - handlers/: Event handler implementations (one file per domain)
 
-Domain events flow:
-  1. Domain layer emits event (e.g., MediaUploaded)
-  2. UseCase layer publishes to EventBus
-  3. EventBus routes to registered handlers
-  4. Handlers execute side effects (e.g., schedule 30-day purge)
+Architecture:
+  1. Domain layer emits events when business logic completes
+  2. UseCase layer adds events to aggregate root
+  3. Repository layer persists aggregate and publishes events to EventBus
+  4. EventBus routes events to registered handlers (async)
+  5. Handlers execute side effects (cascades, notifications, scheduled jobs, etc.)
+
+Event Flow:
+    Domain Layer (emit event)
+         ↓
+    UseCase Layer (aggregate.add_event())
+         ↓
+    Application Layer (repository.save(aggregate))
+         ↓
+    EventBus.publish(event)
+         ↓
+    Registered Handlers (side effects)
 
 No domain code depends on this module.
+This is purely infrastructure.
+
+Usage at application startup (main.py):
+    from backend.infra.event_bus.event_handler_registry import EventHandlerRegistry
+
+    # Bootstrap all handlers to EventBus
+    EventHandlerRegistry.bootstrap()
 """
+
+from .event_handler_registry import EventHandlerRegistry
+
+__all__ = ["EventHandlerRegistry"]
+

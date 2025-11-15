@@ -32,8 +32,8 @@ from typing import Optional
 from uuid import UUID
 import logging
 
-from app.dependencies import DIContainer, get_di_container_provider
-from app.modules.book.application.ports.input import (
+from dependencies import DIContainer, get_di_container_provider
+from modules.book.application.ports.input import (
     CreateBookRequest,
     ListBooksRequest,
     GetBookRequest,
@@ -45,7 +45,7 @@ from app.modules.book.application.ports.input import (
     BookResponse,
     BookListResponse,
 )
-from app.modules.book.domain.exceptions import (
+from modules.book.domain.exceptions import (
     BookNotFoundError,
     BookAlreadyExistsError,
     DomainException,
@@ -78,8 +78,7 @@ async def create_book(
     request: CreateBookRequest,
     di: DIContainer = Depends(get_di_container)
 ):
-    """创建新书籍
-
+    """创建新书�?
     Args:
         request: CreateBookRequest with:
             - bookshelf_id: UUID (required, RULE-010)
@@ -311,8 +310,7 @@ async def delete_book(
     basement_bookshelf_id: UUID = Query(..., description="Basement bookshelf ID for soft delete"),
     di: DIContainer = Depends(get_di_container)
 ):
-    """删除书籍（逻辑删除）
-
+    """删除书籍（逻辑删除�?
     RULE-012: Deletion is implemented as soft-delete by moving to Basement.
     The book is not removed from database, only marked as deleted via soft_deleted_at.
 
@@ -374,7 +372,7 @@ async def move_book(
     request: MoveBookRequest,
     di: DIContainer = Depends(get_di_container)
 ):
-    """移动书籍到另一个书架 (RULE-011)
+    """移动书籍到另一个书�?(RULE-011)
 
     RULE-011: Books can move across bookshelves with proper authorization.
     This operation changes the book's bookshelf_id to the target bookshelf.
@@ -561,3 +559,4 @@ async def list_deleted_books(
 
 
 __all__ = ["router"]
+

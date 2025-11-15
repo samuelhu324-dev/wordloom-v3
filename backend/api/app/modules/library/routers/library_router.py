@@ -1,4 +1,4 @@
-﻿# Library Router - FastAPI routes for Library endpoints
+# Library Router - FastAPI routes for Library endpoints
 
 from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -40,7 +40,7 @@ from modules.library.schemas import (
 )
 
 # Security
-from app.config.security import get_current_user_id
+from config.security import get_current_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -171,3 +171,4 @@ async def delete_library(
 @router.get("/health", tags=["health"])
 async def health_check() -> dict:
     return {"status": "ok", "service": "library"}
+

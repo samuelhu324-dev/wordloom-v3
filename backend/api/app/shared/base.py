@@ -1,260 +1,226 @@
 """
-Shared Base Classes - Foundation for all Domain models
+Domain-Driven Design base classes - AggregateRoot, ValueObject, DomainEvent
 
-Provides:
-- AggregateRoot base class
-- Entity base class
-- ValueObject base class
-- DomainEvent base class
-- Repository interfaces
+Core DDD concepts:
+- ValueObject: Immutable, identified by value, no identity
+- DomainEvent: Records what happened, used for event sourcing
+- AggregateRoot: Entity with identity, enforces invariants, publishes events
+
+These are the foundation for all domain models in the system.
 """
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from datetime import datetime
-from typing import List, Optional
+from abc import ABC
+from typing import List, Any
+from datetime import datetime, timezone
 from uuid import UUID
 
-
-# ============================================================================
-# Event Store
-# ============================================================================
-
-@dataclass
-class DomainEvent(ABC):
-    """
-    Base class for all Domain Events
-
-    Domain Events represent something that happened in the past within the domain.
-    They are immutable and represent facts about the business.
-
-    Usage:
-        - Emit when aggregate state changes
-        - Used for event sourcing
-        - Used for pub/sub messaging (event bus)
-        - Used for audit trail
-    """
-
-    @property
-    def aggregate_id(self) -> UUID:
-        """Get the ID of the aggregate that produced this event"""
-        raise NotImplementedError
-
-    @property
-    def occurred_at(self) -> datetime:
-        """Get when this event occurred"""
-        raise NotImplementedError
-
-
-# ============================================================================
-# Entity Types
-# ============================================================================
 
 class ValueObject(ABC):
     """
     Base class for Value Objects
 
-    Value Objects:
-    - Have no identity (identity-less)
-    - Are immutable
-    - Are compared by value, not by reference
-    - Examples: Money, Color, Range, Email
+    Characteristics:
+    - No identity (immutable)
+    - Compared by value, not reference
+    - No database id column
+    - Used within Aggregates to represent domain concepts
 
-    Usage:
-        @dataclass(frozen=True)
-        class Email(ValueObject):
-            value: str
+    Example:
+        class Color(ValueObject):
+            def __init__(self, hex_code: str):
+                self.hex_code = hex_code
 
-            def __post_init__(self):
-                if '@' not in self.value:
-                    raise ValueError("Invalid email")
-    """
-    pass
-
-
-class Entity(ABC):
-    """
-    Base class for Entities
-
-    Entities:
-    - Have unique identity
-    - Mutable (state can change)
-    - Compared by ID, not by value
-
-    Usage:
-        class User(Entity):
-            id: UUID
-            name: str
-            email: str
-
-            def change_name(self, new_name: str):
-                self.name = new_name
+        c1 = Color("#FF0000")
+        c2 = Color("#FF0000")
+        assert c1 == c2  # True (value comparison)
     """
 
-    @property
-    def identity(self) -> UUID:
-        raise NotImplementedError
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, self.__class__):
+            return False
+        return self.__dict__ == other.__dict__
+
+    def __hash__(self) -> int:
+        return hash(tuple(sorted(self.__dict__.items())))
 
 
-class AggregateRoot(Entity):
+class DomainEvent(ABC):
+    """
+    Base class for Domain Events
+
+    Characteristics:
+    - Records something that happened in the domain
+    - Immutable (happened in the past)
+    - Timestamp indicates when event occurred
+    - Published via EventBus for side effects (cascade updates, notifications)
+    - Part of event sourcing pattern
+
+    Example:
+        class BookCreatedEvent(DomainEvent):
+            def __init__(self, book_id: UUID, title: str):
+                super().__init__()
+                self.book_id = book_id
+                self.title = title
+
+        # In aggregate:
+        event = BookCreatedEvent(book.id, book.title)
+        book.add_event(event)
+    """
+
+    occurred_at: datetime
+
+    def __init__(self):
+        self.occurred_at = datetime.now(timezone.utc)
+
+
+class AggregateRoot(ABC):
     """
     Base class for Aggregate Roots
 
-    Aggregate Roots:
-    - Are entities with special responsibilities
-    - Control access to other entities (aggregates)
-    - Enforce business rules and invariants
-    - Can emit domain events
-    - Are persisted as atomic units
+    Characteristics:
+    - Has identity (UUID)
+    - Contains value objects and entities
+    - Enforces invariants within aggregate boundary
+    - Publishes domain events when state changes
+    - Responsible for transaction consistency
+    - Independent aggregate roots (not nested)
 
     Responsibilities:
-    - Maintain aggregate consistency
-    - Emit domain events
-    - Provide business methods (not just getters/setters)
+    1. Enforce domain invariants
+    2. Publish domain events
+    3. Maintain consistency boundary
+    4. No direct references between aggregates (use IDs)
 
-    Usage:
-        class Order(AggregateRoot):
-            def __init__(self, order_id, customer_id):
-                self.id = order_id
-                self.customer_id = customer_id
-                self.events = []
+    Example:
+        class Book(AggregateRoot):
+            def __init__(self, id: UUID, title: str, author: str):
+                super().__init__(id)
+                self.title = title
+                self.author = author
 
-            def add_item(self, item):
-                # Enforce business rule
-                if len(self.items) >= 10:
-                    raise ValueError("Too many items")
-
-                self.items.append(item)
-                self.emit(ItemAdded(...))
-
-            def emit(self, event: DomainEvent):
-                self.events.append(event)
+            @staticmethod
+            def create(title: str, author: str):
+                book_id = uuid4()
+                book = Book(book_id, title, author)
+                book.add_event(BookCreatedEvent(book.id, book.title))
+                return book
     """
 
     id: UUID
     created_at: datetime
     updated_at: datetime
-    events: List[DomainEvent] = field(default_factory=list)
+    _events: List[DomainEvent] = []
 
-    @property
-    def identity(self) -> UUID:
-        return self.id
+    def __init__(self, id: UUID):
+        self.id = id
+        self.created_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(timezone.utc)
+        self._events = []
 
-    def emit(self, event: DomainEvent) -> None:
+    def add_event(self, event: DomainEvent) -> None:
         """
-        Emit a domain event
+        Add event to pending events
+
+        Events will be published to EventBus after persistence.
+        Called after domain logic completes successfully.
 
         Args:
-            event: DomainEvent to emit
-
-        Side Effects:
-            - Appends event to self.events
-            - In production, may publish to event bus
+            event: DomainEvent instance to add
         """
-        self.events.append(event)
+        self._events.append(event)
 
-    def clear_events(self) -> List[DomainEvent]:
+    def get_events(self) -> List[DomainEvent]:
         """
-        Clear and return all uncommitted events
-
-        Used for:
-        - Event sourcing (store events)
-        - Pub/sub messaging (publish events)
-        - Audit trail (log events)
+        Get all pending events
 
         Returns:
-            List of events that have been emitted since last clear
+            List[DomainEvent]: Copy of pending events
         """
-        events = self.events[:]
-        self.events = []
-        return events
+        return self._events.copy()
+
+    def clear_events(self) -> None:
+        """
+        Clear pending events
+
+        Called by repository after saving to database and publishing events.
+        Ensures events are not replayed on subsequent saves.
+        """
+        self._events.clear()
 
 
-# ============================================================================
-# Repository Interfaces
-# ============================================================================
+from abc import ABC
+from typing import List, Any
+from datetime import datetime, timezone
+from uuid import UUID
 
-class IRepository(ABC):
+
+class ValueObject(ABC):
     """
-    Generic Repository interface
+    Base class for Value Objects
 
-    Repository Pattern:
-    - Mediates between domain and data mapping layers
-    - Acts like an in-memory collection of aggregates
-    - Abstracts persistence details from domain
-
-    For each aggregate type, create a concrete repository:
-        class LibraryRepository(IRepository):
-            async def save(self, library: Library): ...
-            async def get_by_id(self, library_id: UUID): ...
-            async def delete(self, library_id: UUID): ...
-    """
-
-    @abstractmethod
-    async def save(self, aggregate: AggregateRoot) -> None:
-        """Save an aggregate (insert or update)"""
-        pass
-
-    @abstractmethod
-    async def get_by_id(self, aggregate_id: UUID) -> Optional[AggregateRoot]:
-        """Get an aggregate by ID"""
-        pass
-
-    @abstractmethod
-    async def delete(self, aggregate_id: UUID) -> None:
-        """Delete an aggregate"""
-        pass
-
-
-class IUnitOfWork(ABC):
-    """
-    Unit of Work pattern interface
-
-    Unit of Work:
-    - Maintains a list of objects affected by business transaction
-    - Coordinates writing of changes to data source
-    - Commits or rolls back all changes atomically
-
-    Usage:
-        async with UnitOfWork() as uow:
-            library = await uow.libraries.get_by_id(lib_id)
-            library.rename("New Name")
-            await uow.commit()  # All changes committed atomically
+    Characteristics:
+    - No identity (immutable)
+    - Compared by value, not reference
+    - No database id column
     """
 
-    @abstractmethod
-    async def commit(self) -> None:
-        """Commit all changes"""
-        pass
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, self.__class__):
+            return False
+        return self.__dict__ == other.__dict__
 
-    @abstractmethod
-    async def rollback(self) -> None:
-        """Rollback all changes"""
-        pass
-
-    @abstractmethod
-    async def __aenter__(self):
-        pass
-
-    @abstractmethod
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        pass
+    def __hash__(self) -> int:
+        return hash(tuple(sorted(self.__dict__.items())))
 
 
-# ============================================================================
-# Exception Base
-# ============================================================================
+class DomainEvent(ABC):
+    """
+    Base class for Domain Events
 
-class DomainException(Exception):
-    """Base exception for all domain-specific exceptions"""
-    pass
+    Characteristics:
+    - Records something that happened in domain
+    - Immutable (occurred in past)
+    - Timestamp indicates when event occurred
+    - Can be published to event bus for side effects
+    """
+
+    occurred_at: datetime
+
+    def __init__(self):
+        self.occurred_at = datetime.now(timezone.utc)
 
 
-class BusinessRuleException(DomainException):
-    """Exception for violated business rules and invariants"""
-    pass
+class AggregateRoot(ABC):
+    """
+    Base class for Aggregate Roots
 
+    Characteristics:
+    - Has identity (UUID)
+    - Contains value objects and entities
+    - Enforces invariants within aggregate boundary
+    - Publishes domain events when state changes
+    - Responsible for transaction consistency
+    """
 
-class AggregateNotFoundException(DomainException):
-    """Exception when aggregate not found"""
-    pass
+    id: UUID
+    created_at: datetime
+    updated_at: datetime
+    _events: List[DomainEvent] = []
+
+    def __init__(self, id: UUID):
+        self.id = id
+        self.created_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(timezone.utc)
+        self._events = []
+
+    def add_event(self, event: DomainEvent) -> None:
+        """Add event to pending events (will be published on save)"""
+        self._events.append(event)
+
+    def get_events(self) -> List[DomainEvent]:
+        """Get all pending events"""
+        return self._events.copy()
+
+    def clear_events(self) -> None:
+        """Clear pending events (called after saving to database)"""
+        self._events.clear()

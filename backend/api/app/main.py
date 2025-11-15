@@ -1,8 +1,7 @@
 """
 Wordloom API - Main Application Entry Point
 
-初始化 FastAPI 应用，配置所有依赖、Routers 和中间件。
-
+初始�?FastAPI 应用，配置所有依赖、Routers 和中间件�?
 架构:
 - Hexagonal Architecture
 - Domain-Driven Design
@@ -18,17 +17,17 @@ from sqlalchemy.orm import sessionmaker
 import logging
 
 # Infrastructure
-from app.infra.event_bus import get_event_bus, EventBus
-from app.infra.event_handler_registry import setup_event_handlers
+from infra.event_bus import get_event_bus, EventBus
+from infra.event_handler_registry import setup_event_handlers
 from dependencies import DIContainer, get_di_container_provider
 
 # Module Routers
-from app.modules.tag.routers.tag_router import router as tag_router
-from app.modules.media.routers.media_router import router as media_router
-from app.modules.bookshelf.routers.bookshelf_router import router as bookshelf_router
-from app.modules.book.routers.book_router import router as book_router
-from app.modules.block.routers.block_router import router as block_router
-from app.modules.library.routers.library_router import router as library_router
+from modules.tag.routers.tag_router import router as tag_router
+from modules.media.routers.media_router import router as media_router
+from modules.bookshelf.routers.bookshelf_router import router as bookshelf_router
+from modules.book.routers.book_router import router as book_router
+from modules.block.routers.block_router import router as block_router
+from modules.library.routers.library_router import router as library_router
 
 
 logger = logging.getLogger(__name__)
@@ -51,13 +50,12 @@ async def lifespan(app: FastAPI):
     """
     应用生命周期管理
 
-    启动时:
+    启动�?
     1. 初始化数据库会话
-    2. 初始化 EventBus
+    2. 初始�?EventBus
     3. 创建 DI 容器
-    4. 注册事件处理器
-
-    关闭时:
+    4. 注册事件处理�?
+    关闭�?
     - 清理资源
     """
     global _event_bus, _di_container, _session_factory
@@ -70,35 +68,33 @@ async def lifespan(app: FastAPI):
     try:
         # 1. 初始化数据库（可选）
         print("📦 初始化数据库会话工厂...")
-        # 这里应该从 infra 模块导入 SessionLocal
-        # from app.infra.database import SessionLocal
+        # 这里应该�?infra 模块导入 SessionLocal
+        # from infra.database import SessionLocal
         # _session_factory = SessionLocal
 
-        # 2. 初始化 EventBus
-        print("🔌 初始化 EventBus...")
+        # 2. 初始�?EventBus
+        print("🔌 初始�?EventBus...")
         _event_bus = get_event_bus()
 
         # 3. 创建 DI 容器
         print("📋 创建 DI 容器...")
         _di_container = DIContainer(_session_factory)
 
-        # 4. 注册事件处理器
-        print("📡 注册事件处理器...")
+        # 4. 注册事件处理�?        print("📡 注册事件处理�?..")
         setup_event_handlers(_event_bus)
 
-        # 输出初始化统计
-        handler_count = sum(
+        # 输出初始化统�?        handler_count = sum(
             len(handlers)
             for handlers in _event_bus._handlers.values()
         )
-        print(f"\n✅ Wordloom API 已启动")
-        print(f"   • EventBus: {len(_event_bus._handlers)} 个事件类型")
-        print(f"   • 处理器总数: {handler_count} 个")
-        print(f"   • DI 容器: 就绪")
+        print(f"\n�?Wordloom API 已启�?)
+        print(f"   �?EventBus: {len(_event_bus._handlers)} 个事件类�?)
+        print(f"   �?处理器总数: {handler_count} �?)
+        print(f"   �?DI 容器: 就绪")
         print("="*60 + "\n")
 
     except Exception as e:
-        print(f"\n❌ 启动失败: {e}")
+        print(f"\n�?启动失败: {e}")
         raise
 
     yield
@@ -113,7 +109,7 @@ async def lifespan(app: FastAPI):
         if _event_bus:
             _event_bus.clear()
 
-        print("✅ 清理完成")
+        print("�?清理完成")
         print("="*60 + "\n")
 
     except Exception as e:
@@ -140,8 +136,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: 配置允许的来源
-    allow_credentials=True,
+    allow_origins=["*"],  # TODO: 配置允许的来�?    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -199,11 +194,9 @@ app.include_router(
 )
 async def health_check():
     """
-    健康检查端点
-
+    健康检查端�?
     返回:
-    - status: API 状态
-    - version: API 版本
+    - status: API 状�?    - version: API 版本
     - event_bus_ready: EventBus 是否就绪
     """
     global _event_bus, _di_container
@@ -226,7 +219,7 @@ async def health_check():
     summary="API root",
 )
 async def root():
-    """API 根端点"""
+    """API 根端�?""
     return {
         "message": "Welcome to Wordloom API",
         "docs": "/docs",
@@ -243,12 +236,11 @@ from fastapi.responses import JSONResponse
 
 
 # NOTE: 领域异常处理可以稍后添加
-# 当确认异常模块正确导入后再启用
-
+# 当确认异常模块正确导入后再启�?
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    """处理一般异常"""
+    """处理一般异�?""
     logger.exception(f"Unhandled exception: {exc}")
     return JSONResponse(
         status_code=500,
@@ -288,3 +280,4 @@ if __name__ == "__main__":
         port=8000,
         log_level="info",
     )
+

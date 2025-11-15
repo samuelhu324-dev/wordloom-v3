@@ -1,109 +1,93 @@
-"""
-Tag 模块领域事件定义
+"""Tag domain events - Pure event definitions
 
-定义 Tag 聚合根产生的所有领域事件。
+RULE-018: Tag Creation & Management
+RULE-019: Tag-Entity Association
+
+Emitted by Tag AggregateRoot on state changes.
+Consumed by event handlers for side effects (usage count tracking, etc.)
 """
 
+from __future__ import annotations
 from dataclasses import dataclass, field
-from uuid import UUID
-from typing import Optional, List
+from datetime import datetime, timezone
+from typing import UUID
 
-# 导入 EventBus 类（在 infra 模块中）
-from ....infra.event_bus import DomainEvent, EventType
+from shared.base import DomainEvent
+from .enums import EntityType
 
 
 @dataclass
 class TagCreated(DomainEvent):
-    """Tag 创建事件"""
+    """Emitted when a new Tag is created (top-level or subtag)."""
+    tag_id: UUID
+    name: str
+    color: str
+    is_toplevel: bool
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    tag_name: str = ""
-    color: str = "#666666"
-    icon: Optional[str] = None
-    description: Optional[str] = None
-
-    def __post_init__(self):
-        self.event_type = EventType.TAG_CREATED
-        self.aggregate_type = "tag"
-
-
-@dataclass
-class SubtagCreated(DomainEvent):
-    """Subtag 创建事件"""
-
-    parent_tag_id: UUID = field(default_factory=lambda: UUID('00000000-0000-0000-0000-000000000000'))
-    subtag_name: str = ""
-    color: str = "#666666"
-    icon: Optional[str] = None
-
-    def __post_init__(self):
-        self.event_type = EventType.TAG_CREATED
-        self.aggregate_type = "tag"
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.tag_id
 
 
 @dataclass
-class TagUpdated(DomainEvent):
-    """Tag 更新事件"""
+class TagRenamed(DomainEvent):
+    """Emitted when Tag name is changed."""
+    tag_id: UUID
+    old_name: str
+    new_name: str
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    tag_name: Optional[str] = None
-    color: Optional[str] = None
-    icon: Optional[str] = None
-    description: Optional[str] = None
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.tag_id
 
-    def __post_init__(self):
-        self.event_type = EventType.TAG_UPDATED
-        self.aggregate_type = "tag"
+
+@dataclass
+class TagColorChanged(DomainEvent):
+    """Emitted when Tag color is changed."""
+    tag_id: UUID
+    old_color: str
+    new_color: str
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.tag_id
 
 
 @dataclass
 class TagDeleted(DomainEvent):
-    """Tag 删除事件（逻辑删除）"""
+    """Emitted when Tag is soft-deleted (associations preserved)."""
+    tag_id: UUID
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    soft_deleted: bool = True
-
-    def __post_init__(self):
-        self.event_type = EventType.TAG_DELETED
-        self.aggregate_type = "tag"
-
-
-@dataclass
-class TagRestored(DomainEvent):
-    """Tag 恢复事件（从逻辑删除恢复）"""
-
-    def __post_init__(self):
-        self.event_type = EventType.TAG_RESTORED
-        self.aggregate_type = "tag"
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.tag_id
 
 
 @dataclass
-class TagAssociated(DomainEvent):
-    """Tag 关联事件"""
+class TagAssociatedWithEntity(DomainEvent):
+    """Emitted when a Tag is associated with an entity (Book/Bookshelf/Block)."""
+    tag_id: UUID
+    entity_type: EntityType
+    entity_id: UUID
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    entity_type: str = ""  # book, block, media, etc.
-    entity_id: UUID = field(default_factory=lambda: UUID('00000000-0000-0000-0000-000000000000'))
-
-    def __post_init__(self):
-        self.event_type = EventType.TAG_ASSOCIATED
-        self.aggregate_type = "tag"
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.tag_id
 
 
 @dataclass
-class TagDisassociated(DomainEvent):
-    """Tag 取消关联事件"""
+class TagDisassociatedFromEntity(DomainEvent):
+    """Emitted when a Tag is removed from an entity."""
+    tag_id: UUID
+    entity_type: EntityType
+    entity_id: UUID
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    entity_type: str = ""
-    entity_id: UUID = field(default_factory=lambda: UUID('00000000-0000-0000-0000-000000000000'))
-
-    def __post_init__(self):
-        self.event_type = EventType.TAG_DISASSOCIATED
-        self.aggregate_type = "tag"
-
-
-__all__ = [
-    "TagCreated",
-    "SubtagCreated",
-    "TagUpdated",
-    "TagDeleted",
-    "TagRestored",
-    "TagAssociated",
-    "TagDisassociated",
-]
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.tag_id

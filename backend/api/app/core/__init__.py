@@ -1,8 +1,38 @@
 """
-Core Module - Database, security, and common utilities
+Core Module - System exceptions
+
+Exports all system-level exceptions:
+- SystemException: Base infrastructure exception
+- DatabaseException: Database operation failed
+- StorageException: File storage operation failed
+- ConfigurationException: Configuration error
+- ValidationException: Input validation failed
+- AuthenticationException: Authentication failed
+- AuthorizationException: Authorization failed (permission denied)
+
+Note:
+- Database and security config are in app.config module
+- Domain-level business errors are in shared.errors module
 """
 
-from .database import Base
-from .security import get_current_user_id
+from .exceptions import (
+    SystemException,
+    DatabaseException,
+    StorageException,
+    ConfigurationException,
+    ValidationException,
+    AuthenticationException,
+    AuthorizationException,
+)
 
-__all__ = ["Base", "get_current_user_id"]
+__all__ = [
+    "SystemException",
+    "DatabaseException",
+    "StorageException",
+    "ConfigurationException",
+    "ValidationException",
+    "AuthenticationException",
+    "AuthorizationException",
+]
+
+

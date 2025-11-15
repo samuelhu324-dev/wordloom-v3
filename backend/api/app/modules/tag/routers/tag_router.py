@@ -17,7 +17,7 @@ from uuid import UUID
 import logging
 
 from dependencies import DIContainer, get_di_container_provider
-from app.modules.tag.application.ports.input import (
+from modules.tag.application.ports.input import (
     CreateTagRequest,
     CreateSubtagRequest,
     UpdateTagRequest,
@@ -29,7 +29,7 @@ from app.modules.tag.application.ports.input import (
     GetMostUsedTagsRequest,
     TagResponse,
 )
-from app.modules.tag.domain.exceptions import (
+from modules.tag.domain.exceptions import (
     TagNotFoundError,
     TagAlreadyExistsError,
     DomainException,

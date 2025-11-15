@@ -1,8 +1,7 @@
 """
 Block Router - Hexagonal Architecture Pattern
 
-块（Block）管理的 FastAPI 路由适配器。
-
+块（Block）管理的 FastAPI 路由适配器�?
 Routes (8 total):
   POST   /blocks                           CreateBlockUseCase           (RULE-013-REVISED: type-specific factory)
   GET    /books/{book_id}/blocks           ListBlocksUseCase            (RULE-015-REVISED: ordered by sort_key)
@@ -29,7 +28,7 @@ from uuid import UUID
 import logging
 
 from dependencies import DIContainer, get_di_container_provider
-from app.modules.block.application.ports.input import (
+from modules.block.application.ports.input import (
     CreateBlockRequest,
     ListBlocksRequest,
     GetBlockRequest,
@@ -41,7 +40,7 @@ from app.modules.block.application.ports.input import (
     BlockResponse,
     BlockListResponse,
 )
-from app.modules.block.domain.exceptions import (
+from modules.block.domain.exceptions import (
     BlockNotFoundError,
     BlockInvalidTypeError,
     DomainException,
@@ -134,7 +133,7 @@ async def list_blocks(
     limit: int = Query(50, ge=1, le=100, description="Pagination limit"),
     di: DIContainer = Depends(get_di_container)
 ):
-    """列出块 (RULE-015-REVISED: 按 sort_key 排序, POLICY-008: 默认排除软删除的块)
+    """列出�?(RULE-015-REVISED: �?sort_key 排序, POLICY-008: 默认排除软删除的�?
 
     Args:
         book_id: Book ID to filter blocks (required)
@@ -189,8 +188,7 @@ async def get_block(
     block_id: UUID,
     di: DIContainer = Depends(get_di_container)
 ):
-    """获取块详情
-
+    """获取块详�?
     Args:
         block_id: Block ID to retrieve
 
@@ -243,8 +241,7 @@ async def update_block(
     request: UpdateBlockRequest,
     di: DIContainer = Depends(get_di_container)
 ):
-    """更新块
-
+    """更新�?
     Args:
         block_id: Block ID to update
         request: UpdateBlockRequest with fields to update:
@@ -300,8 +297,7 @@ async def reorder_blocks(
     request: ReorderBlocksRequest,
     di: DIContainer = Depends(get_di_container)
 ):
-    """重新排序块
-
+    """重新排序�?
     Args:
         request: ReorderBlocksRequest with:
             - block_id: UUID (block to reorder)
@@ -355,8 +351,7 @@ async def delete_block(
     block_id: UUID,
     di: DIContainer = Depends(get_di_container)
 ):
-    """删除块（逻辑删除）
-
+    """删除块（逻辑删除�?
     Args:
         block_id: Block ID to soft-delete
 
@@ -409,8 +404,7 @@ async def restore_block(
     block_id: UUID,
     di: DIContainer = Depends(get_di_container)
 ):
-    """恢复已删除的块
-
+    """恢复已删除的�?
     Args:
         block_id: Block ID to restore from Paperballs
 
@@ -466,8 +460,7 @@ async def list_deleted_blocks(
     limit: int = Query(50, ge=1, le=100, description="Pagination limit"),
     di: DIContainer = Depends(get_di_container)
 ):
-    """列出已删除的块（Paperballs 视图）
-
+    """列出已删除的块（Paperballs 视图�?
     Args:
         book_id: Book ID to filter deleted blocks (required)
         skip: Pagination offset
@@ -509,3 +502,4 @@ async def list_deleted_blocks(
 
 
 __all__ = ["router"]
+

@@ -21,7 +21,7 @@ from typing import List, Optional, Tuple
 from uuid import UUID
 from datetime import datetime
 
-from api.app.modules.media.domain import Media, MediaState, EntityTypeForMedia
+from app.modules.media.domain import Media, MediaState, EntityTypeForMedia
 
 
 class MediaRepository(ABC):
@@ -33,11 +33,11 @@ class MediaRepository(ABC):
     This is an OUTPUT port because:
     - Use cases CALL these methods (output from use case)
     - Infrastructure IMPLEMENTS these methods (input to infrastructure)
-    - Dependency flows: UseCase â†’ MediaRepository (abstract) â†’ Implementation (infra)
+    - Dependency flows: UseCase â†?MediaRepository (abstract) â†?Implementation (infra)
 
     Responsibilities:
     - Persist media metadata to database
-    - Manage media state transitions (ACTIVE â†’ TRASH â†’ HARD_DELETE)
+    - Manage media state transitions (ACTIVE â†?TRASH â†?HARD_DELETE)
     - Enforce 30-day trash retention (POLICY-010)
     - Coordinate with file storage for physical file I/O
     """
@@ -312,3 +312,4 @@ class MediaRepository(ABC):
             Used to prevent duplicate file uploads
         """
         pass
+

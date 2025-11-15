@@ -21,10 +21,10 @@ Round-Trip Validation:
 Use to_dict() for ORM → dict conversion
 Use from_dict() for dict → ORM conversion
 """
-import datetime as dt
+from datetime import datetime, timezone
 from uuid import uuid4
 from enum import Enum as PyEnum
-from datetime import datetime
+import datetime as dt
 
 from sqlalchemy import (
     Column, String, DateTime, Text, Boolean, ForeignKey, Integer,
@@ -210,9 +210,9 @@ class TagModel(Base):
             parent_tag_id=UUID(data["parent_tag_id"]) if data.get("parent_tag_id") else None,
             level=data.get("level", 0),
             usage_count=data.get("usage_count", 0),
-            created_at=dt.datetime.fromisoformat(data["created_at"]) if "created_at" in data else dt.datetime.now(dt.timezone.utc),
-            updated_at=dt.datetime.fromisoformat(data["updated_at"]) if "updated_at" in data else dt.datetime.now(dt.timezone.utc),
-            deleted_at=dt.datetime.fromisoformat(data["deleted_at"]) if data.get("deleted_at") else None,
+            created_at=datetime.fromisoformat(data["created_at"]) if "created_at" in data else datetime.now(timezone.utc),
+            updated_at=datetime.fromisoformat(data["updated_at"]) if "updated_at" in data else datetime.now(timezone.utc),
+            deleted_at=datetime.fromisoformat(data["deleted_at"]) if data.get("deleted_at") else None,
         )
 
 
@@ -320,5 +320,5 @@ class TagAssociationModel(Base):
             tag_id=UUID(data["tag_id"]),
             entity_type=EntityType[data["entity_type"].upper()],
             entity_id=UUID(data["entity_id"]),
-            created_at=dt.datetime.fromisoformat(data["created_at"]) if "created_at" in data else dt.datetime.now(dt.timezone.utc),
+            created_at=datetime.fromisoformat(data["created_at"]) if "created_at" in data else datetime.now(timezone.utc),
         )

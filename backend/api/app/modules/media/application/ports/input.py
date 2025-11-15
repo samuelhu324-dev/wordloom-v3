@@ -1,14 +1,11 @@
 """
 Media Input Ports - UseCase Interfaces
 
-定义所有 Media UseCase 的接口契约，供 Router 调用。
-
+定义所�?Media UseCase 的接口契约，�?Router 调用�?
 UseCase 接口设计原则:
-1. 一个接口对应一个 UseCase
+1. 一个接口对应一�?UseCase
 2. 方法名为 execute()
-3. 参数使用 DTO 类（Input Request）
-4. 返回值使用 DTO 类（Output Response）
-5. 异常通过 Exception 抛出
+3. 参数使用 DTO 类（Input Request�?4. 返回值使�?DTO 类（Output Response�?5. 异常通过 Exception 抛出
 """
 
 from abc import ABC, abstractmethod
@@ -16,7 +13,7 @@ from typing import List, Optional, Tuple
 from uuid import UUID
 from dataclasses import dataclass
 
-from ...domain import Media, MediaMimeType, EntityTypeForMedia
+from app.modules.media.domain import Media, MediaMimeType, EntityTypeForMedia
 
 
 # ============================================================================
@@ -25,7 +22,7 @@ from ...domain import Media, MediaMimeType, EntityTypeForMedia
 
 @dataclass
 class UploadImageRequest:
-    """上传图片的请求"""
+    """上传图片的请�?""
     filename: str
     mime_type: MediaMimeType
     file_size: int
@@ -38,7 +35,7 @@ class UploadImageRequest:
 
 @dataclass
 class UploadVideoRequest:
-    """上传视频的请求"""
+    """上传视频的请�?""
     filename: str
     mime_type: MediaMimeType
     file_size: int
@@ -52,25 +49,25 @@ class UploadVideoRequest:
 
 @dataclass
 class DeleteMediaRequest:
-    """删除 Media 的请求"""
+    """删除 Media 的请�?""
     media_id: UUID
 
 
 @dataclass
 class RestoreMediaRequest:
-    """恢复 Media 的请求"""
+    """恢复 Media 的请�?""
     media_id: UUID
 
 
 @dataclass
 class PurgeMediaRequest:
-    """硬删除 Media 的请求"""
+    """硬删�?Media 的请�?""
     media_id: UUID
 
 
 @dataclass
 class AssociateMediaRequest:
-    """关联 Media 到 Entity 的请求"""
+    """关联 Media �?Entity 的请�?""
     media_id: UUID
     entity_type: EntityTypeForMedia
     entity_id: UUID
@@ -78,7 +75,7 @@ class AssociateMediaRequest:
 
 @dataclass
 class DisassociateMediaRequest:
-    """移除 Media 与 Entity 关联的请求"""
+    """移除 Media �?Entity 关联的请�?""
     media_id: UUID
     entity_type: EntityTypeForMedia
     entity_id: UUID
@@ -86,7 +83,7 @@ class DisassociateMediaRequest:
 
 @dataclass
 class GetMediaRequest:
-    """获取 Media 的请求"""
+    """获取 Media 的请�?""
     media_id: UUID
 
 
@@ -111,7 +108,7 @@ class UpdateVideoMetadataRequest:
 
 @dataclass
 class MediaResponse:
-    """Media 的响应 DTO"""
+    """Media 的响�?DTO"""
     id: UUID
     filename: str
     mime_type: str
@@ -147,7 +144,7 @@ class MediaResponse:
 # ============================================================================
 
 class UploadImageUseCase(ABC):
-    """上传图片的 UseCase 接口"""
+    """上传图片�?UseCase 接口"""
 
     @abstractmethod
     async def execute(self, request: UploadImageRequest) -> MediaResponse:
@@ -156,7 +153,7 @@ class UploadImageUseCase(ABC):
 
 
 class UploadVideoUseCase(ABC):
-    """上传视频的 UseCase 接口"""
+    """上传视频�?UseCase 接口"""
 
     @abstractmethod
     async def execute(self, request: UploadVideoRequest) -> MediaResponse:
@@ -165,7 +162,7 @@ class UploadVideoUseCase(ABC):
 
 
 class DeleteMediaUseCase(ABC):
-    """删除 Media 的 UseCase 接口"""
+    """删除 Media �?UseCase 接口"""
 
     @abstractmethod
     async def execute(self, request: DeleteMediaRequest) -> MediaResponse:
@@ -174,7 +171,7 @@ class DeleteMediaUseCase(ABC):
 
 
 class RestoreMediaUseCase(ABC):
-    """恢复 Media 的 UseCase 接口"""
+    """恢复 Media �?UseCase 接口"""
 
     @abstractmethod
     async def execute(self, request: RestoreMediaRequest) -> MediaResponse:
@@ -183,16 +180,16 @@ class RestoreMediaUseCase(ABC):
 
 
 class PurgeMediaUseCase(ABC):
-    """硬删除 Media 的 UseCase 接口"""
+    """硬删�?Media �?UseCase 接口"""
 
     @abstractmethod
     async def execute(self, request: PurgeMediaRequest) -> None:
-        """执行硬删除 Media"""
+        """执行硬删�?Media"""
         pass
 
 
 class AssociateMediaUseCase(ABC):
-    """关联 Media 到 Entity 的 UseCase 接口"""
+    """关联 Media �?Entity �?UseCase 接口"""
 
     @abstractmethod
     async def execute(self, request: AssociateMediaRequest) -> None:
@@ -201,7 +198,7 @@ class AssociateMediaUseCase(ABC):
 
 
 class DisassociateMediaUseCase(ABC):
-    """移除 Media 与 Entity 关联的 UseCase 接口"""
+    """移除 Media �?Entity 关联�?UseCase 接口"""
 
     @abstractmethod
     async def execute(self, request: DisassociateMediaRequest) -> None:
@@ -210,7 +207,7 @@ class DisassociateMediaUseCase(ABC):
 
 
 class GetMediaUseCase(ABC):
-    """获取 Media 的 UseCase 接口"""
+    """获取 Media �?UseCase 接口"""
 
     @abstractmethod
     async def execute(self, request: GetMediaRequest) -> MediaResponse:
@@ -223,10 +220,11 @@ class UpdateMediaMetadataUseCase(ABC):
 
     @abstractmethod
     async def execute_update_image(self, request: UpdateImageMetadataRequest) -> MediaResponse:
-        """执行更新图片元数据"""
+        """执行更新图片元数�?""
         pass
 
     @abstractmethod
     async def execute_update_video(self, request: UpdateVideoMetadataRequest) -> MediaResponse:
-        """执行更新视频元数据"""
+        """执行更新视频元数�?""
         pass
+

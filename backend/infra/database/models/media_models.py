@@ -23,10 +23,11 @@ Round-Trip Validation:
 Use to_dict() for ORM → dict conversion
 Use from_dict() for dict → ORM conversion
 """
-import datetime as dt
+
+from datetime import datetime, timezone
 from uuid import uuid4, UUID
 from enum import Enum as PyEnum
-from datetime import datetime
+import datetime as dt
 
 from sqlalchemy import (
     Column, String, DateTime, Text, Integer, ForeignKey,
@@ -196,15 +197,15 @@ class MediaModel(Base):
     created_at = Column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(dt.timezone.utc),
+        default=lambda: datetime.now(timezone.utc),
         comment="Upload timestamp (immutable)"
     )
 
     updated_at = Column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(dt.timezone.utc),
-        onupdate=lambda: datetime.now(dt.timezone.utc),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
         comment="Last update timestamp"
     )
 
@@ -268,10 +269,10 @@ class MediaModel(Base):
             height=data.get("height"),
             duration_ms=data.get("duration_ms"),
             state=MediaState[data.get("state", "active").upper()],
-            trash_at=dt.datetime.fromisoformat(data["trash_at"]) if data.get("trash_at") else None,
-            deleted_at=dt.datetime.fromisoformat(data["deleted_at"]) if data.get("deleted_at") else None,
-            created_at=dt.datetime.fromisoformat(data["created_at"]) if "created_at" in data else datetime.now(dt.timezone.utc),
-            updated_at=dt.datetime.fromisoformat(data["updated_at"]) if "updated_at" in data else datetime.now(dt.timezone.utc),
+            trash_at=datetime.fromisoformat(data["trash_at"]) if data.get("trash_at") else None,
+            deleted_at=datetime.fromisoformat(data["deleted_at"]) if data.get("deleted_at") else None,
+            created_at=datetime.fromisoformat(data["created_at"]) if "created_at" in data else datetime.now(timezone.utc),
+            updated_at=datetime.fromisoformat(data["updated_at"]) if "updated_at" in data else datetime.now(timezone.utc),
         )
 
 
@@ -334,7 +335,7 @@ class MediaAssociationModel(Base):
     created_at = Column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(dt.timezone.utc),
+        default=lambda: datetime.now(timezone.utc),
         comment="Association creation timestamp"
     )
 
@@ -377,5 +378,5 @@ class MediaAssociationModel(Base):
             media_id=UUID(data["media_id"]),
             entity_type=EntityTypeForMedia[data["entity_type"].upper()],
             entity_id=UUID(data["entity_id"]),
-            created_at=dt.datetime.fromisoformat(data["created_at"]) if "created_at" in data else datetime.now(dt.timezone.utc),
+            created_at=datetime.fromisoformat(data["created_at"]) if "created_at" in data else datetime.now(timezone.utc),
         )
