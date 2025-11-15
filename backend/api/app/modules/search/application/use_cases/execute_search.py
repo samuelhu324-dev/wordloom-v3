@@ -8,14 +8,14 @@ Depends on SearchPort (output port).
 import logging
 from typing import Optional
 
-from modules.search.application.ports.input import (
+from api.app.modules.search.application.ports.input import (
     ExecuteSearchRequest,
     ExecuteSearchResponse,
     SearchHitResponse,
     ExecuteSearchUseCase,
 )
-from modules.search.application.ports.output import SearchPort
-from modules.search.domain import SearchQuery, SearchEntityType
+from api.app.modules.search.application.ports.output import SearchPort
+from api.app.modules.search.domain import SearchQuery, SearchEntityType
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class ExecuteSearchService(ExecuteSearchUseCase):
     """Execute Search UseCase - Service Implementation
 
     Orchestrates search across multiple entity types.
-    Converts HTTP DTOs â†?Domain models.
+    Converts HTTP DTOs ï¿½?Domain models.
     Delegates to SearchPort for actual search implementation.
     """
 

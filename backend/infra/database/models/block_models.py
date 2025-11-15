@@ -33,7 +33,7 @@ from sqlalchemy import Column, String, DateTime, Text, Numeric, Integer, Foreign
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime, timezone
 from uuid import uuid4
-from core.database import Base
+from .base import Base
 from decimal import Decimal
 
 
@@ -83,52 +83,45 @@ class BlockModel(Base):
     id = Column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=uuid4,
-        comment="Block ID (UUID)"
+        default=uuid4
     )
 
     book_id = Column(
         UUID(as_uuid=True),
         ForeignKey("books.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
-        comment="Parent Book ID (per RULE-016)"
+        index=True
     )
 
     # Block type and content
     type = Column(
         SQLEnum(BlockType),
-        nullable=False,
-        comment="Block type per RULE-014 (TEXT, HEADING, CODE, IMAGE, QUOTE, LIST, TABLE, DIVIDER)"
+        nullable=False
     )
 
     content = Column(
         Text,
-        nullable=False,
-        comment="Main block content"
+        nullable=False
     )
 
     # Fractional index ordering (O(1) drag/drop operations per RULE-015-REVISED)
     order = Column(
         Numeric(precision=19, scale=10),
         nullable=False,
-        default=Decimal('0'),
-        comment="Fractional index for ordering (DECIMAL(19,10) supports infinite insertion points)"
+        default=Decimal('0')
     )
 
     # HEADING-specific field (only set when type='heading' per RULE-013-REVISED)
     heading_level = Column(
         Integer,
-        nullable=True,
-        comment="Heading level (1=H1, 2=H2, 3=H3) - only for HEADING type blocks"
+        nullable=True
     )
 
     # Soft delete support (POLICY-008: Basement Pattern)
     soft_deleted_at = Column(
         DateTime(timezone=True),
         nullable=True,
-        index=True,
-        comment="When Block was soft-deleted (moved to Basement per POLICY-008). If NULL, block is active. If not NULL, block is in Basement."
+        index=True
     )
 
     # ========== NEW: Paperballs Recovery Position Information (Doc 8 Integration) ==========
@@ -137,39 +130,34 @@ class BlockModel(Base):
         UUID(as_uuid=True),
         ForeignKey("blocks.id", ondelete="SET NULL"),
         nullable=True,
-        index=True,
-        comment="Paperballs recovery: Previous sibling block ID (Level 1 recovery, per PAPERBALLS-POS-001)"
+        index=True
     )
 
     deleted_next_id = Column(
         UUID(as_uuid=True),
         ForeignKey("blocks.id", ondelete="SET NULL"),
         nullable=True,
-        index=True,
-        comment="Paperballs recovery: Next sibling block ID (Level 2 recovery, per PAPERBALLS-POS-002)"
+        index=True
     )
 
     deleted_section_path = Column(
         String(500),
         nullable=True,
-        index=True,
-        comment="Paperballs recovery: Section path for Level 3 recovery (per PAPERBALLS-POS-003)"
+        index=True
     )
 
     # Audit timestamps
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-        comment="Block creation timestamp (UTC)"
+        default=lambda: datetime.now(timezone.utc)
     )
 
     updated_at = Column(
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
-        comment="Block last update timestamp (UTC)"
+        onupdate=lambda: datetime.now(timezone.utc)
     )
 
     def __repr__(self) -> str:

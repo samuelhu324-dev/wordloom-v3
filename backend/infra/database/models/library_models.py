@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from infra.database import Base
+from .base import Base
 
 
 class LibraryModel(Base):
@@ -42,32 +42,27 @@ class LibraryModel(Base):
         UUID(as_uuid=True),
         nullable=False,
         index=True,
-        unique=True,  # One Library per user (RULE-001)
-        comment="User who owns this Library",
+        unique=True,  # One Library per user (RULE-001),
     )
     name = Column(
         String(255),
         nullable=False,
-        comment="Library name",
     )
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
-        comment="When Library was created",
     )
     updated_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
-        comment="When Library was last updated",
     )
     soft_deleted_at = Column(
         DateTime(timezone=True),
         nullable=True,
         index=True,
-        comment="When Library was soft-deleted (for Basement recovery, BASEMENT-001)",
     )
 
     def __repr__(self) -> str:

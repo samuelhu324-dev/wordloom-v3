@@ -1,35 +1,59 @@
 """
-Search Application Input Ports - UseCase Interfaces
+Search Application Input Ports - UseCase Interfaces and DTOs
 
-Defines the contract for search use cases.
-Request/Response DTOs are imported from schemas.py (application layer DTOs).
+Defines the contract for search use cases with request/response DTOs.
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import List, Optional
+from uuid import UUID
+from pydantic import BaseModel
 
-if TYPE_CHECKING:
-    from modules.search.application.schemas import ExecuteSearchRequest, ExecuteSearchResponse
+
+class SearchHit(BaseModel):
+    """Single search result hit"""
+    entity_id: UUID
+    entity_type: str
+    title: str
+    description: Optional[str] = None
+    matched_text: Optional[str] = None
+
+
+class ExecuteSearchRequest(BaseModel):
+    """Request to execute global search"""
+    q: str
+    entity_type: Optional[str] = None
+    book_id: Optional[UUID] = None
+    limit: int = 20
+    offset: int = 0
+
+
+class ExecuteSearchResponse(BaseModel):
+    """Response from search execution"""
+    hits: List[SearchHit]
+    total: int
+    limit: int
+    offset: int
 
 
 class ExecuteSearchUseCase(ABC):
     """Execute Search UseCase - Port (Input Adapter)
 
     Orchestrates search across all entities.
-    Application layer: depends on SearchPort (output port).
-
-    DTO 注解通过 TYPE_CHECKING 引入，避免循环导入�?    运行时从 schemas 模块导入�?    """
+    Application layer depends on SearchPort (output port).
+    """
 
     @abstractmethod
-    async def execute(self, request: "ExecuteSearchRequest") -> "ExecuteSearchResponse":
+    async def execute(self, request: ExecuteSearchRequest) -> ExecuteSearchResponse:
         """Execute search operation
 
         Args:
-            request: Search parameters (keyword, type, filters, pagination)
-            - text: 搜索关键�?            - type: 实体类型过滤 (None = 全局搜索)
-            - book_id: 书籍范围限制
-            - limit: 分页大小
-            - offset: 分页偏移
+            request: Search parameters
+                - q: Search query text (required)
+                - entity_type: Optional filter (None = global search)
+                - book_id: Optional book scope limitation
+                - limit: Pagination size
+                - offset: Pagination offset
 
         Returns:
             ExecuteSearchResponse with hits and total count
@@ -42,5 +66,8 @@ class ExecuteSearchUseCase(ABC):
 
 
 __all__ = [
+    "SearchHit",
+    "ExecuteSearchRequest",
+    "ExecuteSearchResponse",
     "ExecuteSearchUseCase",
 ]

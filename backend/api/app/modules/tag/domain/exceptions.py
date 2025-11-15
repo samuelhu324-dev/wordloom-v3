@@ -10,7 +10,11 @@ Mapped to HTTP status codes in router layer.
 from typing import Optional
 from uuid import UUID
 
-from shared.errors import BusinessError
+from api.app.shared.errors import BusinessError
+
+
+# Domain exception alias for router exception handling
+DomainException = BusinessError
 
 
 class TagNotFoundError(BusinessError):

@@ -20,7 +20,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, List
 from uuid import UUID
 
-from modules.library.domain import Library
+from api.app.modules.library.domain import Library
 
 
 # ============================================================================

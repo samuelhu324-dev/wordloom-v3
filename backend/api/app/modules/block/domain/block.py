@@ -32,7 +32,7 @@ from typing import List, Optional
 from uuid import UUID, uuid4
 from decimal import Decimal
 
-from shared.base import AggregateRoot, DomainEvent
+from api.app.shared.base import AggregateRoot, DomainEvent
 from .events import (
     BlockCreated,
     BlockUpdated,

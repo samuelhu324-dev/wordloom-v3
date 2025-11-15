@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from infra.database import Base
+from .base import Base
 
 
 class BookshelfModel(Base):
@@ -49,66 +49,55 @@ class BookshelfModel(Base):
         ForeignKey("libraries.id"),
         nullable=False,
         index=True,
-        comment="Parent Library",
     )
     name = Column(
         String(255),
         nullable=False,
-        comment="Bookshelf name",
     )
     description = Column(
         Text,
         nullable=True,
-        comment="Bookshelf description",
     )
     is_basement = Column(
         Boolean,
         default=False,
         nullable=False,
         index=True,
-        comment="Basement bookshelf (soft delete container, per RULE-010)",
     )
     is_pinned = Column(
         Boolean,
         default=False,
         nullable=False,
-        comment="Bookshelf is pinned",
     )
     pinned_at = Column(
         DateTime(timezone=True),
         nullable=True,
-        comment="When bookshelf was pinned",
     )
     is_favorite = Column(
         Boolean,
         default=False,
         nullable=False,
-        comment="Bookshelf is favorite",
     )
     status = Column(
         String(50),
         default="active",
         nullable=False,
-        comment="Bookshelf status (active, archived, etc.)",
     )
     book_count = Column(
         Integer,
         default=0,
         nullable=False,
-        comment="Cached book count",
     )
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
-        comment="When bookshelf was created",
     )
     updated_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
-        comment="When bookshelf was last updated",
     )
 
     def __repr__(self) -> str:

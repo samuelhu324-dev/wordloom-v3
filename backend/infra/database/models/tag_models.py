@@ -33,7 +33,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from api.core.database import Base
+from .base import Base
 
 
 class EntityType(PyEnum):
@@ -74,34 +74,29 @@ class TagModel(Base):
     id = Column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=uuid4,
-        comment="Tag ID (UUID)"
+        default=uuid4
     )
 
     # Core fields
     name = Column(
         String(50),
         nullable=False,
-        index=True,
-        comment="Tag name (unique, case-sensitive)"
+        index=True
     )
 
     color = Column(
         String(9),  # #RRGGBB or #RRGGBBAA
-        nullable=False,
-        comment="Tag color in hex format (#RRGGBB or #RRGGBBAA)"
+        nullable=False
     )
 
     icon = Column(
         String(50),
-        nullable=True,
-        comment="Lucide icon name (e.g., bookmark, star, flag)"
+        nullable=True
     )
 
     description = Column(
         Text,
-        nullable=True,
-        comment="Optional description for the tag"
+        nullable=True
     )
 
     # Hierarchical structure
@@ -109,16 +104,14 @@ class TagModel(Base):
         UUID(as_uuid=True),
         ForeignKey("tags.id", ondelete="SET NULL"),
         nullable=True,
-        index=True,
-        comment="Parent Tag ID (for hierarchical tags, NULL=top-level)"
+        index=True
     )
 
     level = Column(
         Integer,
         nullable=False,
         default=0,
-        index=True,
-        comment="Hierarchy level (0=top-level, 1=sub-tag, 2=sub-sub-tag, etc.)"
+        index=True
     )
 
     # Statistics
@@ -126,31 +119,27 @@ class TagModel(Base):
         Integer,
         nullable=False,
         default=0,
-        index=True,
-        comment="Cached number of TagAssociation records (for sorting, updated by Service)"
+        index=True
     )
 
     # Metadata
     created_at = Column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(dt.timezone.utc),
-        comment="Creation timestamp (immutable)"
+        default=lambda: datetime.now(dt.timezone.utc)
     )
 
     updated_at = Column(
         DateTime,
         nullable=False,
         default=lambda: datetime.now(dt.timezone.utc),
-        onupdate=lambda: datetime.now(dt.timezone.utc),
-        comment="Last update timestamp"
+        onupdate=lambda: datetime.now(dt.timezone.utc)
     )
 
     deleted_at = Column(
         DateTime,
         nullable=True,
-        index=True,
-        comment="Soft delete timestamp (RULE-018, NULL=active)"
+        index=True
     )
 
     # Relationships (lazy-loaded)
@@ -165,18 +154,15 @@ class TagModel(Base):
     __table_args__ = (
         UniqueConstraint(
             "name",
-            name="uq_tags_name_active",
-            comment="Unique tag name for active tags (soft-delete allows reuse)"
+            name="uq_tags_name_active"
         ),
         Index(
             "ix_tags_parent_level",
-            "parent_tag_id", "level",
-            comment="Index for hierarchical queries"
+            "parent_tag_id", "level"
         ),
         Index(
             "ix_tags_usage_count",
-            "usage_count",
-            comment="Index for sorting by popularity"
+            "usage_count"
         ),
     )
 
@@ -244,8 +230,7 @@ class TagAssociationModel(Base):
     id = Column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=uuid4,
-        comment="Association ID (UUID)"
+        default=uuid4
     )
 
     # Foreign keys
@@ -253,30 +238,26 @@ class TagAssociationModel(Base):
         UUID(as_uuid=True),
         ForeignKey("tags.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
-        comment="Tag ID (cascade delete)"
+        index=True
     )
 
     # Entity reference (denormalized)
     entity_type = Column(
         SQLEnum(EntityType, values_callable=lambda x: [e.value for e in x]),
-        nullable=False,
-        comment="Type of entity being tagged (BOOKSHELF|BOOK|BLOCK)"
+        nullable=False
     )
 
     entity_id = Column(
         UUID(as_uuid=True),
         nullable=False,
-        index=True,
-        comment="ID of the entity being tagged"
+        index=True
     )
 
     # Metadata
     created_at = Column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(dt.timezone.utc),
-        comment="Association creation timestamp"
+        default=lambda: datetime.now(dt.timezone.utc)
     )
 
     # Relationships
@@ -290,13 +271,11 @@ class TagAssociationModel(Base):
     __table_args__ = (
         UniqueConstraint(
             "tag_id", "entity_type", "entity_id",
-            name="uq_tag_associations_tag_entity",
-            comment="Prevent duplicate tags on same entity"
+            name="uq_tag_associations_tag_entity"
         ),
         Index(
             "ix_tag_associations_entity",
-            "entity_type", "entity_id",
-            comment="Index for finding tags on a specific entity"
+            "entity_type", "entity_id"
         ),
     )
 

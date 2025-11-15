@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from shared.base import DomainEvent
+from api.app.shared.base import DomainEvent
 
 
 # ============================================================================

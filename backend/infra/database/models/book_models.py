@@ -21,7 +21,7 @@ from sqlalchemy import Column, String, DateTime, Text, Boolean, ForeignKey, Inte
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime, timezone
 from uuid import uuid4
-from core.database import Base
+from .base import Base
 
 
 class BookModel(Base):
@@ -53,8 +53,7 @@ class BookModel(Base):
     id = Column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=uuid4,
-        comment="Book ID (UUID)"
+        default=uuid4
     )
 
     # Foreign keys (RULE-011: Two-level permission check)
@@ -62,8 +61,7 @@ class BookModel(Base):
         UUID(as_uuid=True),
         ForeignKey("bookshelves.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
-        comment="Parent Bookshelf ID (per RULE-011)"
+        index=True
     )
 
     # Library ID (redundant FK for RULE-011 permission validation)
@@ -71,72 +69,62 @@ class BookModel(Base):
         UUID(as_uuid=True),
         ForeignKey("libraries.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
-        comment="Parent Library ID (redundant for RULE-011 permission check: target_shelf.library_id must equal book.library_id)"
+        index=True
     )
 
     # Core fields
     title = Column(
         String(255),
-        nullable=False,
-        comment="Book title"
+        nullable=False
     )
 
     summary = Column(
         Text,
-        nullable=True,
-        comment="Book summary or description"
+        nullable=True
     )
 
     is_pinned = Column(
         Boolean,
         default=False,
-        nullable=False,
-        comment="Whether book is pinned to top"
+        nullable=False
     )
 
     due_at = Column(
         DateTime(timezone=True),
-        nullable=True,
-        comment="Optional due date for task-like books"
+        nullable=True
     )
 
     status = Column(
         String(50),
         default="draft",
-        nullable=False,
-        comment="Book status (draft, active, archived)"
+        nullable=False
     )
 
     block_count = Column(
         Integer,
         default=0,
-        nullable=False,
-        comment="Cached count of blocks (for performance)"
+        nullable=False
     )
 
     # Soft delete support (RULE-012: Basement Pattern)
     soft_deleted_at = Column(
         DateTime(timezone=True),
         nullable=True,
-        index=True,
-        comment="When Book was soft-deleted (moved to Basement per RULE-012). If NULL, book is active. If not NULL, book is in Basement."
+        index=True
     )
 
     # Audit timestamps
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
-        nullable=False,
-        comment="Book creation timestamp (UTC)"
+        nullable=False
     )
 
     updated_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
-        nullable=False,
-        comment="Book last update timestamp (UTC)"
+        nullable=False
     )
 
     def __repr__(self) -> str:

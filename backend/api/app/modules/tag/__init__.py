@@ -2,11 +2,8 @@
 
 Exports:
 - domain: Tag, TagAssociation, EntityType, and domain events
-- service: TagService business logic
-- repository: TagRepository interface and SQLAlchemyTagRepository implementation
 - exceptions: All domain exceptions with HTTP status mapping
 - schemas: Pydantic request/response models
-- router: FastAPI endpoints
 """
 
 from .domain import (
@@ -21,8 +18,6 @@ from .domain import (
     TagDisassociatedFromEntity,
 )
 
-from .service import TagService
-from .repository import TagRepository, SQLAlchemyTagRepository
 from .exceptions import (
     TagException,
     TagNotFoundError,
@@ -47,7 +42,6 @@ from .schemas import (
     EntityTagsResponse,
     ErrorResponse,
 )
-from .router import router
 
 __all__ = [
     # Domain
@@ -60,11 +54,6 @@ __all__ = [
     "TagDeleted",
     "TagAssociatedWithEntity",
     "TagDisassociatedFromEntity",
-    # Service
-    "TagService",
-    # Repository
-    "TagRepository",
-    "SQLAlchemyTagRepository",
     # Exceptions
     "TagException",
     "TagNotFoundError",
@@ -87,6 +76,4 @@ __all__ = [
     "TagListResponse",
     "EntityTagsResponse",
     "ErrorResponse",
-    # Router
-    "router",
 ]

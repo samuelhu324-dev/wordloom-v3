@@ -10,7 +10,15 @@ Mapped to HTTP status codes in router layer.
 from typing import Optional
 from uuid import UUID
 
-from shared.errors import BusinessError
+from api.app.shared.errors import BusinessError
+
+
+# ============================================================================
+# Media Domain Exception Alias
+# ============================================================================
+
+# DomainException is an alias for BusinessError used in routers
+DomainException = BusinessError
 
 
 # ============================================================================

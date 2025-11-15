@@ -13,7 +13,7 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 from uuid import UUID, uuid4
 
-from shared.base import AggregateRoot, ValueObject, DomainEvent
+from api.app.shared.base import AggregateRoot, ValueObject, DomainEvent
 from .enums import MediaType, MediaMimeType, MediaState, EntityTypeForMedia
 from .events import (
     MediaUploaded, MediaAssociatedWithEntity, MediaDisassociatedFromEntity,

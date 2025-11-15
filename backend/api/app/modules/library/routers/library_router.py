@@ -6,10 +6,10 @@ from uuid import UUID
 import logging
 
 # Application layer imports
-from modules.library.application.use_cases.create_library import CreateLibraryUseCase
-from modules.library.application.use_cases.get_library import GetLibraryUseCase
-from modules.library.application.use_cases.delete_library import DeleteLibraryUseCase
-from modules.library.application.ports.input import (
+from api.app.modules.library.application.use_cases.create_library import CreateLibraryUseCase
+from api.app.modules.library.application.use_cases.get_library import GetLibraryUseCase
+from api.app.modules.library.application.use_cases.delete_library import DeleteLibraryUseCase
+from api.app.modules.library.application.ports.input import (
     CreateLibraryRequest,
     CreateLibraryResponse,
     GetLibraryRequest,
@@ -22,7 +22,7 @@ from infra.storage.library_repository_impl import SQLAlchemyLibraryRepository
 from infra.database import get_db_session
 
 # Domain exceptions
-from modules.library.exceptions import (
+from api.app.modules.library.exceptions import (
     LibraryNotFoundError,
     LibraryAlreadyExistsError,
     InvalidLibraryNameError,
@@ -31,7 +31,7 @@ from modules.library.exceptions import (
 )
 
 # Schemas
-from modules.library.schemas import (
+from api.app.modules.library.schemas import (
     LibraryCreate,
     LibraryUpdate,
     LibraryResponse,
@@ -40,7 +40,7 @@ from modules.library.schemas import (
 )
 
 # Security
-from config.security import get_current_user_id
+from api.app.config.security import get_current_user_id
 
 logger = logging.getLogger(__name__)
 

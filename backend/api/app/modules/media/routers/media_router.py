@@ -1,24 +1,25 @@
 """
 Media Router - Hexagonal Architecture Pattern
 
-FastAPI 路由适配器，�?HTTP 请求转换�?UseCase 调用�?
-职责:
-1. 解析 HTTP 请求 �?转换�?Input DTO
-2. �?DI 容器获取 UseCase
-3. 执行 UseCase
-4. �?Output DTO �?转换�?HTTP 响应
-5. 异常映射�?HTTP 错误�?
-POLICY-010: 30-day trash retention for soft delete
-POLICY-009: Storage quota and MIME type validation
+FastAPI router adapter that:
+1. Parses HTTP requests and converts to Input DTOs
+2. Gets UseCases from DI container
+3. Executes UseCases
+4. Converts Output DTOs to HTTP responses
+5. Maps domain exceptions to HTTP errors
+
+Policies:
+- POLICY-010: 30-day trash retention for soft delete
+- POLICY-009: Storage quota and MIME type validation
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, UploadFile, File, status
 from typing import Optional, List
 from uuid import UUID
 import logging
 
-from dependencies import DIContainer, get_di_container_provider
-from modules.media.application.ports.input import (
+from api.app.dependencies import DIContainer, get_di_container_provider
+from api.app.modules.media.application.ports.input import (
     UploadImageRequest,
     UploadVideoRequest,
     DeleteMediaRequest,
@@ -30,7 +31,7 @@ from modules.media.application.ports.input import (
     UpdateMediaMetadataRequest,
     MediaResponse,
 )
-from modules.media.domain.exceptions import (
+from api.app.modules.media.domain.exceptions import (
     MediaNotFoundError,
     InvalidMimeTypeError,
     FileSizeTooLargeError,
@@ -52,14 +53,12 @@ router = APIRouter(prefix="/media", tags=["media"])
 # ============================================================================
 
 async def get_di_container() -> DIContainer:
-    """
-    获取 DI 容器（FastAPI 依赖�?
-    在实际应用中，这会从全局初始化的容器获取�?    """
+    """Get DI container for dependency injection in FastAPI handlers"""
     return get_di_container_provider()
 
 
 # ============================================================================
-# Endpoints: Image & Video Upload
+# Endpoints: Image Upload
 # ============================================================================
 
 @router.post(
@@ -67,21 +66,14 @@ async def get_di_container() -> DIContainer:
     response_model=dict,
     status_code=status.HTTP_201_CREATED,
     summary="Upload an image",
-    description="""
-    上传图片文件到全局媒体存储（POLICY-009: Storage Quota, MIME Type Validation�?
-    支持格式: JPEG, PNG, WEBP, GIF
-    """
+    description="Upload image file to global media storage (JPEG, PNG, WEBP, GIF)"
 )
 async def upload_image(
     file: UploadFile = File(..., description="Image file to upload"),
     description: Optional[str] = Query(None, description="Optional image description"),
     di: DIContainer = Depends(get_di_container)
 ):
-    """
-    上传图片
-
-    POLICY-009: Enforces MIME type validation and file size limits
-    """
+    """Upload an image file to media storage"""
     try:
         content = await file.read()
 
@@ -99,48 +91,51 @@ async def upload_image(
         logger.warning(f"Invalid MIME type for image: {file.filename} ({file.content_type})")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
+            detail=f"Invalid image MIME type: {file.content_type}"
         )
     except FileSizeTooLargeError as e:
         logger.warning(f"File size too large: {file.filename}")
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Image file is too large"
         )
     except StorageQuotaExceededError as e:
-        logger.warning(f"Storage quota exceeded during upload")
+        logger.warning(f"Storage quota exceeded for image: {file.filename}")
         raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=str(e)
+            status_code=status.HTTP_507_INSUFFICIENT_STORAGE,
+            detail="Storage quota exceeded"
         )
     except DomainException as e:
-        logger.error(f"Domain error during image upload: {str(e)}")
+        logger.error(f"Domain error uploading image: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+    except Exception as e:
+        logger.error(f"Unexpected error uploading image: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload image"
+        )
 
+
+# ============================================================================
+# Endpoints: Video Upload
+# ============================================================================
 
 @router.post(
     "/videos",
     response_model=dict,
     status_code=status.HTTP_201_CREATED,
     summary="Upload a video",
-    description="""
-    上传视频文件到全局媒体存储（POLICY-009: Storage Quota, MIME Type Validation�?
-    支持格式: MP4, WEBM, OGG
-    """
+    description="Upload video file to global media storage (MP4, WebM, etc.)"
 )
 async def upload_video(
     file: UploadFile = File(..., description="Video file to upload"),
     description: Optional[str] = Query(None, description="Optional video description"),
     di: DIContainer = Depends(get_di_container)
 ):
-    """
-    上传视频
-
-    POLICY-009: Enforces MIME type validation and file size limits
-    """
+    """Upload a video file to media storage"""
     try:
         content = await file.read()
 
@@ -158,260 +153,139 @@ async def upload_video(
         logger.warning(f"Invalid MIME type for video: {file.filename} ({file.content_type})")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
+            detail=f"Invalid video MIME type: {file.content_type}"
         )
     except FileSizeTooLargeError as e:
         logger.warning(f"File size too large: {file.filename}")
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Video file is too large"
         )
     except StorageQuotaExceededError as e:
-        logger.warning(f"Storage quota exceeded during upload")
+        logger.warning(f"Storage quota exceeded for video: {file.filename}")
         raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=str(e)
+            status_code=status.HTTP_507_INSUFFICIENT_STORAGE,
+            detail="Storage quota exceeded"
         )
     except DomainException as e:
-        logger.error(f"Domain error during video upload: {str(e)}")
+        logger.error(f"Domain error uploading video: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+    except Exception as e:
+        logger.error(f"Unexpected error uploading video: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload video"
+        )
 
 
 # ============================================================================
-# Endpoints: Media Retrieval & Update
+# Endpoints: Get Media
 # ============================================================================
 
 @router.get(
     "/{media_id}",
     response_model=dict,
-    summary="Get media by ID",
-    description="获取媒体文件的详情（包括元数据）"
+    summary="Get media details",
+    description="Retrieve detailed information about a specific media file"
 )
 async def get_media(
-    media_id: UUID = Query(..., description="Media ID"),
+    media_id: UUID = Path(..., description="Media ID"),
     di: DIContainer = Depends(get_di_container)
 ):
-    """获取媒体详情"""
+    """Get detailed information about a media file"""
     try:
         request = GetMediaRequest(media_id=media_id)
-        use_case = di.get_get_media_use_case()
+        use_case = di.get_media_use_case()
         response: MediaResponse = await use_case.execute(request)
         return response.to_dict()
-    except MediaNotFoundError as e:
-        logger.info(f"Media not found: {media_id}")
+    except MediaNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
+            detail=f"Media {media_id} not found"
         )
     except DomainException as e:
-        logger.error(f"Domain error retrieving media {media_id}: {str(e)}")
+        logger.error(f"Domain error getting media: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+    except Exception as e:
+        logger.error(f"Unexpected error getting media: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get media"
+        )
 
+
+# ============================================================================
+# Endpoints: Update Media Metadata
+# ============================================================================
 
 @router.patch(
     "/{media_id}",
     response_model=dict,
     summary="Update media metadata",
-    description="更新媒体元数据（图像尺寸、视频时长等�?
+    description="Update media metadata (description, custom fields, etc.)"
 )
 async def update_media_metadata(
-    media_id: UUID = Query(..., description="Media ID"),
+    media_id: UUID = Path(..., description="Media ID"),
     description: Optional[str] = Query(None, description="Updated description"),
-    width: Optional[int] = Query(None, ge=1, description="Image width for image media"),
-    height: Optional[int] = Query(None, ge=1, description="Image height for image media"),
-    duration_ms: Optional[int] = Query(None, ge=1, description="Video duration in milliseconds for video media"),
     di: DIContainer = Depends(get_di_container)
 ):
-    """更新媒体元数�?""
+    """Update media metadata"""
     try:
         request = UpdateMediaMetadataRequest(
             media_id=media_id,
-            description=description,
-            width=width,
-            height=height,
-            duration_ms=duration_ms
+            description=description
         )
-
         use_case = di.get_update_media_metadata_use_case()
         response: MediaResponse = await use_case.execute(request)
         return response.to_dict()
-    except MediaNotFoundError as e:
-        logger.info(f"Media not found for update: {media_id}")
+    except MediaNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
+            detail=f"Media {media_id} not found"
+        )
+    except MediaInTrashError:
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail=f"Media {media_id} is in trash"
         )
     except DomainException as e:
-        logger.error(f"Domain error updating media {media_id}: {str(e)}")
+        logger.error(f"Domain error updating media metadata: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error updating media metadata: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update media metadata"
         )
 
 
 # ============================================================================
-# Endpoints: Media Deletion (Soft Delete & Purge) - POLICY-010
-# ============================================================================
-
-@router.delete(
-    "/{media_id}",
-    response_model=dict,
-    status_code=status.HTTP_200_OK,
-    summary="Delete media (move to trash)",
-    description="""
-    软删除：将媒体移到垃圾箱
-
-    POLICY-010: 30-day trash retention before hard deletion
-    可通过 /restore 在保留期内恢�?    """
-)
-async def delete_media(
-    media_id: UUID,
-    di: DIContainer = Depends(get_di_container)
-):
-    """
-    删除媒体（移到垃圾箱�?
-    POLICY-010: Media remains in trash for 30 days before purge eligibility
-    """
-    try:
-        request = DeleteMediaRequest(media_id=media_id)
-        use_case = di.get_delete_media_use_case()
-        response: MediaResponse = await use_case.execute(request)
-        logger.info(f"Media moved to trash: {media_id}")
-        return response.to_dict()
-    except MediaNotFoundError as e:
-        logger.info(f"Media not found for deletion: {media_id}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
-    except DomainException as e:
-        logger.error(f"Domain error deleting media {media_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-
-
-@router.post(
-    "/{media_id}/restore",
-    response_model=dict,
-    status_code=status.HTTP_200_OK,
-    summary="Restore media from trash",
-    description="""
-    恢复媒体：将媒体从垃圾箱恢复到活跃状�?
-    POLICY-010: 可在30天保留期内恢�?    """
-)
-async def restore_media(
-    media_id: UUID,
-    di: DIContainer = Depends(get_di_container)
-):
-    """
-    恢复媒体（从垃圾箱恢复）
-
-    POLICY-010: Can only restore within 30-day retention period
-    """
-    try:
-        request = RestoreMediaRequest(media_id=media_id)
-        use_case = di.get_restore_media_use_case()
-        response: MediaResponse = await use_case.execute(request)
-        logger.info(f"Media restored from trash: {media_id}")
-        return response.to_dict()
-    except MediaNotFoundError as e:
-        logger.info(f"Media not found for restore: {media_id}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
-    except MediaInTrashError as e:
-        logger.warning(f"Cannot restore media not in trash: {media_id}")
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e)
-        )
-    except DomainException as e:
-        logger.error(f"Domain error restoring media {media_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-
-
-@router.delete(
-    "/{media_id}/purge",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Permanently delete media",
-    description="""
-    硬删除：永久删除媒体文件
-
-    POLICY-010: 仅允许在垃圾箱中30天后执行
-    """
-)
-async def purge_media(
-    media_id: UUID,
-    di: DIContainer = Depends(get_di_container)
-):
-    """
-    彻底删除媒体（永久删除）
-
-    POLICY-010: Only allowed for media in trash >= 30 days
-    """
-    try:
-        request = PurgeMediaRequest(media_id=media_id)
-        use_case = di.get_purge_media_use_case()
-        await use_case.execute(request)
-        logger.info(f"Media permanently purged: {media_id}")
-    except MediaNotFoundError as e:
-        logger.info(f"Media not found for purge: {media_id}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
-    except CannotPurgeError as e:
-        logger.warning(f"Cannot purge media (not yet eligible): {media_id}")
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e)
-        )
-    except DomainException as e:
-        logger.error(f"Domain error purging media {media_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-
-
-# ============================================================================
-# Endpoints: Media Association (Link to Entities)
+# Endpoints: Associate Media with Entity
 # ============================================================================
 
 @router.post(
-    "/{media_id}/associate",
+    "/associate",
     response_model=dict,
     status_code=status.HTTP_200_OK,
     summary="Associate media with entity",
-    description="""
-    关联媒体到实体（Book/Bookshelf/Block�?
-    一个媒体可以关联到多个实体，但不能重复关联到同一个实�?    """
+    description="Associate a media file with a book, block, or other entity"
 )
 async def associate_media(
-    media_id: UUID,
-    entity_type: str = Query(
-        ...,
-        description="Entity type: BOOKSHELF | BOOK | BLOCK",
-        regex="^(BOOKSHELF|BOOK|BLOCK)$"
-    ),
-    entity_id: UUID = Query(..., description="Target entity ID"),
+    media_id: UUID = Path(..., description="Media ID"),
+    entity_type: str = Query(..., description="Entity type (book, block, etc.)"),
+    entity_id: UUID = Query(..., description="Entity ID"),
     di: DIContainer = Depends(get_di_container)
 ):
-    """
-    关联媒体到实体（Book/Bookshelf/Block�?
-    一个媒体可以关联到多个不同的实�?    """
+    """Associate media with an entity"""
     try:
         request = AssociateMediaRequest(
             media_id=media_id,
@@ -419,54 +293,51 @@ async def associate_media(
             entity_id=entity_id
         )
         use_case = di.get_associate_media_use_case()
-        await use_case.execute(request)
-        logger.info(f"Media {media_id} associated with {entity_type} {entity_id}")
-        return {"message": "Media associated successfully", "media_id": str(media_id)}
-    except MediaNotFoundError as e:
-        logger.info(f"Media not found for association: {media_id}")
+        response: MediaResponse = await use_case.execute(request)
+        return response.to_dict()
+    except MediaNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
+            detail=f"Media {media_id} not found"
         )
     except AssociationError as e:
-        logger.warning(f"Association error for media {media_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e)
-        )
-    except DomainException as e:
-        logger.error(f"Domain error associating media {media_id}: {str(e)}")
+        logger.warning(f"Association error: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+    except DomainException as e:
+        logger.error(f"Domain error associating media: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error associating media: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to associate media"
+        )
 
 
-@router.delete(
-    "/{media_id}/disassociate",
+# ============================================================================
+# Endpoints: Disassociate Media from Entity
+# ============================================================================
+
+@router.post(
+    "/disassociate",
     response_model=dict,
     status_code=status.HTTP_200_OK,
     summary="Disassociate media from entity",
-    description="""
-    取消关联：断开媒体与实体的关联
-
-    媒体文件不会被删除，只是移除了关联关�?    """
+    description="Remove association between media and an entity"
 )
 async def disassociate_media(
-    media_id: UUID,
-    entity_type: str = Query(
-        ...,
-        description="Entity type: BOOKSHELF | BOOK | BLOCK",
-        regex="^(BOOKSHELF|BOOK|BLOCK)$"
-    ),
-    entity_id: UUID = Query(..., description="Target entity ID"),
+    media_id: UUID = Path(..., description="Media ID"),
+    entity_type: str = Query(..., description="Entity type (book, block, etc.)"),
+    entity_id: UUID = Query(..., description="Entity ID"),
     di: DIContainer = Depends(get_di_container)
 ):
-    """
-    取消关联媒体
-
-    媒体文件本身不会被删除，只是移除关联
-    """
+    """Disassociate media from an entity"""
     try:
         request = DisassociateMediaRequest(
             media_id=media_id,
@@ -474,28 +345,155 @@ async def disassociate_media(
             entity_id=entity_id
         )
         use_case = di.get_disassociate_media_use_case()
-        await use_case.execute(request)
-        logger.info(f"Media {media_id} disassociated from {entity_type} {entity_id}")
-        return {"message": "Media disassociated successfully", "media_id": str(media_id)}
-    except MediaNotFoundError as e:
-        logger.info(f"Media not found for disassociation: {media_id}")
+        response: MediaResponse = await use_case.execute(request)
+        return response.to_dict()
+    except MediaNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
+            detail=f"Media {media_id} not found"
         )
     except AssociationError as e:
-        logger.warning(f"Disassociation error for media {media_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e)
-        )
-    except DomainException as e:
-        logger.error(f"Domain error disassociating media {media_id}: {str(e)}")
+        logger.warning(f"Disassociation error: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+    except DomainException as e:
+        logger.error(f"Domain error disassociating media: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error disassociating media: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to disassociate media"
+        )
 
 
-__all__ = ["router"]
+# ============================================================================
+# Endpoints: Delete Media (Soft Delete)
+# ============================================================================
 
+@router.delete(
+    "/{media_id}",
+    response_model=dict,
+    status_code=status.HTTP_200_OK,
+    summary="Move media to trash",
+    description="Soft delete media (moved to trash, retained for 30 days per POLICY-010)"
+)
+async def delete_media(
+    media_id: UUID = Path(..., description="Media ID"),
+    di: DIContainer = Depends(get_di_container)
+):
+    """Move media to trash (soft delete)"""
+    try:
+        request = DeleteMediaRequest(media_id=media_id)
+        use_case = di.get_delete_media_use_case()
+        response: MediaResponse = await use_case.execute(request)
+        return response.to_dict()
+    except MediaNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Media {media_id} not found"
+        )
+    except DomainException as e:
+        logger.error(f"Domain error deleting media: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error deleting media: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete media"
+        )
+
+
+# ============================================================================
+# Endpoints: Restore Media from Trash
+# ============================================================================
+
+@router.post(
+    "/{media_id}/restore",
+    response_model=dict,
+    status_code=status.HTTP_200_OK,
+    summary="Restore media from trash",
+    description="Restore media that was previously moved to trash"
+)
+async def restore_media(
+    media_id: UUID = Path(..., description="Media ID"),
+    di: DIContainer = Depends(get_di_container)
+):
+    """Restore media from trash"""
+    try:
+        request = RestoreMediaRequest(media_id=media_id)
+        use_case = di.get_restore_media_use_case()
+        response: MediaResponse = await use_case.execute(request)
+        return response.to_dict()
+    except MediaNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Media {media_id} not found"
+        )
+    except DomainException as e:
+        logger.error(f"Domain error restoring media: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error restoring media: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to restore media"
+        )
+
+
+# ============================================================================
+# Endpoints: Purge Media (Hard Delete)
+# ============================================================================
+
+@router.delete(
+    "/{media_id}/purge",
+    response_model=dict,
+    status_code=status.HTTP_200_OK,
+    summary="Permanently delete media",
+    description="Permanently remove media file and its database record (cannot be undone)"
+)
+async def purge_media(
+    media_id: UUID = Path(..., description="Media ID"),
+    force: bool = Query(False, description="Force purge even if not in trash"),
+    di: DIContainer = Depends(get_di_container)
+):
+    """Permanently delete media"""
+    try:
+        request = PurgeMediaRequest(media_id=media_id, force=force)
+        use_case = di.get_purge_media_use_case()
+        response: MediaResponse = await use_case.execute(request)
+        return response.to_dict()
+    except MediaNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Media {media_id} not found"
+        )
+    except CannotPurgeError as e:
+        logger.warning(f"Cannot purge media: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except DomainException as e:
+        logger.error(f"Domain error purging media: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error purging media: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to purge media"
+        )

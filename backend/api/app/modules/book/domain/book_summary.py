@@ -6,7 +6,7 @@ Represents the summary of a Book with validation rules.
 
 from dataclasses import dataclass
 from typing import Optional
-from shared.base import ValueObject
+from api.app.shared.base import ValueObject
 
 
 @dataclass(frozen=True)

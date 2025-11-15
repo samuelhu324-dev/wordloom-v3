@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID, uuid4
 
-from shared.base import AggregateRoot
+from api.app.shared.base import AggregateRoot
 
 # 本地导入（Domain 层内部）
 from .library_name import LibraryName

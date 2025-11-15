@@ -43,6 +43,21 @@ class GetBookshelfRequest:
 
 
 @dataclass
+class ListBookshelvesRequest:
+    """Request to list Bookshelves for a library"""
+    library_id: UUID
+    skip: int = 0
+    limit: int = 100
+    include_deleted: bool = False
+
+
+@dataclass
+class GetBasementRequest:
+    """Request to retrieve the Basement bookshelf for a library"""
+    library_id: UUID
+
+
+@dataclass
 class DeleteBookshelfRequest:
     """Request to delete (soft delete) a Bookshelf"""
     bookshelf_id: UUID
@@ -69,6 +84,21 @@ class RenameBookshelfRequest:
     def __post_init__(self):
         """Trim whitespace from name"""
         self.new_name = self.new_name.strip() if self.new_name else self.new_name
+
+
+@dataclass
+class UpdateBookshelfRequest:
+    """Request to update a Bookshelf (name and/or description)"""
+    bookshelf_id: UUID
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+    def __post_init__(self):
+        """Trim whitespace from string fields"""
+        if self.name:
+            self.name = self.name.strip()
+        if self.description:
+            self.description = self.description.strip()
 
 
 # ============================================================================
@@ -168,6 +198,10 @@ class RenameBookshelfResponse:
             name=str(bookshelf.name),
             updated_at=bookshelf.updated_at.isoformat() if bookshelf.updated_at else "",
         )
+
+
+# Generic bookshelf response alias for router use
+BookshelfResponse = CreateBookshelfResponse
 
 
 # ============================================================================

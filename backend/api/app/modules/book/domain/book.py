@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID, uuid4
 
-from shared.base import AggregateRoot, DomainEvent
+from api.app.shared.base import AggregateRoot, DomainEvent
 from .book_title import BookTitle
 from .book_summary import BookSummary
 from .events import (

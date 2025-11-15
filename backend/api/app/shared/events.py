@@ -10,7 +10,7 @@ Pattern: Observer pattern with async support
 
 import asyncio
 from typing import Callable, Dict, List, Type, Optional
-from shared.base import DomainEvent
+from api.app.shared.base import DomainEvent
 import logging
 
 logger = logging.getLogger(__name__)

@@ -17,14 +17,14 @@ Cross-Reference:
 from uuid import UUID
 import logging
 
-from modules.library.domain import Library
-from modules.library.exceptions import LibraryAlreadyExistsError
-from modules.library.application.ports.input import (
+from api.app.modules.library.domain import Library
+from api.app.modules.library.exceptions import LibraryAlreadyExistsError
+from api.app.modules.library.application.ports.input import (
     CreateLibraryRequest,
     CreateLibraryResponse,
     ICreateLibraryUseCase,
 )
-from modules.library.application.ports.output import ILibraryRepository
+from api.app.modules.library.application.ports.output import ILibraryRepository
 
 logger = logging.getLogger(__name__)
 

@@ -16,8 +16,8 @@ from typing import List, Optional
 from uuid import UUID
 import logging
 
-from dependencies import DIContainer, get_di_container_provider
-from modules.tag.application.ports.input import (
+from api.app.dependencies import DIContainer, get_di_container_provider
+from api.app.modules.tag.application.ports.input import (
     CreateTagRequest,
     CreateSubtagRequest,
     UpdateTagRequest,
@@ -29,7 +29,7 @@ from modules.tag.application.ports.input import (
     GetMostUsedTagsRequest,
     TagResponse,
 )
-from modules.tag.domain.exceptions import (
+from api.app.modules.tag.domain.exceptions import (
     TagNotFoundError,
     TagAlreadyExistsError,
     DomainException,

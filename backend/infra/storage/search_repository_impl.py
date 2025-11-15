@@ -23,9 +23,9 @@ from uuid import UUID
 from sqlalchemy import and_, func, text
 from sqlalchemy.orm import Session
 
-from app.modules.search.application.ports.output import SearchPort
-from app.modules.search.domain import SearchQuery, SearchHit, SearchResult, SearchEntityType
-from app.infra.database.models.search_index_models import SearchIndexModel
+from api.app.modules.search.application.ports.output import SearchPort
+from api.app.modules.search.domain import SearchQuery, SearchHit, SearchResult, SearchEntityType
+from infra.database.models.search_index_models import SearchIndexModel
 
 logger = logging.getLogger(__name__)
 

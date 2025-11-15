@@ -8,7 +8,7 @@ Allows switching between PostgreSQL, Elasticsearch, etc.
 from abc import ABC, abstractmethod
 from typing import List
 
-from modules.search.domain import SearchQuery, SearchHit, SearchResult
+from api.app.modules.search.domain import SearchQuery, SearchHit, SearchResult
 
 
 class SearchPort(ABC):

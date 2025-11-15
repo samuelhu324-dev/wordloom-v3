@@ -7,6 +7,32 @@ Contains:
   - session.py: Database session management
 """
 
-from .models import Base
+from .models import (
+    Base,
+    LibraryModel,
+    BookshelfModel,
+    BookModel,
+    BlockModel,
+    TagModel,
+    TagAssociationModel,
+    MediaModel,
+    MediaAssociationModel,
+    SearchIndexModel,
+)
+from .session import get_db_session, AsyncSessionLocal, engine
 
-__all__ = ["Base"]
+__all__ = [
+    "Base",
+    "LibraryModel",
+    "BookshelfModel",
+    "BookModel",
+    "BlockModel",
+    "TagModel",
+    "TagAssociationModel",
+    "MediaModel",
+    "MediaAssociationModel",
+    "SearchIndexModel",
+    "get_db_session",
+    "AsyncSessionLocal",
+    "engine",
+]

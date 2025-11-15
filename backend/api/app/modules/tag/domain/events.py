@@ -10,9 +10,9 @@ Consumed by event handlers for side effects (usage count tracking, etc.)
 from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import UUID
+from uuid import UUID
 
-from shared.base import DomainEvent
+from api.app.shared.base import DomainEvent
 from .enums import EntityType
 
 

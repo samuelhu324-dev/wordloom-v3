@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 from enum import Enum
 
-from shared.base import DomainEvent
+from api.app.shared.base import DomainEvent
 
 
 # ============================================================================

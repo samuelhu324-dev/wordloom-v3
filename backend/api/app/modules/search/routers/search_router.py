@@ -1,27 +1,28 @@
 """
 Search Router - HTTP Input Adapter
 
-FastAPI 路由适配器，提供搜索 REST API�?
-职责:
-1. 解析 HTTP 请求 �?转换�?UseCase Request DTO
-2. �?DI 容器获取 SearchService (ExecuteSearchUseCase)
-3. 执行 UseCase
-4. �?Response DTO �?转换�?HTTP 响应
-5. 异常映射�?HTTP 错误�?
-Endpoints (9 �?:
-  - GET /search              全局搜索（所有类型）
-  - GET /search/blocks       仅搜�?Blocks
-  - GET /search/books        仅搜�?Books
-  - GET /search/bookshelves  仅搜�?Bookshelves
-  - GET /search/tags         仅搜�?Tags
-  + 其他扩展端点
+FastAPI router adapter that:
+1. Parses HTTP requests and converts to UseCase Request DTOs
+2. Gets SearchService (ExecuteSearchUseCase) from DI container
+3. Executes UseCase
+4. Converts Response DTOs to HTTP responses
+5. Maps exceptions to HTTP errors
 
-参数:
-  - q: str (required, min_length=1)
-  - type: Optional[str] (None = 全局, �?"blocks"/"books"/...)
-  - book_id: Optional[UUID] (限定 Book 内搜�?
-  - limit: int = 20
-  - offset: int = 0
+Endpoints:
+- GET /search                 Global search (all entity types)
+- GET /search/blocks          Search only blocks
+- GET /search/books           Search only books
+- GET /search/bookshelves     Search only bookshelves
+- GET /search/tags            Search only tags
+- GET /search/libraries       Search only libraries
+- GET /search/entries         Search only entries (Loom terms)
+
+Query Parameters:
+- q: str (required, min_length=1)
+- type: Optional[str] (None=global, or "blocks"/"books"/...)
+- book_id: Optional[UUID] (limit search to specific book)
+- limit: int = 20
+- offset: int = 0
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -29,8 +30,8 @@ from typing import Optional
 from uuid import UUID
 import logging
 
-from dependencies import DIContainer, get_di_container_provider
-from modules.search.application.ports.input import (
+from api.app.dependencies import DIContainer, get_di_container_provider
+from api.app.modules.search.application.ports.input import (
     ExecuteSearchRequest,
     ExecuteSearchResponse,
     ExecuteSearchUseCase,
@@ -42,21 +43,21 @@ router = APIRouter(prefix="/search", tags=["search"])
 
 
 # ============================================================================
-# Dependency: Get DI Container & Search Service
+# Dependency: Get DI Container and Search Service
 # ============================================================================
 
 async def get_di_container() -> DIContainer:
-    """获取 DI 容器（FastAPI 依赖�?""
+    """Get DI container for dependency injection in FastAPI handlers"""
     return get_di_container_provider()
 
 
 async def get_search_service(di: DIContainer = Depends(get_di_container)) -> ExecuteSearchUseCase:
-    """获取 Search Service（UseCase�?""
+    """Get Search Service (ExecuteSearchUseCase) from DI container"""
     return di.get_search_service()
 
 
 # ============================================================================
-# Endpoint 1: Global Search (All Types)
+# Endpoint: Global Search (All Entity Types)
 # ============================================================================
 
 @router.get(
@@ -65,272 +66,286 @@ async def get_search_service(di: DIContainer = Depends(get_di_container)) -> Exe
     status_code=status.HTTP_200_OK,
     summary="Global search across all entity types",
     description="""
-    全局搜索：一个关键字查询所有实体类�?
-    支持:
-    - Block 内容全文搜索
-    - Book 标题和元数据搜索
-    - Bookshelf 名称搜索
-    - Tag 名称搜索
-
-    结果按相关性排序（ts_rank_cd�?    """
+    Global search across all entities.
+    Searches blocks (content), books (title/metadata), bookshelves, tags, libraries, and entries.
+    Results ordered by relevance.
+    """
 )
 async def search_global(
     q: str = Query(..., min_length=1, max_length=500, description="Search keyword"),
     book_id: Optional[UUID] = Query(None, description="Optional: scope search to specific book"),
     limit: int = Query(20, ge=1, le=1000, description="Results per page"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
-    service: ExecuteSearchUseCase = Depends(get_search_service),
+    search_service: ExecuteSearchUseCase = Depends(get_search_service)
 ):
-    """
-    全局搜索所有实体类�?
-    返回按相关性排序的混合结果�?    """
+    """Execute global search across all entity types"""
     try:
         request = ExecuteSearchRequest(
             text=q,
-            type=None,  # Global search
+            entity_type=None,
             book_id=book_id,
             limit=limit,
-            offset=offset,
+            offset=offset
         )
-        result: ExecuteSearchResponse = await service.execute(request)
-        logger.info(f"Global search: '{q}' returned {result.total} results")
-        return {
-            "total": result.total,
-            "hits": [hit.dict() for hit in result.hits],
-            "query": {"text": q, "type": None, "book_id": str(book_id) if book_id else None},
-        }
+        response: ExecuteSearchResponse = await search_service.execute(request)
+        return response.to_dict()
     except ValueError as e:
-        logger.warning(f"Invalid search parameters: {str(e)}")
+        logger.warning(f"Invalid search query: {e}")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
+            detail=f"Invalid search query: {e}"
         )
     except Exception as e:
-        logger.error(f"Global search failed: {str(e)}")
+        logger.error(f"Search error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Search operation failed"
+            detail="Search failed"
         )
 
 
 # ============================================================================
-# Endpoint 2: Search Blocks Only
+# Endpoint: Search Blocks
 # ============================================================================
 
 @router.get(
     "/blocks",
     response_model=dict,
     status_code=status.HTTP_200_OK,
-    summary="Search blocks only",
-    description="""
-    仅搜�?Block 内容
-
-    搜索范围:
-    - Block content (full text)
-
-    结果按文本相关性排�?    """
+    summary="Search blocks",
+    description="Full text search on block content"
 )
-async def search_blocks_only(
+async def search_blocks(
     q: str = Query(..., min_length=1, max_length=500, description="Search keyword"),
-    book_id: Optional[UUID] = Query(None, description="Optional: scope to specific book"),
+    book_id: Optional[UUID] = Query(None, description="Optional: limit to specific book"),
     limit: int = Query(20, ge=1, le=1000, description="Results per page"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
-    service: ExecuteSearchUseCase = Depends(get_search_service),
+    search_service: ExecuteSearchUseCase = Depends(get_search_service)
 ):
-    """仅搜�?Blocks"""
+    """Search blocks by content"""
     try:
         request = ExecuteSearchRequest(
             text=q,
-            type="block",
+            entity_type="blocks",
             book_id=book_id,
             limit=limit,
-            offset=offset,
+            offset=offset
         )
-        result: ExecuteSearchResponse = await service.execute(request)
-        logger.info(f"Block search: '{q}' returned {result.total} results")
-        return {
-            "total": result.total,
-            "hits": [hit.dict() for hit in result.hits],
-            "query": {"text": q, "type": "block"},
-        }
+        response: ExecuteSearchResponse = await search_service.execute(request)
+        return response.to_dict()
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        logger.warning(f"Invalid search query: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid search query: {e}"
+        )
     except Exception as e:
-        logger.error(f"Block search failed: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Search failed")
+        logger.error(f"Search error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Search failed"
+        )
 
 
 # ============================================================================
-# Endpoint 3: Search Books Only
+# Endpoint: Search Books
 # ============================================================================
 
 @router.get(
     "/books",
     response_model=dict,
     status_code=status.HTTP_200_OK,
-    summary="Search books only",
-    description="""
-    仅搜�?Book 元数�?
-    搜索范围:
-    - Book title
-    - Book description
-    """
+    summary="Search books",
+    description="Search books by title and metadata"
 )
-async def search_books_only(
+async def search_books(
     q: str = Query(..., min_length=1, max_length=500, description="Search keyword"),
     limit: int = Query(20, ge=1, le=1000, description="Results per page"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
-    service: ExecuteSearchUseCase = Depends(get_search_service),
+    search_service: ExecuteSearchUseCase = Depends(get_search_service)
 ):
-    """仅搜�?Books"""
+    """Search books by title and metadata"""
     try:
         request = ExecuteSearchRequest(
             text=q,
-            type="book",
+            entity_type="books",
             limit=limit,
-            offset=offset,
+            offset=offset
         )
-        result: ExecuteSearchResponse = await service.execute(request)
-        logger.info(f"Book search: '{q}' returned {result.total} results")
-        return {
-            "total": result.total,
-            "hits": [hit.dict() for hit in result.hits],
-            "query": {"text": q, "type": "book"},
-        }
+        response: ExecuteSearchResponse = await search_service.execute(request)
+        return response.to_dict()
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        logger.warning(f"Invalid search query: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid search query: {e}"
+        )
     except Exception as e:
-        logger.error(f"Book search failed: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Search failed")
+        logger.error(f"Search error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Search failed"
+        )
 
 
 # ============================================================================
-# Endpoint 4: Search Bookshelves Only
+# Endpoint: Search Bookshelves
 # ============================================================================
 
 @router.get(
     "/bookshelves",
     response_model=dict,
     status_code=status.HTTP_200_OK,
-    summary="Search bookshelves only",
-    description="""
-    仅搜�?Bookshelf 名称
-
-    快速定位书�?    """
+    summary="Search bookshelves",
+    description="Search bookshelves by name"
 )
-async def search_bookshelves_only(
+async def search_bookshelves(
     q: str = Query(..., min_length=1, max_length=500, description="Search keyword"),
     limit: int = Query(20, ge=1, le=1000, description="Results per page"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
-    service: ExecuteSearchUseCase = Depends(get_search_service),
+    search_service: ExecuteSearchUseCase = Depends(get_search_service)
 ):
-    """仅搜�?Bookshelves"""
+    """Search bookshelves by name"""
     try:
         request = ExecuteSearchRequest(
             text=q,
-            type="bookshelf",
+            entity_type="bookshelves",
             limit=limit,
-            offset=offset,
+            offset=offset
         )
-        result: ExecuteSearchResponse = await service.execute(request)
-        logger.info(f"Bookshelf search: '{q}' returned {result.total} results")
-        return {
-            "total": result.total,
-            "hits": [hit.dict() for hit in result.hits],
-            "query": {"text": q, "type": "bookshelf"},
-        }
+        response: ExecuteSearchResponse = await search_service.execute(request)
+        return response.to_dict()
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        logger.warning(f"Invalid search query: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid search query: {e}"
+        )
     except Exception as e:
-        logger.error(f"Bookshelf search failed: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Search failed")
+        logger.error(f"Search error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Search failed"
+        )
 
 
 # ============================================================================
-# Endpoint 5: Search Tags Only
+# Endpoint: Search Tags
 # ============================================================================
 
 @router.get(
     "/tags",
     response_model=dict,
     status_code=status.HTTP_200_OK,
-    summary="Search tags only",
-    description="""
-    仅搜�?Tag 名称
-
-    快速查找特定标�?    """
+    summary="Search tags",
+    description="Search tags by name"
 )
-async def search_tags_only(
+async def search_tags(
     q: str = Query(..., min_length=1, max_length=500, description="Search keyword"),
     limit: int = Query(20, ge=1, le=1000, description="Results per page"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
-    service: ExecuteSearchUseCase = Depends(get_search_service),
+    search_service: ExecuteSearchUseCase = Depends(get_search_service)
 ):
-    """仅搜�?Tags"""
+    """Search tags by name"""
     try:
         request = ExecuteSearchRequest(
             text=q,
-            type="tag",
+            entity_type="tags",
             limit=limit,
-            offset=offset,
+            offset=offset
         )
-        result: ExecuteSearchResponse = await service.execute(request)
-        logger.info(f"Tag search: '{q}' returned {result.total} results")
-        return {
-            "total": result.total,
-            "hits": [hit.dict() for hit in result.hits],
-            "query": {"text": q, "type": "tag"},
-        }
+        response: ExecuteSearchResponse = await search_service.execute(request)
+        return response.to_dict()
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        logger.warning(f"Invalid search query: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid search query: {e}"
+        )
     except Exception as e:
-        logger.error(f"Tag search failed: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Search failed")
+        logger.error(f"Search error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Search failed"
+        )
 
 
 # ============================================================================
-# Endpoint 6: Generic Type Search
+# Endpoint: Search Libraries
 # ============================================================================
 
 @router.get(
-    "/{entity_type}",
+    "/libraries",
     response_model=dict,
     status_code=status.HTTP_200_OK,
-    summary="Search specific entity type",
-    description="""
-    搜索指定类型的实�?
-    entity_type: block | book | bookshelf | tag
-    """
+    summary="Search libraries",
+    description="Search libraries by name"
 )
-async def search_by_type(
-    entity_type: str = Query(..., regex="^(block|book|bookshelf|tag)$", description="Entity type"),
+async def search_libraries(
     q: str = Query(..., min_length=1, max_length=500, description="Search keyword"),
-    book_id: Optional[UUID] = Query(None, description="Optional: scope to specific book"),
     limit: int = Query(20, ge=1, le=1000, description="Results per page"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
-    service: ExecuteSearchUseCase = Depends(get_search_service),
+    search_service: ExecuteSearchUseCase = Depends(get_search_service)
 ):
-    """按类型搜索实�?""
+    """Search libraries by name"""
     try:
         request = ExecuteSearchRequest(
             text=q,
-            type=entity_type,
-            book_id=book_id,
+            entity_type="libraries",
             limit=limit,
-            offset=offset,
+            offset=offset
         )
-        result: ExecuteSearchResponse = await service.execute(request)
-        logger.info(f"{entity_type} search: '{q}' returned {result.total} results")
-        return {
-            "total": result.total,
-            "hits": [hit.dict() for hit in result.hits],
-            "query": {"text": q, "type": entity_type},
-        }
+        response: ExecuteSearchResponse = await search_service.execute(request)
+        return response.to_dict()
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        logger.warning(f"Invalid search query: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid search query: {e}"
+        )
     except Exception as e:
-        logger.error(f"Type search failed for {entity_type}: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Search failed")
+        logger.error(f"Search error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Search failed"
+        )
 
 
-__all__ = ["router"]
+# ============================================================================
+# Endpoint: Search Entries (Loom Terms)
+# ============================================================================
+
+@router.get(
+    "/entries",
+    response_model=dict,
+    status_code=status.HTTP_200_OK,
+    summary="Search entries (Loom terms)",
+    description="Search entries by term and content"
+)
+async def search_entries(
+    q: str = Query(..., min_length=1, max_length=500, description="Search keyword"),
+    limit: int = Query(20, ge=1, le=1000, description="Results per page"),
+    offset: int = Query(0, ge=0, description="Pagination offset"),
+    search_service: ExecuteSearchUseCase = Depends(get_search_service)
+):
+    """Search entries by term and content"""
+    try:
+        request = ExecuteSearchRequest(
+            text=q,
+            entity_type="entries",
+            limit=limit,
+            offset=offset
+        )
+        response: ExecuteSearchResponse = await search_service.execute(request)
+        return response.to_dict()
+    except ValueError as e:
+        logger.warning(f"Invalid search query: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid search query: {e}"
+        )
+    except Exception as e:
+        logger.error(f"Search error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Search failed"
+        )

@@ -16,15 +16,15 @@ Cross-Reference:
 from uuid import UUID
 import logging
 
-from modules.library.domain.library import Library
-from modules.library.domain.library_name import LibraryName
-from modules.library.domain.exceptions import LibraryNotFoundError, InvalidLibraryNameError
-from modules.library.application.ports.input import (
+from api.app.modules.library.domain.library import Library
+from api.app.modules.library.domain.library_name import LibraryName
+from api.app.modules.library.domain.exceptions import LibraryNotFoundError, InvalidLibraryNameError
+from api.app.modules.library.application.ports.input import (
     RenameLibraryRequest,
     RenameLibraryResponse,
     IRenameLibraryUseCase,
 )
-from modules.library.application.ports.output import ILibraryRepository
+from api.app.modules.library.application.ports.output import ILibraryRepository
 
 logger = logging.getLogger(__name__)
 

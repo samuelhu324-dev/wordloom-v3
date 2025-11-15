@@ -1,0 +1,972 @@
+# ============================================
+# Wordloom v3 VISUAL_RULES - 前端可视化规则库
+# ============================================
+# 前端开发指南（UI/交互/状态管理）
+# 与后端 DDD_RULES.yaml + HEXAGONAL_RULES.yaml 对齐
+# 最后更新：2025-11-15
+# 版本：1.0
+
+metadata:
+  version: "1.1"
+  frontend_framework: "Next.js 14 App Router + TypeScript + TanStack Query"
+  sync_status: "✅ IN SYNC with DDD_RULES.yaml & HEXAGONAL_RULES.yaml (Nov 15, 2025)"
+  backend_database_ready: "✅ CORE SCHEMA CREATED - CONNECTION READY (Nov 15, 2025)"
+  backend_api_routers_ready: "✅ ALL 7/7 ROUTERS LOADED & OPERATIONAL (Nov 15, 2025)"
+  backend_api_endpoints_ready: "✅ 73 ENDPOINTS REGISTERED (Nov 15, 2025)"
+  backend_database_adr: "ADR-053-wordloom-core-database-schema.md"
+  backend_api_adr: "ADR-054-api-bootstrap-and-dependency-injection.md"
+  backend_router_adr: "ADR-055-api-router-integration-completion.md"
+  api_integration_phase: "Phase 2 (Week 2) - Endpoints ready for frontend integration"
+  sync_source:
+    - "DDD_RULES.yaml (business rules)"
+    - "HEXAGONAL_RULES.yaml (architecture rules)"
+  generated_at: "2025-11-15"
+  generation_method: "Manual + auto-sync via ADR documentation"
+  maturity: "Production Ready ✅"
+  related_files:
+    - "backend/docs/DDD_RULES.yaml"
+    - "backend/docs/HEXAGONAL_RULES.yaml"
+    - "frontend/docs/ADR-FR-001-theme-strategy.md"
+    - "frontend/scripts/sync-rules.py (planned)"
+
+  # API Server Bootstrap Status (UPDATED - Nov 15, 2025)
+  backend_api_status: "✅ FULLY OPERATIONAL - ALL 7/7 ROUTERS LOADED (Nov 15, 2025)"
+  backend_api_ready_date: "2025-11-15"
+  api_bootstrap_adr: "ADR-054-api-bootstrap-and-dependency-injection.md"
+  api_router_integration_adr: "ADR-055-api-router-integration-completion.md"
+  api_server_details:
+    server_address: "http://localhost:30001"
+    health_endpoint: "GET http://localhost:30001/health"
+    health_status: "✅ RESPONDING with routers_loaded: 7/7"
+    framework: "FastAPI + Uvicorn (async)"
+    database_connection: "✅ PostgreSQL async with psycopg[binary] driver (port 5433)"
+    database_driver: "psycopg[binary] (async-capable, prebuilt)"
+    di_container: "✅ IMPLEMENTED (backend/api/app/dependencies.py)"
+    routers_loaded: "7/7 (all modules)"
+
+  # API Integration Configuration (UPDATED - Nov 15, 2025)
+  api_configuration:
+    base_url: "http://localhost:30001"
+    api_prefix: "/api/v1"
+    timeout_ms: 30000
+    retry_count: 3
+    retry_delay_ms: 1000
+    cors_origins:
+      - "http://localhost:3000"
+      - "http://localhost:3001"
+
+  api_integration_phase: "Phase 2 (Week 2) - All 7 routers ready, 73 endpoints available"
+  api_router_status: "✅ ALL 7/7 ROUTERS SUCCESSFULLY LOADED (Nov 15, 2025)"
+  api_routers_available:
+    - "/api/tags - 14 endpoints"
+    - "/api/media - 9 endpoints"
+    - "/api/bookshelves - 12 endpoints"
+    - "/api/books - 11 endpoints"
+    - "/api/blocks - 13 endpoints"
+    - "/api/libraries - 8 endpoints"
+    - "/api/search - 6 endpoints"
+
+  api_health_check_example:
+    endpoint: "GET http://localhost:30001/health"
+    response: |
+      {
+        "status": "healthy",
+        "version": "1.0.0",
+        "infrastructure_available": true,
+        "routers_loaded": 7,
+        "endpoints_total": 73,
+        "database_connected": true,
+        "database_driver": "psycopg[binary]"
+      }
+
+  api_endpoints_planned:
+    - "GET /libraries (list user libraries)"
+    - "POST /libraries (create library)"
+    - "GET /libraries/{id}/bookshelves (read bookshelves)"
+    - "POST /libraries/{id}/bookshelves (create bookshelf)"
+    - "GET /bookshelves/{id}/books (read books)"
+    - "GET /books/{id}/blocks (read blocks)"
+    - "GET /books/{id}/blocks/{block_id} (read single block)"
+    - "POST /books/{id}/blocks (create block)"
+    - "PATCH /books/{id}/blocks/{block_id} (update block)"
+    - "DELETE /books/{id}/blocks/{block_id} (soft delete block)"
+
+  api_connection_status: "✅ FRONTEND CAN CONNECT TO ALL 7/7 ROUTERS (Nov 15, 2025)"
+  next_phase_tasks:
+    - "✅ Week 2: All 7 routers successfully loaded (COMPLETE)"
+    - "✅ Week 2: 73 endpoints registered (COMPLETE)"
+    - "✅ Week 2: Database async driver configured (COMPLETE)"
+    - "⏳ Week 2: Connect frontend TanStack Query to backend endpoints (IN PROGRESS)"
+    - "⏳ Week 2: Test end-to-end integration with database (PENDING)"
+
+# ============================================
+# Part 1: Theme System Rules
+# ============================================
+
+theme_system:
+  strategy: "CSS Variables + Runtime Injection"
+  current_phase: "Phase A (Local localStorage, no backend dependency)"
+  future_phase: "Phase B (Backend /profile/theme-preference after Week 4)"
+
+  theme_palette:
+    description: "3 core themes with light/dark modes"
+    default_theme: "Light"
+
+    light_theme:
+      name: "Light (Default)"
+      description: "标准亮色模式，适合日间使用"
+      light_mode:
+        primary: "#1F2937"        # 深灰（主色）
+        primaryLight: "#374151"   # 浅深灰
+        secondary: "#6366F1"      # 靛蓝（点缀）
+        surface: "#FFFFFF"        # 背景白
+        surfaceAlt: "#F9FAFB"     # 备选背景
+        muted: "#9CA3AF"          # 辅助灰
+        border: "#E5E7EB"         # 边框
+        success: "#10B981"
+        warning: "#F59E0B"
+        error: "#EF4444"
+        info: "#3B82F6"
+        text: "#111827"           # 主文本
+        textSecondary: "#6B7280"  # 次文本
+        textMuted: "#9CA3AF"      # 辅助文本
+      dark_mode:
+        primary: "#F3F4F6"        # 浅白
+        primaryLight: "#E5E7EB"   # 更浅白
+        secondary: "#A5B4FC"      # 淡靛蓝
+        surface: "#1F2937"        # 深灰背景
+        surfaceAlt: "#111827"     # 更深灰
+        muted: "#6B7280"          # 辅助灰
+        border: "#374151"         # 边框
+        success: "#34D399"
+        warning: "#FBBF24"
+        error: "#F87171"
+        info: "#60A5FA"
+        text: "#F9FAFB"           # 主文本
+        textSecondary: "#D1D5DB"  # 次文本
+        textMuted: "#9CA3AF"      # 辅助文本
+
+    dark_theme:
+      name: "Dark"
+      description: "标准暗色模式，适合夜间使用和低亮度环境"
+      light_mode:
+        primary: "#F3F4F6"
+        primaryLight: "#E5E7EB"
+        secondary: "#A5B4FC"
+        surface: "#111827"
+        surfaceAlt: "#1F2937"
+        muted: "#6B7280"
+        border: "#374151"
+        success: "#34D399"
+        warning: "#FBBF24"
+        error: "#F87171"
+        info: "#60A5FA"
+        text: "#F9FAFB"
+        textSecondary: "#D1D5DB"
+        textMuted: "#9CA3AF"
+      dark_mode:
+        primary: "#F3F4F6"
+        primaryLight: "#E5E7EB"
+        secondary: "#A5B4FC"
+        surface: "#0F172A"        # 更深的黑
+        surfaceAlt: "#111827"
+        muted: "#475569"
+        border: "#334155"
+        success: "#22C55E"
+        warning: "#FBBF24"
+        error: "#EF4444"
+        info: "#3B82F6"
+        text: "#F1F5F9"
+        textSecondary: "#CBD5E1"
+        textMuted: "#94A3B8"
+
+    loom_theme:
+      name: "Loom (Wordloom专用)"
+      description: "Wordloom 品牌专用的灰蓝色风格，融合专业感与创意感"
+      light_mode:
+        primary: "#2C3E50"        # 深灰蓝（主色）
+        primaryLight: "#34495E"   # 浅灰蓝
+        secondary: "#3498DB"      # 品牌蓝
+        tertiary: "#16A085"       # 青绿点缀
+        surface: "#ECF0F1"        # 淡灰背景
+        surfaceAlt: "#F8F9FA"     # 更浅背景
+        muted: "#7F8C8D"          # 淡灰
+        border: "#BDC3C7"         # 边框
+        success: "#27AE60"
+        warning: "#F39C12"
+        error: "#E74C3C"
+        info: "#3498DB"
+        text: "#2C3E50"           # 主文本
+        textSecondary: "#7F8C8D"  # 次文本
+        textMuted: "#95A5A6"      # 辅助文本
+      dark_mode:
+        primary: "#ECF0F1"        # 浅灰
+        primaryLight: "#BDC3C7"   # 淡灰
+        secondary: "#3498DB"      # 品牌蓝（保持一致）
+        tertiary: "#1ABC9C"       # 青绿
+        surface: "#1A252F"        # 深灰蓝背景
+        surfaceAlt: "#0F1419"     # 更深背景
+        muted: "#34495E"          # 灰蓝
+        border: "#2C3E50"         # 边框
+        success: "#2ECC71"
+        warning: "#E67E22"
+        error: "#E74C3C"
+        info: "#3498DB"
+        text: "#ECF0F1"           # 主文本
+        textSecondary: "#BDC3C7"  # 次文本
+        textMuted: "#7F8C8D"      # 辅助文本
+
+  spacing_system:
+    xs: "0.25rem"   # 4px
+    sm: "0.5rem"    # 8px
+    md: "1rem"      # 16px
+    lg: "1.5rem"    # 24px
+    xl: "2rem"      # 32px
+    2xl: "3rem"     # 48px
+
+  typography_system:
+    h1:
+      size: "2rem"
+      weight: 700
+      lineHeight: 1.2
+      letterSpacing: "-0.02em"
+    h2:
+      size: "1.5rem"
+      weight: 600
+      lineHeight: 1.3
+      letterSpacing: "-0.01em"
+    h3:
+      size: "1.25rem"
+      weight: 600
+      lineHeight: 1.4
+    body:
+      size: "1rem"
+      weight: 400
+      lineHeight: 1.5
+    small:
+      size: "0.875rem"
+      weight: 400
+      lineHeight: 1.5
+    caption:
+      size: "0.75rem"
+      weight: 500
+      lineHeight: 1.4
+      letterSpacing: "0.01em"
+
+  radius_system:
+    none: "0"
+    sm: "0.25rem"
+    md: "0.5rem"
+    lg: "0.75rem"
+    xl: "1rem"
+    full: "9999px"
+
+  rules:
+    RULE_THEME_001_NEUTRAL_DEFAULT:
+      description: "Default theme is Light，but users can choose Light/Dark/Loom"
+      implementation: |
+        ✅ Default localStorage: wl_theme = 'Light'
+        ✅ All 3 themes must have light + dark modes
+        ✅ Support system preference (prefers-color-scheme)
+        ✅ All themes have consistent spacing & typography
+
+    RULE_THEME_002_DYNAMIC_CSS_VARS:
+      description: "Use CSS Variables, never hardcode colors in components"
+      implementation: |
+        ✅ Background: background-color: var(--color-primary);  // NOT #2C3E50
+        ✅ Text: color: var(--color-text);
+        ✅ Spacing: padding: var(--spacing-md);
+        ✅ Radius: border-radius: var(--radius-lg);
+        ❌ WRONG: background-color: '#2C3E50'  (hardcoded)
+
+    RULE_THEME_003_SMOOTH_TRANSITIONS:
+      description: "Theme/mode switches must have smooth transitions (no flicker)"
+      implementation: |
+        ✅ CSS: transition: all 0.3s ease;
+        ✅ Hydrate on client useEffect
+        ✅ Inject <style> before React render
+        ✅ Use data-theme attribute on <html> for CSS selectors
+
+    RULE_THEME_004_PERSISTENCE:
+      description: "User theme choice persists across sessions"
+      storage: "localStorage (Phase A) → PostgreSQL (Phase B)"
+      keys:
+        - "wl_theme": 'Light' | 'Dark' | 'Loom'
+        - "wl_mode": 'light' | 'dark'
+      implementation: |
+        ✅ Save on theme change: localStorage.setItem('wl_theme', theme)
+        ✅ Load on mount: const saved = localStorage.getItem('wl_theme') ?? 'Light'
+        ✅ Fallback: if (!saved) check system.matchMedia('(prefers-color-scheme: dark)')
+
+# ============================================
+# Part 2: Component Style Rules
+# ============================================
+
+component_styles:
+  principle: "All interactive components must respond to theme changes in real-time"
+
+  rules:
+    RULE_COMP_001_BUTTON:
+      file_location: "frontend/src/components/ui/Button.tsx + styles/button.css"
+      variants:
+        primary: |
+          background-color: var(--color-primary);
+          color: var(--color-surface);
+          transition: all 0.3s ease;
+        secondary: |
+          background-color: var(--color-secondary);
+          color: white;
+        outline: |
+          background-color: transparent;
+          border: 1px solid var(--color-border);
+          color: var(--color-primary);
+      states:
+        hover: "opacity: 0.9; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15)"
+        active: "transform: translateY(0)"
+        disabled: "opacity: 0.5; cursor: not-allowed; transform: none"
+
+    RULE_COMP_002_CARD:
+      file_location: "frontend/src/components/ui/Card.tsx"
+      implementation: |
+        background-color: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: var(--spacing-lg);
+        transition: all 0.3s ease;
+
+    RULE_COMP_003_INPUT:
+      file_location: "frontend/src/components/ui/Input.tsx"
+      implementation: |
+        background-color: var(--color-surface);
+        border: 1px solid var(--color-border);
+        color: var(--color-text);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-sm) var(--spacing-md);
+        transition: border-color 0.3s ease;
+
+        &:focus {
+          border-color: var(--color-primary);
+          outline: none;
+        }
+
+    RULE_COMP_004_TEXT:
+      file_location: "frontend/src/styles/tokens.css"
+      implementation: |
+        h1: color: var(--color-text); font-size: var(--font-h1-size);
+        h2: color: var(--color-text); font-size: var(--font-h2-size);
+        body: color: var(--color-textSecondary);
+        muted: color: var(--color-textMuted);
+        caption: color: var(--color-textMuted); font-size: 0.75rem;
+
+# ============================================
+# Part 3: State Management Rules
+# ============================================
+
+state_management:
+  tool: "TanStack Query (React Query) + Context API"
+  principle: "Server state ≠ UI state"
+
+  rules:
+    RULE_SM_001_SERVER_STATE:
+      description: "API data (libraries, books, blocks) must use TanStack Query"
+      implementation: |
+        ✅ const { data, isLoading } = useQuery({
+             queryKey: ['libraries'],
+             queryFn: listLibraries,
+             staleTime: 5 * 60 * 1000,  // 5 min
+           });
+
+        ❌ WRONG: const [libs, setLibs] = useState([]);
+                  useEffect(() => api.getLibs().then(setLibs), []);  // Gets out of sync!
+
+    RULE_SM_002_UI_STATE:
+      description: "Local UI state (modal open, form input) uses useState + localStorage"
+      implementation: |
+        ✅ Modal visible: const [isOpen, setIsOpen] = useState(false);
+        ✅ Form input: const [title, setTitle] = useState('');
+        ✅ User preference: localStorage for theme, mode, selected library
+        ❌ WRONG: Put server data in useState
+
+    RULE_SM_003_OPTIMISTIC_UPDATES:
+      description: "Update UI before server responds (mutate + rollback on error)"
+      implementation: |
+        ✅ useMutation({
+             mutationFn: (newLib) => api.createLibrary(newLib),
+             onMutate: async (newLib) => {
+               queryClient.setQueryData(['libraries'], old => [...old, newLib]);
+             },
+             onError: (err) => {
+               queryClient.invalidateQueries(['libraries']);  // Rollback
+               showErrorToast(err.message);
+             },
+             onSuccess: () => {
+               queryClient.invalidateQueries(['libraries']);  // Refresh from server
+             },
+           });
+
+    RULE_SM_004_CACHE_INVALIDATION:
+      description: "When data changes, invalidate related queries"
+      implementation: |
+        ✅ After creating library: queryClient.invalidateQueries({ queryKey: ['libraries'] });
+        ✅ After updating book: queryClient.invalidateQueries({ queryKey: ['books'] });
+        ✅ Use queryClient.setQueryData() for optimistic updates
+        ✅ Use queryClient.getQueryData() to read cache without fetching
+
+# ============================================
+# Part 4: Error Handling Rules
+# ============================================
+
+error_handling:
+  rules:
+    RULE_EH_001_HTTP_STATUS_MAPPING:
+      description: "Map backend HTTP status codes to user-friendly messages"
+      mapping:
+        400: "Invalid input. Please check your entries."
+        401: "Not authenticated. Please log in again."
+        403: "Access denied. You don't have permission."
+        404: "Item not found. It may have been deleted."
+        409: "Conflict. This action conflicts with existing data."
+        422: "Invalid data format. Please check and try again."
+        500: "Server error. Please try again later."
+        503: "Service unavailable. Please try again later."
+      implementation: |
+        ✅ Create util/errorMapper.ts
+        ✅ Map backend exceptions to user messages
+        ✅ Show Toast with user-friendly text
+        ✅ Log technical details to console in dev mode
+
+    RULE_EH_002_NETWORK_RESILIENCE:
+      description: "Handle network failures gracefully"
+      implementation: |
+        ✅ Show loading state during API call
+        ✅ Retry failed requests (exponential backoff: 1s, 2s, 4s)
+        ✅ Display offline banner if no connectivity
+        ✅ Queue mutations for replay when online (TanStack Query handles this)
+        ✅ Set HTTP timeout to NEXT_PUBLIC_API_TIMEOUT env var (default 10000ms)
+
+    RULE_EH_003_FORM_VALIDATION:
+      description: "Client-side validation before API call"
+      implementation: |
+        ✅ Use Zod or Yup for schema validation
+        ✅ Show field-level error messages in real-time
+        ✅ Disable submit button if form invalid
+        ✅ Match backend validation rules (from DDD_RULES: RULE-006, RULE-009, etc.)
+
+# ============================================
+# Part 5: API Client Rules
+# ============================================
+
+api_client:
+  base_url: "NEXT_PUBLIC_API_BASE environment variable"
+  timeout: "NEXT_PUBLIC_API_TIMEOUT (default: 10000ms)"
+  auth_strategy: "JWT Bearer Token + Refresh Token"
+
+  rules:
+    RULE_API_001_JWT_INTERCEPT:
+      description: "Automatically inject JWT token in request headers"
+      implementation: |
+        ✅ axios interceptor: Authorization: Bearer {token}
+        ✅ Store token in localStorage (wl_token) or sessionStorage
+        ✅ On 401: Call refresh endpoint → get new token → retry original request
+        ✅ On refresh fail: Logout user → redirect to /auth/login
+
+    RULE_API_002_ERROR_INTERCEPT:
+      description: "Global error handling for all API calls"
+      implementation: |
+        ✅ Intercept response errors
+        ✅ Map to user-friendly message (using RULE_EH_001_HTTP_STATUS_MAPPING)
+        ✅ Show Toast automatically
+        ✅ Log to console/monitoring in dev/prod
+
+    RULE_API_003_REQUEST_TIMEOUT:
+      description: "Set timeout to prevent hanging requests"
+      implementation: |
+        ✅ axios timeout: NEXT_PUBLIC_API_TIMEOUT
+        ✅ Default 10000ms (10s)
+        ✅ Configurable per environment (.env.local, .env.production)
+
+# ============================================
+# Part 6: Authentication Rules
+# ============================================
+
+authentication:
+  method: "JWT Bearer Token + Refresh Token"
+  storage: "localStorage (wl_token, wl_refresh_token)"
+  auto_refresh: true
+
+  rules:
+    RULE_AUTH_001_LOGIN_FLOW:
+      description: "Handle user login with token storage"
+      implementation: |
+        ✅ POST /auth/login → get { token, refresh_token }
+        ✅ Store both in localStorage
+        ✅ Set axios Authorization header
+        ✅ Redirect to /admin/dashboard
+        ✅ On error: Show error toast, stay on /auth/login
+
+    RULE_AUTH_002_TOKEN_REFRESH:
+      description: "Auto-refresh token when expired"
+      implementation: |
+        ✅ On 401 response: Call POST /auth/refresh
+        ✅ Get new token from response
+        ✅ Update localStorage
+        ✅ Retry original request with new token
+        ✅ If refresh fails: Logout (clear tokens + redirect to /auth/login)
+
+    RULE_AUTH_003_LOGOUT:
+      description: "Clear tokens and redirect to login"
+      implementation: |
+        ✅ Clear localStorage (wl_token, wl_refresh_token, wl_theme, wl_mode)
+        ✅ Clear axios default Authorization header
+        ✅ Redirect to /auth/login
+        ✅ Optional: Call POST /auth/logout on backend
+
+    RULE_AUTH_004_PROTECTED_ROUTES:
+      description: "Redirect unauthenticated users to login"
+      implementation: |
+        ✅ Use middleware to check token
+        ✅ If no token: Redirect to /auth/login
+        ✅ If token exists: Allow access to /admin/* routes
+        ✅ Implement with Next.js middleware (middleware.ts)
+
+# ============================================
+# Part 7: Performance Rules
+# ============================================
+
+performance:
+  rules:
+    RULE_PERF_001_PAGINATION:
+      description: "Large lists must paginate (max 20 items per page)"
+      implementation: |
+        ✅ Default page size: 20
+        ✅ Support infinite scroll or "Load more" button
+        ✅ Cache pages in TanStack Query (staleTime: 5 min)
+        ✅ Show loading skeleton while fetching
+        ❌ WRONG: Render 1000+ items at once
+
+    RULE_PERF_002_LAZY_LOADING:
+      description: "Defer non-critical data with React.lazy + Suspense"
+      implementation: |
+        ✅ const BookManager = React.lazy(() => import('./BookManager'));
+        ✅ <Suspense fallback={<Skeleton />}>
+             <BookManager />
+           </Suspense>
+        ✅ Load block details only when book detail page opens
+        ✅ Prefetch on hover (useQueryClient().prefetchQuery)
+
+    RULE_PERF_003_MEMOIZATION:
+      description: "Prevent unnecessary re-renders with React.memo, useMemo, useCallback"
+      implementation: |
+        ✅ export const LibraryCard = React.memo(function LibraryCard(props) { });
+        ✅ useMemo for expensive computations (filter, sort)
+        ✅ useCallback for event handlers passed to children
+        ⚠️ Only memoize if you measure performance impact (use React DevTools Profiler)
+
+    RULE_PERF_004_CODE_SPLITTING:
+      description: "Bundle splitting by route (automatic with Next.js App Router)"
+      implementation: |
+        ✅ Each page.tsx is automatically code-split
+        ✅ Each route loads only its required JS
+        ✅ Use dynamic imports for heavy components
+        ✅ Analyze bundle with next/bundle-analyzer
+
+# ============================================
+# Part 8: Accessibility Rules (A11y)
+# ============================================
+
+accessibility:
+  framework: "WAI-ARIA + semantic HTML"
+  testing_tools: "axe DevTools, pa11y, screen readers (NVDA, JAWS)"
+
+  rules:
+    RULE_A11Y_001_SEMANTIC_HTML:
+      description: "Use semantic HTML elements"
+      implementation: |
+        ✅ <button> for clickable actions (NOT <div onClick={}>)
+        ✅ <a> for navigation
+        ✅ <form> with proper <label> tags
+        ✅ Heading hierarchy: h1 (page title) → h2 (section) → h3 (subsection)
+        ✅ <nav>, <main>, <article>, <section> for structure
+
+    RULE_A11Y_002_KEYBOARD_NAVIGATION:
+      description: "All interactive elements must be keyboard accessible"
+      implementation: |
+        ✅ All buttons/links focusable with Tab key
+        ✅ Show visible focus indicator (outline or highlight)
+        ✅ Support Enter/Space on buttons
+        ✅ Support Escape to close modals/dropdowns
+        ✅ Use tabindex only when necessary (keep order natural)
+
+    RULE_A11Y_003_SCREEN_READER:
+      description: "Support screen readers with ARIA labels"
+      implementation: |
+        ✅ aria-label for icon-only buttons
+        ✅ aria-expanded for collapsible sections
+        ✅ aria-hidden for decorative elements
+        ✅ aria-live for dynamic content updates (use sparingly)
+        ✅ Test with NVDA or JAWS
+
+    RULE_A11Y_004_COLOR_CONTRAST:
+      description: "Sufficient color contrast for readability"
+      implementation: |
+        ✅ Text: minimum 4.5:1 contrast ratio
+        ✅ Large text (18pt+): minimum 3:1 ratio
+        ✅ UI components: minimum 3:1 ratio
+        ✅ Check with axe DevTools or WebAIM contrast checker
+
+# ============================================
+# Part 9: Testing Rules
+# ============================================
+
+testing:
+  framework: "Vitest + React Testing Library"
+  e2e_framework: "Playwright"
+  pyramid:
+    unit: "60% - Component logic"
+    integration: "30% - Feature flows"
+    e2e: "10% - Full user journeys"
+  target_coverage: "80%+"
+
+  rules:
+    RULE_TEST_001_UNIT:
+      file_location: "frontend/src/components/__tests__/Button.test.tsx"
+      framework: "Vitest + React Testing Library"
+      pattern: |
+        import { render, screen } from '@testing-library/react';
+        import { Button } from '../Button';
+
+        test('Button renders with correct text', () => {
+          render(<Button>Click me</Button>);
+          expect(screen.getByText('Click me')).toBeInTheDocument();
+        });
+
+    RULE_TEST_002_INTEGRATION:
+      file_location: "frontend/src/__tests__/integration/createLibrary.test.tsx"
+      framework: "React Testing Library + MSW (Mock Service Worker)"
+      pattern: |
+        import { render, screen } from '@testing-library/react';
+        import userEvent from '@testing-library/user-event';
+
+        test('Create library flow', async () => {
+          render(<LibraryManager />);
+          await userEvent.click(screen.getByText('Create'));
+          await userEvent.type(screen.getByLabelText('Name'), 'My Library');
+          await userEvent.click(screen.getByText('Save'));
+          expect(await screen.findByText('My Library')).toBeInTheDocument();
+        });
+
+    RULE_TEST_003_E2E:
+      file_location: "frontend/e2e/library.spec.ts"
+      framework: "Playwright"
+      pattern: |
+        import { test, expect } from '@playwright/test';
+
+        test('Full library to bookshelf flow', async ({ page }) => {
+          await page.goto('/');
+          await page.click('text=My Library');
+          await page.click('text=Create Bookshelf');
+          await expect(page.locator('text=New Bookshelf')).toBeVisible();
+        });
+
+# ============================================
+# Part 10: Code Organization Rules
+# ============================================
+
+code_organization:
+  structure: |
+    frontend/src/
+      ├── lib/
+      │   ├── api/                # API client functions + endpoints
+      │   ├── hooks/              # Custom React hooks
+      │   ├── utils/              # Utility functions (formatDate, parseError, etc.)
+      │   ├── types/              # TypeScript types (DTOs matching backend)
+      │   ├── config.ts           # App configuration (API URL, env vars)
+      │   └── themes.ts           # Theme definitions (3 themes × 2 modes)
+      │
+      ├── components/
+      │   ├── ui/                 # Reusable UI (Button, Input, Card, Modal, Toast, Skeleton)
+      │   ├── library/            # Library feature components
+      │   ├── bookshelf/          # Bookshelf feature components
+      │   ├── book/               # Book feature components
+      │   ├── block/              # Block feature components
+      │   ├── providers/          # React Context providers (Auth, Theme, Query)
+      │   └── shared/             # Cross-cutting components (Header, Sidebar, Layout)
+      │
+      ├── styles/
+      │   ├── tokens.css          # CSS Variables definitions
+      │   ├── globals.css         # Global styles
+      │   ├── button.css          # Button component styles
+      │   ├── card.css            # Card component styles
+      │   ├── input.css           # Input component styles
+      │   └── util-surface.css    # Utility surface styles
+      │
+      ├── app/
+      │   ├── (auth)/             # Auth routes (separate layout)
+      │   │   ├── login/page.tsx
+      │   │   ├── register/page.tsx
+      │   │   └── layout.tsx
+      │   ├── (admin)/            # Admin dashboard (requires auth)
+      │   │   ├── layout.tsx
+      │   │   ├── dashboard/page.tsx
+      │   │   └── ...
+      │   └── layout.tsx          # Root layout
+      │
+      └── __tests__/
+          ├── unit/               # Unit tests (60%)
+          ├── integration/        # Integration tests (30%)
+          └── e2e/                # E2E tests (10%)
+
+  rules:
+    RULE_CO_001_NAMING:
+      description: "Consistent naming conventions"
+      implementation: |
+        ✅ Components: PascalCase (LibraryCard.tsx)
+        ✅ Hooks: camelCase, prefix with 'use' (useLibraries.ts)
+        ✅ Utils: camelCase (formatDate.ts)
+        ✅ Types: PascalCase (Library.ts, CreateLibraryRequest.ts)
+        ✅ Constants: UPPER_SNAKE_CASE (MAX_LIBRARIES = 100)
+        ✅ Files: kebab-case for components (library-card.tsx) or camelCase (useLibraries.ts)
+
+    RULE_CO_002_IMPORTS:
+      description: "Organized and clean imports"
+      implementation: |
+        ✅ Use absolute imports: import { useLibraries } from '@/lib/hooks';
+        ✅ Avoid relative imports: ❌ import { X } from '../../../lib/hooks'
+        ✅ Group imports: React → External libs → Local modules
+        ✅ Use barrel exports (index.ts) for clean imports
+
+        // Example:
+        import React, { useState } from 'react';
+        import { useQuery } from '@tanstack/react-query';
+        import { useLibraries } from '@/lib/hooks';
+        import { LibraryCard } from './LibraryCard';
+
+    RULE_CO_003_EXPORTS:
+      description: "Clear export patterns"
+      implementation: |
+        ✅ Default export: Main component of the file
+        ✅ Named exports: Helper functions, types, constants
+
+        // Example: LibraryCard.tsx
+        export default function LibraryCard(props: LibraryCardProps) { }
+        export type LibraryCardProps = { };
+        export const LIBRARY_CARD_MARGIN = '1rem';
+
+    RULE_CO_004_COMMENTS:
+      description: "Meaningful comments for complex logic"
+      implementation: |
+        ✅ Document WHY, not WHAT
+        ✅ Keep comments up-to-date when code changes
+        ✅ Use JSDoc for exported functions
+        ✅ Avoid obvious comments ("// set count to 5")
+
+        // ✅ Good
+        // We use a separate cache key for each library to avoid cross-contamination
+        const queryKey = ['libraries', libraryId, 'books'];
+
+# ============================================
+# Part 11: Git & CI/CD Rules
+# ============================================
+
+git_workflow:
+  strategy: "Feature branches + PR reviews + CI/CD"
+  rules:
+    RULE_GIT_001_BRANCH_NAMING:
+      pattern: "feature/{feature-name} | fix/{bug-name} | refactor/{area}"
+      example: |
+        ✅ feature/library-create
+        ✅ fix/theme-switch-flicker
+        ✅ refactor/extract-api-client
+
+    RULE_GIT_002_COMMITS:
+      pattern: "{type}: {description}"
+      types: "feat | fix | refactor | chore | style | test | docs"
+      example: |
+        ✅ feat: add theme switcher component
+        ✅ fix: prevent theme flicker on mount
+        ✅ test: add Button component unit tests
+        ✅ Include ticket/issue: "Closes #123"
+
+    RULE_GIT_003_PULL_REQUESTS:
+      implementation: |
+        ✅ Title: Same as commit message
+        ✅ Description: Context, testing steps, screenshots
+        ✅ Require 1 approval before merge
+        ✅ Run tests + linting + build before merge
+
+cicd:
+  tools: "GitHub Actions + Vercel"
+  checks:
+    - "npm run lint (ESLint + Prettier)"
+    - "npm run type-check (TypeScript)"
+    - "npm run test (Vitest)"
+    - "npm run build (Next.js)"
+  deployment:
+    preview: "Automatic on every PR (Vercel)"
+    production: "Automatic on push to main"
+
+# ============================================
+# Part 12: Environment Variables
+# ============================================
+
+environment:
+  files:
+    - ".env.local (local development)"
+    - ".env.production (production)"
+  variables:
+    NEXT_PUBLIC_API_BASE:
+      description: "Backend API base URL"
+      example: "http://localhost:8000/api"
+      required: true
+    NEXT_PUBLIC_API_TIMEOUT:
+      description: "HTTP request timeout in milliseconds"
+      example: "10000"
+      required: false
+      default: "10000"
+    NEXT_PUBLIC_DEFAULT_THEME:
+      description: "Default theme on first visit"
+      example: "Light"
+      required: false
+      default: "Light"
+
+# ============================================
+# Part 13: Domain to UI Component Mapping
+# ============================================
+
+domain_to_ui_mapping:
+  description: "How backend DDD domains map to frontend UI components"
+
+  library:
+    backend_entity: "Library (AggregateRoot from DDD_RULES)"
+    backend_invariant: "RULE-001: One library per user"
+    ui_components:
+      - "LibraryCard: Display library summary"
+      - "LibraryList: Display all libraries"
+      - "CreateLibraryModal: Create new library"
+      - "LibrarySelector: Choose active library (in sidebar)"
+    pages:
+      - "/admin/dashboard (library selector)"
+    ui_rules:
+      RULE_001_UI_SINGLE_LIBRARY:
+        description: "UI should enforce max 1 library per user"
+        implementation: |
+          ✅ Create button disabled if library exists
+          ✅ Show warning: "You already have a library"
+          ✅ No UI for multiple libraries (unlike bookshelves)
+
+  bookshelf:
+    backend_entity: "Bookshelf (AggregateRoot, child of Library)"
+    backend_invariant: "RULE-004: Max 100 bookshelves per library"
+    ui_components:
+      - "BookshelfList: Paginated list of bookshelves"
+      - "BookshelfCard: Summary card (name, book count)"
+      - "CreateBookshelfModal: Create new bookshelf"
+      - "BookshelfEditor: Edit name, color, etc."
+    pages:
+      - "/admin/bookshelves (main list)"
+      - "/admin/bookshelves/[id] (detail page)"
+    ui_rules:
+      RULE_004_UI_MAX_100:
+        description: "Warn user at 100 bookshelves"
+        implementation: |
+          ✅ Display count: "95/100 bookshelves"
+          ✅ At 100: Disable 'Create' button + show error toast
+          ✅ Show progress bar at 80+ bookshelves
+
+  book:
+    backend_entity: "Book (Independent AggregateRoot, FK to Bookshelf)"
+    ui_components:
+      - "BookList: List books in a bookshelf"
+      - "BookCard: Summary card (title, author, cover)"
+      - "BookEditor: Edit book metadata"
+      - "BookBasementView: Soft-deleted books recovery"
+    pages:
+      - "/admin/bookshelves/[id]/books (list)"
+      - "/admin/books/[id] (detail)"
+      - "/admin/books/basement (trash)"
+
+  block:
+    backend_entity: "Block (Lowest unit, FK to Book)"
+    ui_components:
+      - "BlockList: Ordered list of blocks (with Fractional Index)"
+      - "BlockEditor: Edit block content"
+      - "BlockReorder: Drag/drop with Fractional Index sorting"
+      - "BlockPaperballs: Recovery for soft-deleted blocks"
+    pages:
+      - "/admin/books/[bookId] (main block editor)"
+      - "/admin/books/[bookId]/paperballs (trash)"
+    ui_rules:
+      RULE_015_UI_ORDERING:
+        description: "Use Fractional Index for infinite drag/drop"
+        implementation: |
+          ✅ Blocks use Decimal sort keys (NOT integers)
+          ✅ Drag/drop: calculate new Decimal between siblings
+          ✅ No reordering of entire list on each move
+          ✅ Support unlimited depth/precision
+
+  tag:
+    backend_entity: "Tag (Global, cross-entity)"
+    ui_components:
+      - "TagSelector: Multi-select tag picker"
+      - "TagManager: Create/edit/delete tags"
+      - "TagHierarchy: Display tag tree"
+    pages:
+      - "/admin/tags (management)"
+
+  media:
+    backend_entity: "Media (Global asset store)"
+    ui_components:
+      - "MediaUploader: Upload image/video"
+      - "MediaGallery: Browse uploaded media"
+      - "MediaTrash: Recover deleted media (30-day recovery)"
+    pages:
+      - "/admin/media (gallery)"
+      - "/admin/media/trash (recovery)"
+
+# ============================================
+# Part 14: Cross-Reference Documentation
+# ============================================
+
+documentation:
+  frontend_files:
+    visual_rules: "frontend/docs/VISUAL_RULES.yaml (this file)"
+    adr_theme: "frontend/docs/ADR-FR-001-theme-strategy.md"
+    adr_architecture: "frontend/docs/ADR-FR-002-architecture-decisions.md (planned)"
+
+  backend_files:
+    ddd_rules: "backend/docs/DDD_RULES.yaml"
+    hexagonal_rules: "backend/docs/HEXAGONAL_RULES.yaml"
+    adr_index: "backend/docs/ADR/ (42+ ADR files)"
+
+  sync_mechanism:
+    tool: "frontend/scripts/sync-rules.py (planned)"
+    schedule: "Manual (can be automated via CI/CD)"
+    purpose: "Auto-sync frontend rules with backend changes"
+
+# ============================================
+# Version History
+# ============================================
+
+version_history:
+  "1.0":
+    date: "2025-11-15"
+    changes:
+      - "Initial VISUAL_RULES.yaml created"
+      - "3 themes defined: Light, Dark, Loom (灰蓝)"
+      - "Complete component, state, error handling rules"
+      - "Domain-to-UI mapping aligned with DDD_RULES"
+      - "Sync with DDD_RULES.yaml + HEXAGONAL_RULES.yaml"
+  future_versions:
+    "1.1":
+      planned_date: "2025-11-22 (Week 2)"
+      planned_changes:
+        - "Add Week 1 implementation feedback"
+        - "Expand testing rules with real examples"
+        - "Add performance benchmarks"
+    "2.0":
+      planned_date: "2025-12-01 (Phase B)"
+      planned_changes:
+        - "Backend theme persistence integration"
+        - "Advanced A11y rules"
+        - "Internationalization (i18n) strategy"

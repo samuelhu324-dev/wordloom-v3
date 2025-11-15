@@ -5,7 +5,7 @@ Represents the title of a Book with validation rules.
 """
 
 from dataclasses import dataclass
-from shared.base import ValueObject
+from api.app.shared.base import ValueObject
 
 
 @dataclass(frozen=True)

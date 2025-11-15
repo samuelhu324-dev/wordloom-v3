@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 from typing import Optional
 
-from shared.base import DomainEvent
+from api.app.shared.base import DomainEvent
 
 
 @dataclass

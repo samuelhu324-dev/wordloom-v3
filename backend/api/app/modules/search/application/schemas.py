@@ -6,7 +6,7 @@ Follows Media module pattern with comprehensive Pydantic validation.
 DTO 设计原则:
 1. Request DTOs (input): FastAPI Query/Body parameters
 2. Response DTOs (output): HTTP response models
-3. Internal DTOs: Domain �?DTO conversions
+3. Internal DTOs: Domain �?DTO conversions
 4. Validation: Pydantic Field constraints, custom validators
 """
 
@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from uuid import UUID
 
-from modules.search.domain import SearchEntityType
+from api.app.modules.search.domain import SearchEntityType
 
 
 # ============================================================================
@@ -26,9 +26,9 @@ class ExecuteSearchRequest(BaseModel):
     Search execution request - maps to HTTP query parameters
 
     字段:
-    - text: 搜索关键�?(必填, 1-500 chars)
-    - type: 实体类型过滤 (可�? block|book|bookshelf|tag|library)
-    - book_id: 书籍范围限制 (可�? 仅搜索特定书内容)
+    - text: 搜索关键�?(必填, 1-500 chars)
+    - type: 实体类型过滤 (可�? block|book|bookshelf|tag|library)
+    - book_id: 书籍范围限制 (可�? 仅搜索特定书内容)
     - limit: 分页大小 (1-1000, default 20)
     - offset: 分页偏移 (>=0, default 0)
     """

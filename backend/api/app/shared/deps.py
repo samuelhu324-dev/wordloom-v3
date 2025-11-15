@@ -9,8 +9,8 @@ Provides:
 
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession
-from config.database import get_db_session as _get_db_session
-from shared.events import get_event_bus as _get_event_bus
+from api.app.config.database import get_db_session as _get_db_session
+from api.app.shared.events import get_event_bus as _get_event_bus
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:

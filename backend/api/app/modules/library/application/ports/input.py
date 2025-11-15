@@ -191,7 +191,6 @@ class IGetLibraryUseCase(ABC):
 # ============================================================================
 
 @dataclass
-@dataclass
 class DeleteLibraryRequest:
     """
     Request DTO for DeleteLibraryUseCase
@@ -200,6 +199,19 @@ class DeleteLibraryRequest:
     - library_id: UUID of the library to delete
     """
     library_id: UUID
+
+
+@dataclass
+class DeleteLibraryResponse:
+    """
+    Response DTO for DeleteLibraryUseCase
+
+    Fields:
+    - library_id: UUID of the deleted library
+    - deleted_at: Timestamp when deleted
+    """
+    library_id: UUID
+    deleted_at: datetime
 
 
 class IDeleteLibraryUseCase(ABC):

@@ -36,7 +36,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import relationship
 
-from api.core.database import Base
+from .base import Base
 
 
 # ============================================================================
@@ -111,63 +111,54 @@ class MediaModel(Base):
     id = Column(
         PostgresUUID(as_uuid=True),
         primary_key=True,
-        default=uuid4,
-        comment="Media ID (UUID)"
+        default=uuid4
     )
 
     # File information
     filename = Column(
         String(255),
         nullable=False,
-        index=True,
-        comment="Original filename with extension"
+        index=True
     )
 
     storage_key = Column(
         String(512),
         nullable=False,
         unique=True,
-        index=True,
-        comment="Unique identifier in storage backend (S3 key or local path)"
+        index=True
     )
 
     media_type = Column(
         SQLEnum(MediaType, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
-        index=True,
-        comment="Type: IMAGE or VIDEO"
+        index=True
     )
 
     mime_type = Column(
         SQLEnum(MediaMimeType, values_callable=lambda x: [e.value for e in x]),
-        nullable=False,
-        comment="MIME type (image/jpeg, video/mp4, etc.)"
+        nullable=False
     )
 
     file_size = Column(
         Integer,
-        nullable=False,
-        comment="File size in bytes"
+        nullable=False
     )
 
     # Image metadata
     width = Column(
         Integer,
-        nullable=True,
-        comment="Image width in pixels (NULL for videos)"
+        nullable=True
     )
 
     height = Column(
         Integer,
-        nullable=True,
-        comment="Image height in pixels (NULL for videos)"
+        nullable=True
     )
 
     # Video metadata
     duration_ms = Column(
         Integer,
-        nullable=True,
-        comment="Video duration in milliseconds (NULL for images)"
+        nullable=True
     )
 
     # State management (POLICY-010)
@@ -175,38 +166,33 @@ class MediaModel(Base):
         SQLEnum(MediaState, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=MediaState.ACTIVE.value,
-        index=True,
-        comment="Current state: ACTIVE or TRASH"
+        index=True
     )
 
     trash_at = Column(
         DateTime,
         nullable=True,
-        index=True,
-        comment="Timestamp when moved to trash (NULL if active, used for 30-day retention)"
+        index=True
     )
 
     deleted_at = Column(
         DateTime,
         nullable=True,
-        index=True,
-        comment="Hard delete timestamp (after 30 days in trash, NULL=not purged)"
+        index=True
     )
 
     # Metadata
     created_at = Column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-        comment="Upload timestamp (immutable)"
+        default=lambda: datetime.now(timezone.utc)
     )
 
     updated_at = Column(
         DateTime,
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
-        comment="Last update timestamp"
+        onupdate=lambda: datetime.now(timezone.utc)
     )
 
     # Relationships
@@ -221,18 +207,15 @@ class MediaModel(Base):
     __table_args__ = (
         Index(
             "ix_media_state",
-            "state",
-            comment="Index for finding active vs trash media"
+            "state"
         ),
         Index(
             "ix_media_trash_at",
-            "trash_at",
-            comment="Index for finding media eligible for purge"
+            "trash_at"
         ),
         Index(
             "ix_media_created_at",
-            "created_at",
-            comment="Index for sorting by upload time"
+            "created_at"
         ),
     )
 
@@ -304,8 +287,7 @@ class MediaAssociationModel(Base):
     id = Column(
         PostgresUUID(as_uuid=True),
         primary_key=True,
-        default=uuid4,
-        comment="Association ID (UUID)"
+        default=uuid4
     )
 
     # Foreign keys
@@ -313,30 +295,26 @@ class MediaAssociationModel(Base):
         PostgresUUID(as_uuid=True),
         ForeignKey("media.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
-        comment="Media ID (cascade delete)"
+        index=True
     )
 
     # Entity reference (denormalized)
     entity_type = Column(
         SQLEnum(EntityTypeForMedia, values_callable=lambda x: [e.value for e in x]),
-        nullable=False,
-        comment="Type of entity referencing media (BOOKSHELF|BOOK|BLOCK)"
+        nullable=False
     )
 
     entity_id = Column(
         PostgresUUID(as_uuid=True),
         nullable=False,
-        index=True,
-        comment="ID of the entity referencing media"
+        index=True
     )
 
     # Metadata
     created_at = Column(
         DateTime,
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-        comment="Association creation timestamp"
+        default=lambda: datetime.now(timezone.utc)
     )
 
     # Relationships
@@ -350,13 +328,11 @@ class MediaAssociationModel(Base):
     __table_args__ = (
         UniqueConstraint(
             "media_id", "entity_type", "entity_id",
-            name="uq_media_associations_media_entity",
-            comment="Prevent duplicate media on same entity"
+            name="uq_media_associations_media_entity"
         ),
         Index(
             "ix_media_associations_entity",
-            "entity_type", "entity_id",
-            comment="Index for finding media on a specific entity"
+            "entity_type", "entity_id"
         ),
     )
 

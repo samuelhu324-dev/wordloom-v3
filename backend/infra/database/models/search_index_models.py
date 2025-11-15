@@ -25,7 +25,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID
 
-from app.core.database import Base
+from .base import Base
 
 
 class SearchIndexModel(Base):
@@ -68,34 +68,29 @@ class SearchIndexModel(Base):
     entity_type = Column(
         String(50),
         nullable=False,
-        index=True,
-        comment="Entity type: block, book, bookshelf, tag, library"
+        index=True
     )
     entity_id = Column(
         UUID(as_uuid=True),
         nullable=False,
-        index=True,
-        comment="UUID of the entity"
+        index=True
     )
 
     # Searchable Content
     text = Column(
         Text,
-        nullable=False,
-        comment="Full searchable content (block content, book title, tag name)"
+        nullable=False
     )
     snippet = Column(
         Text,
-        nullable=True,
-        comment="Preview text for display (first 200 chars)"
+        nullable=True
     )
 
     # Ranking
     rank_score = Column(
         Float,
         nullable=True,
-        default=0.0,
-        comment="Pre-calculated relevance score for sorting"
+        default=0.0
     )
 
     # Timestamps
@@ -103,14 +98,12 @@ class SearchIndexModel(Base):
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
-        index=False,
-        comment="When this index entry was created"
+        index=False
     )
     updated_at = Column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-        comment="When this index entry was last updated"
+        default=lambda: datetime.now(timezone.utc)
     )
 
     # Constraints

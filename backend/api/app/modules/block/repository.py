@@ -22,8 +22,8 @@ from typing import Optional, List
 from uuid import UUID
 from decimal import Decimal
 
-from modules.block.domain import Block, BlockContent, BlockType
-from modules.block.models import BlockModel
+from api.app.modules.block.domain import Block, BlockContent, BlockType
+from api.app.modules.block.models import BlockModel
 
 logger = logging.getLogger(__name__)
 

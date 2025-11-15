@@ -20,8 +20,8 @@ from datetime import datetime, timezone, timedelta
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
-from app.app.modules.media.domain import Media, MediaState, EntityTypeForMedia
-from app.app.modules.media.domain import (
+from api.app.modules.media.domain import Media, MediaState, EntityTypeForMedia
+from api.app.modules.media.domain import (
     MediaNotFoundError,
     MediaInTrashError,
     CannotPurgeError,
@@ -30,8 +30,8 @@ from app.app.modules.media.domain import (
     MediaRepositoryQueryError,
     MediaRepositoryDeleteError,
 )
-from app.app.modules.media.repository import MediaRepository
-from app.infra.database.models.media_models import MediaModel, MediaAssociationModel, MediaState as ModelMediaState
+from api.app.modules.media.application.ports.output import MediaRepository
+from infra.database.models.media_models import MediaModel, MediaAssociationModel, MediaState as ModelMediaState
 
 
 class SQLAlchemyMediaRepository(MediaRepository):

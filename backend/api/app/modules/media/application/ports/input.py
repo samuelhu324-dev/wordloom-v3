@@ -1,230 +1,235 @@
 """
-Media Input Ports - UseCase Interfaces
+Media Input Port - Request DTOs and UseCase Interfaces
 
-定义所�?Media UseCase 的接口契约，�?Router 调用�?
-UseCase 接口设计原则:
-1. 一个接口对应一�?UseCase
-2. 方法名为 execute()
-3. 参数使用 DTO 类（Input Request�?4. 返回值使�?DTO 类（Output Response�?5. 异常通过 Exception 抛出
+This module defines the input ports (interfaces) that application layer
+use cases expose to the outside world (HTTP adapters, CLI, etc).
+
+Request DTOs:
+- UploadMediaRequest: Upload new media file
+- UpdateMediaMetadataRequest: Update media metadata
+- AssociateMediaRequest: Associate media with entity
+- DisassociateMediaRequest: Remove media-entity association
+- RestoreMediaRequest: Restore media from trash
+- BatchRestoreRequest: Batch restore multiple media
+- PurgeExpiredMediaRequest: Hard delete expired media
+
+Response DTOs:
+- UploadMediaResponse: Response after upload
+- MediaResponse: Single media details
+- MediaListResponse: List of media
+- MediaTrashResponse: Trash media details
+- EntityMediaListResponse: Media associated with entity
+
+UseCase Interfaces:
+- IUploadMediaUseCase: Upload media file
+- IUpdateMediaMetadataUseCase: Update metadata
+- IGetMediaUseCase: Retrieve media
+- IListMediaUseCase: List media
+- IAssociateMediaUseCase: Associate with entity
+- IDisassociateMediaUseCase: Remove association
+- IMoveMediaToTrashUseCase: Soft delete
+- IRestoreMediaUseCase: Restore from trash
+- IPurgeExpiredMediaUseCase: Hard delete
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from uuid import UUID
-from dataclasses import dataclass
-
-from app.modules.media.domain import Media, MediaMimeType, EntityTypeForMedia
-
-
-# ============================================================================
-# Input DTOs (Request Models)
-# ============================================================================
-
-@dataclass
-class UploadImageRequest:
-    """上传图片的请�?""
-    filename: str
-    mime_type: MediaMimeType
-    file_size: int
-    storage_key: str
-    width: Optional[int] = None
-    height: Optional[int] = None
-    storage_quota: int = 1024 * 1024 * 1024  # 1GB
-    used_storage: int = 0
+from datetime import datetime
+from pydantic import BaseModel
 
 
-@dataclass
-class UploadVideoRequest:
-    """上传视频的请�?""
-    filename: str
-    mime_type: MediaMimeType
-    file_size: int
-    storage_key: str
-    width: Optional[int] = None
-    height: Optional[int] = None
-    duration_ms: Optional[int] = None
-    storage_quota: int = 1024 * 1024 * 1024  # 1GB
-    used_storage: int = 0
-
-
-@dataclass
-class DeleteMediaRequest:
-    """删除 Media 的请�?""
-    media_id: UUID
-
-
-@dataclass
-class RestoreMediaRequest:
-    """恢复 Media 的请�?""
-    media_id: UUID
-
-
-@dataclass
-class PurgeMediaRequest:
-    """硬删�?Media 的请�?""
-    media_id: UUID
-
-
-@dataclass
-class AssociateMediaRequest:
-    """关联 Media �?Entity 的请�?""
-    media_id: UUID
-    entity_type: EntityTypeForMedia
-    entity_id: UUID
-
-
-@dataclass
-class DisassociateMediaRequest:
-    """移除 Media �?Entity 关联的请�?""
-    media_id: UUID
-    entity_type: EntityTypeForMedia
-    entity_id: UUID
-
-
-@dataclass
-class GetMediaRequest:
-    """获取 Media 的请�?""
-    media_id: UUID
-
-
-@dataclass
-class UpdateImageMetadataRequest:
-    """更新图片元数据的请求"""
-    media_id: UUID
-    width: int
-    height: int
-
-
-@dataclass
-class UpdateVideoMetadataRequest:
-    """更新视频元数据的请求"""
-    media_id: UUID
-    duration_ms: int
-
-
-# ============================================================================
-# Output DTOs (Response Models)
-# ============================================================================
-
-@dataclass
-class MediaResponse:
-    """Media 的响�?DTO"""
-    id: UUID
+class UploadMediaRequest(BaseModel):
+    """Base class: Request to upload new media file"""
     filename: str
     mime_type: str
     file_size: int
+
+
+class UploadImageRequest(BaseModel):
+    """Request to upload image file"""
+    filename: str
+    mime_type: str
+    file_content: bytes
+    description: Optional[str] = None
+
+
+class UploadVideoRequest(BaseModel):
+    """Request to upload video file"""
+    filename: str
+    mime_type: str
+    file_content: bytes
+    description: Optional[str] = None
+
+
+class DeleteMediaRequest(BaseModel):
+    """Request to delete media"""
+    media_id: UUID
+
+
+class GetMediaRequest(BaseModel):
+    """Request to get media"""
+    media_id: UUID
+
+
+class PurgeMediaRequest(BaseModel):
+    """Request to purge media"""
+    media_id: UUID
+
+
+class UploadMediaResponse(BaseModel):
+    """Response after successful upload"""
+    id: str
+    filename: str
     storage_key: str
-    width: Optional[int]
-    height: Optional[int]
-    duration_ms: Optional[int]
-    state: str  # ACTIVE, IN_TRASH, PURGED
-    trash_at: Optional[str]
-    created_at: str
-
-    @classmethod
-    def from_domain(cls, media: Media) -> "MediaResponse":
-        """从域对象转换"""
-        return cls(
-            id=media.id,
-            filename=media.filename,
-            mime_type=media.mime_type.value,
-            file_size=media.file_size,
-            storage_key=media.storage_key,
-            width=media.width,
-            height=media.height,
-            duration_ms=media.duration_ms,
-            state=media.state.value,
-            trash_at=media.trash_at.isoformat() if media.trash_at else None,
-            created_at=media.created_at.isoformat() if media.created_at else None
-        )
+    created_at: datetime
 
 
-# ============================================================================
-# UseCase Interfaces (Input Ports)
-# ============================================================================
+class UpdateMediaMetadataRequest(BaseModel):
+    """Request to update media metadata"""
+    media_id: UUID
+    filename: Optional[str] = None
+    description: Optional[str] = None
 
-class UploadImageUseCase(ABC):
-    """上传图片�?UseCase 接口"""
+
+class MediaResponse(BaseModel):
+    """Single media item response"""
+    id: str
+    filename: str
+    mime_type: str
+    state: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class MediaListResponse(BaseModel):
+    """List of media items"""
+    items: List[MediaResponse]
+    total: int
+
+
+class MediaTrashResponse(BaseModel):
+    """Media in trash"""
+    id: str
+    filename: str
+    trashed_at: datetime
+    expires_at: datetime
+
+
+class AssociateMediaRequest(BaseModel):
+    """Request to associate media with entity"""
+    media_id: UUID
+    entity_type: str
+    entity_id: UUID
+
+
+class DisassociateMediaRequest(BaseModel):
+    """Request to remove media-entity association"""
+    media_id: UUID
+    entity_type: str
+    entity_id: UUID
+
+
+class RestoreMediaRequest(BaseModel):
+    """Request to restore media from trash"""
+    media_id: UUID
+
+
+class BatchRestoreRequest(BaseModel):
+    """Request to batch restore media"""
+    media_ids: List[UUID]
+
+
+class PurgeExpiredMediaRequest(BaseModel):
+    """Request to purge expired media"""
+    older_than_days: int = 30
+
+
+class EntityMediaListResponse(BaseModel):
+    """Media associated with entity"""
+    entity_type: str
+    entity_id: str
+    media_list: List[MediaResponse]
+
+
+# UseCase Interfaces
+
+class IUploadMediaUseCase(ABC):
+    """UseCase: Upload new media file"""
 
     @abstractmethod
-    async def execute(self, request: UploadImageRequest) -> MediaResponse:
-        """执行上传图片"""
+    async def execute(self, request: UploadMediaRequest) -> UploadMediaResponse:
+        """Upload media and return response"""
         pass
 
 
-class UploadVideoUseCase(ABC):
-    """上传视频�?UseCase 接口"""
+class IUpdateMediaMetadataUseCase(ABC):
+    """UseCase: Update media metadata"""
 
     @abstractmethod
-    async def execute(self, request: UploadVideoRequest) -> MediaResponse:
-        """执行上传视频"""
+    async def execute(self, request: UpdateMediaMetadataRequest) -> MediaResponse:
+        """Update metadata and return media"""
         pass
 
 
-class DeleteMediaUseCase(ABC):
-    """删除 Media �?UseCase 接口"""
+class IGetMediaUseCase(ABC):
+    """UseCase: Get single media by ID"""
 
     @abstractmethod
-    async def execute(self, request: DeleteMediaRequest) -> MediaResponse:
-        """执行删除 Media"""
+    async def execute(self, media_id: UUID) -> MediaResponse:
+        """Get media by ID"""
         pass
 
 
-class RestoreMediaUseCase(ABC):
-    """恢复 Media �?UseCase 接口"""
+class IListMediaUseCase(ABC):
+    """UseCase: List all active media"""
 
     @abstractmethod
-    async def execute(self, request: RestoreMediaRequest) -> MediaResponse:
-        """执行恢复 Media"""
+    async def execute(self, skip: int = 0, limit: int = 100) -> MediaListResponse:
+        """List media with pagination"""
         pass
 
 
-class PurgeMediaUseCase(ABC):
-    """硬删�?Media �?UseCase 接口"""
-
-    @abstractmethod
-    async def execute(self, request: PurgeMediaRequest) -> None:
-        """执行硬删�?Media"""
-        pass
-
-
-class AssociateMediaUseCase(ABC):
-    """关联 Media �?Entity �?UseCase 接口"""
+class IAssociateMediaUseCase(ABC):
+    """UseCase: Associate media with entity"""
 
     @abstractmethod
     async def execute(self, request: AssociateMediaRequest) -> None:
-        """执行关联 Media"""
+        """Associate media with entity"""
         pass
 
 
-class DisassociateMediaUseCase(ABC):
-    """移除 Media �?Entity 关联�?UseCase 接口"""
+class IDisassociateMediaUseCase(ABC):
+    """UseCase: Remove media-entity association"""
 
     @abstractmethod
     async def execute(self, request: DisassociateMediaRequest) -> None:
-        """执行移除关联"""
+        """Remove association"""
         pass
 
 
-class GetMediaUseCase(ABC):
-    """获取 Media �?UseCase 接口"""
+class IMoveMediaToTrashUseCase(ABC):
+    """UseCase: Move media to trash (soft delete)"""
 
     @abstractmethod
-    async def execute(self, request: GetMediaRequest) -> MediaResponse:
-        """执行获取 Media"""
+    async def execute(self, media_id: UUID) -> None:
+        """Move media to trash"""
         pass
 
 
-class UpdateMediaMetadataUseCase(ABC):
-    """更新 Media 元数据的 UseCase 接口"""
+class IRestoreMediaUseCase(ABC):
+    """UseCase: Restore media from trash"""
 
     @abstractmethod
-    async def execute_update_image(self, request: UpdateImageMetadataRequest) -> MediaResponse:
-        """执行更新图片元数�?""
+    async def execute(self, request: RestoreMediaRequest) -> MediaResponse:
+        """Restore media from trash"""
         pass
+
+
+class IPurgeExpiredMediaUseCase(ABC):
+    """UseCase: Hard delete expired media"""
 
     @abstractmethod
-    async def execute_update_video(self, request: UpdateVideoMetadataRequest) -> MediaResponse:
-        """执行更新视频元数�?""
+    async def execute(self, request: PurgeExpiredMediaRequest) -> int:
+        """Purge expired media, return count deleted"""
         pass
-

@@ -1,134 +1,134 @@
 """
 Wordloom API - Main Application Entry Point
-
-初始�?FastAPI 应用，配置所有依赖、Routers 和中间件�?
-架构:
-- Hexagonal Architecture
-- Domain-Driven Design
-- Event-Driven System
-- Dependency Injection
-- Async/Await throughout
+最小化版本 - 用于快速启动
 """
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-from sqlalchemy.orm import sessionmaker
 import logging
-
-# Infrastructure
-from infra.event_bus import get_event_bus, EventBus
-from infra.event_handler_registry import setup_event_handlers
-from dependencies import DIContainer, get_di_container_provider
-
-# Module Routers
-from modules.tag.routers.tag_router import router as tag_router
-from modules.media.routers.media_router import router as media_router
-from modules.bookshelf.routers.bookshelf_router import router as bookshelf_router
-from modules.book.routers.book_router import router as book_router
-from modules.block.routers.block_router import router as block_router
-from modules.library.routers.library_router import router as library_router
-
+import sys
+import os
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 # ============================================================================
-# Global State
+# Setup Python path for imports
 # ============================================================================
 
-_event_bus: EventBus | None = None
-_di_container: DIContainer | None = None
-_session_factory: sessionmaker | None = None
+# Add backend root and api root to path
+backend_root = Path(__file__).parent.parent.parent  # backend/
+api_root = Path(__file__).parent.parent  # api/
+app_root = Path(__file__).parent  # app/
 
+sys.path.insert(0, str(backend_root))  # For infra imports
+sys.path.insert(0, str(api_root))  # For app imports
+sys.path.insert(0, str(app_root))  # For modules imports
 
 # ============================================================================
-# Lifespan Events
+# Import hook for backward compatibility: redirect 'modules' to 'api.app.modules'
 # ============================================================================
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """
-    应用生命周期管理
+import importlib.abc
+import importlib.machinery
 
-    启动�?
-    1. 初始化数据库会话
-    2. 初始�?EventBus
-    3. 创建 DI 容器
-    4. 注册事件处理�?
-    关闭�?
-    - 清理资源
-    """
-    global _event_bus, _di_container, _session_factory
+class ModulesRedirectFinder(importlib.abc.MetaPathFinder):
+    """Redirect 'from modules.xxx' to 'from api.app.modules.xxx'"""
 
-    # ===== 启动事件 =====
-    print("\n" + "="*60)
-    print("🚀 启动 Wordloom API...")
-    print("="*60)
+    def find_spec(self, fullname, path, target=None):
+        if fullname.startswith('modules.'):
+            # Redirect: modules.xxx -> api.app.modules.xxx
+            new_name = fullname.replace('modules.', 'api.app.modules.', 1)
+            try:
+                return importlib.util.find_spec(new_name)
+            except (ImportError, ModuleNotFoundError, ValueError):
+                pass
+        return None
+
+# Install the import hook
+sys.meta_path.insert(0, ModulesRedirectFinder())
+
+import importlib.util
+
+# Set environment DATABASE_URL if not already set
+if "DATABASE_URL" not in os.environ:
+    os.environ["DATABASE_URL"] = "postgresql+psycopg://postgres:pgpass@127.0.0.1:5433/wordloom"
+
+# ============================================================================
+# Try to import infrastructure modules
+# ============================================================================
+
+_event_bus = None
+_infra_available = False
+
+try:
+    from infra.event_bus import EventHandlerRegistry
+    logger.info("EventHandlerRegistry imported successfully")
+    _infra_available = True
+except ImportError as e:
+    logger.warning(f"Infrastructure modules not available: {e}")
+    _infra_available = False
+
+# ============================================================================
+# Try to import routers
+# ============================================================================
+
+_routers = []
+
+if _infra_available:
+    try:
+        from api.app.modules.tag.routers.tag_router import router as tag_router
+        _routers.append((tag_router, "/api/tags", ["Tags"]))
+    except ImportError as e:
+        logger.warning(f"Tag router not available: {e}")
 
     try:
-        # 1. 初始化数据库（可选）
-        print("📦 初始化数据库会话工厂...")
-        # 这里应该�?infra 模块导入 SessionLocal
-        # from infra.database import SessionLocal
-        # _session_factory = SessionLocal
-
-        # 2. 初始�?EventBus
-        print("🔌 初始�?EventBus...")
-        _event_bus = get_event_bus()
-
-        # 3. 创建 DI 容器
-        print("📋 创建 DI 容器...")
-        _di_container = DIContainer(_session_factory)
-
-        # 4. 注册事件处理�?        print("📡 注册事件处理�?..")
-        setup_event_handlers(_event_bus)
-
-        # 输出初始化统�?        handler_count = sum(
-            len(handlers)
-            for handlers in _event_bus._handlers.values()
-        )
-        print(f"\n�?Wordloom API 已启�?)
-        print(f"   �?EventBus: {len(_event_bus._handlers)} 个事件类�?)
-        print(f"   �?处理器总数: {handler_count} �?)
-        print(f"   �?DI 容器: 就绪")
-        print("="*60 + "\n")
-
-    except Exception as e:
-        print(f"\n�?启动失败: {e}")
-        raise
-
-    yield
-
-    # ===== 关闭事件 =====
-    print("\n" + "="*60)
-    print("🛑 关闭 Wordloom API...")
-    print("="*60)
+        from api.app.modules.media.routers.media_router import router as media_router
+        _routers.append((media_router, "/api/media", ["Media"]))
+    except ImportError as e:
+        logger.warning(f"Media router not available: {e}")
 
     try:
-        # 清理 EventBus
-        if _event_bus:
-            _event_bus.clear()
+        from api.app.modules.bookshelf.routers.bookshelf_router import router as bookshelf_router
+        _routers.append((bookshelf_router, "/api/bookshelves", ["Bookshelves"]))
+    except ImportError as e:
+        logger.warning(f"Bookshelf router not available: {e}")
 
-        print("�?清理完成")
-        print("="*60 + "\n")
+    try:
+        from api.app.modules.book.routers.book_router import router as book_router
+        _routers.append((book_router, "/api/books", ["Books"]))
+    except ImportError as e:
+        logger.warning(f"Book router not available: {e}")
 
-    except Exception as e:
-        print(f"\n⚠️  关闭异常: {e}")
+    try:
+        from api.app.modules.block.routers.block_router import router as block_router
+        _routers.append((block_router, "/api/blocks", ["Blocks"]))
+    except ImportError as e:
+        logger.warning(f"Block router not available: {e}")
 
+    try:
+        from api.app.modules.library.routers.library_router import router as library_router
+        _routers.append((library_router, "/api/libraries", ["Libraries"]))
+    except ImportError as e:
+        logger.warning(f"Library router not available: {e}")
+
+    try:
+        from api.app.modules.search.routers.search_router import router as search_router
+        _routers.append((search_router, "/api/search", ["Search"]))
+    except ImportError as e:
+        logger.warning(f"Search router not available: {e}")
 
 # ============================================================================
-# FastAPI Application
+# Create FastAPI Application
 # ============================================================================
 
 app = FastAPI(
     title="Wordloom API",
-    description="Book Management System with Hexagonal Architecture & Event-Driven Design",
+    description="Book Management System with Hexagonal Architecture",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
-    lifespan=lifespan,
 )
-
 
 # ============================================================================
 # CORS Middleware
@@ -136,111 +136,83 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: 配置允许的来�?    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # ============================================================================
 # Register Routers
 # ============================================================================
 
-app.include_router(
-    tag_router,
-    prefix="/api/tags",
-    tags=["Tags"],
-)
-
-app.include_router(
-    media_router,
-    prefix="/api/media",
-    tags=["Media"],
-)
-
-app.include_router(
-    bookshelf_router,
-    prefix="/api/bookshelves",
-    tags=["Bookshelves"],
-)
-
-app.include_router(
-    book_router,
-    prefix="/api/books",
-    tags=["Books"],
-)
-
-app.include_router(
-    block_router,
-    prefix="/api/blocks",
-    tags=["Blocks"],
-)
-
-app.include_router(
-    library_router,
-    prefix="/api/libraries",
-    tags=["Libraries"],
-)
-
+for router, prefix, tags in _routers:
+    app.include_router(
+        router,
+        prefix=prefix,
+        tags=tags,
+    )
 
 # ============================================================================
 # Health Check Endpoint
 # ============================================================================
 
-@app.get(
-    "/health",
-    tags=["Health"],
-    summary="Health check",
-)
+@app.get("/health", tags=["Health"], summary="Health check")
 async def health_check():
-    """
-    健康检查端�?
-    返回:
-    - status: API 状�?    - version: API 版本
-    - event_bus_ready: EventBus 是否就绪
-    """
-    global _event_bus, _di_container
-
+    """Health check endpoint"""
     return {
         "status": "healthy",
         "version": "1.0.0",
-        "event_bus_ready": _event_bus is not None,
-        "di_container_ready": _di_container is not None,
+        "infrastructure_available": _infra_available,
+        "routers_loaded": len(_routers),
     }
-
 
 # ============================================================================
 # Root Endpoint
 # ============================================================================
 
-@app.get(
-    "/",
-    tags=["Root"],
-    summary="API root",
-)
+@app.get("/", tags=["Root"], summary="API root")
 async def root():
-    """API 根端�?""
+    """API root endpoint"""
     return {
         "message": "Welcome to Wordloom API",
         "docs": "/docs",
         "version": "1.0.0",
     }
 
+# ============================================================================
+# Startup/Shutdown Events
+# ============================================================================
+
+@app.on_event("startup")
+async def startup():
+    """Startup event"""
+    logger.info("Wordloom API startup")
+    if _infra_available:
+        try:
+            from infra.event_bus import EventHandlerRegistry
+            EventHandlerRegistry.bootstrap()
+            logger.info("EventBus handlers bootstrap complete")
+        except Exception as e:
+            logger.error(f"Failed to bootstrap EventBus: {e}")
+    else:
+        logger.warning("API running in minimal mode - no infrastructure")
+
+@app.on_event("shutdown")
+async def shutdown():
+    """Shutdown event"""
+    logger.info("Wordloom API shutdown")
 
 # ============================================================================
-# Exception Handlers
+# Exception Handler
 # ============================================================================
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-
-# NOTE: 领域异常处理可以稍后添加
-# 当确认异常模块正确导入后再启�?
-
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    """处理一般异�?""
+    """Handle general exceptions"""
     logger.exception(f"Unhandled exception: {exc}")
     return JSONResponse(
         status_code=500,
@@ -249,35 +221,3 @@ async def general_exception_handler(request: Request, exc: Exception):
             "type": type(exc).__name__,
         },
     )
-
-
-# ============================================================================
-# Startup/Shutdown
-# ============================================================================
-
-@app.on_event("startup")
-async def startup():
-    """应用启动时的回调"""
-    logger.info("Wordloom API startup")
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    """应用关闭时的回调"""
-    logger.info("Wordloom API shutdown")
-
-
-# ============================================================================
-# Entry Point
-# ============================================================================
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8000,
-        log_level="info",
-    )
-

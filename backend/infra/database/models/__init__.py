@@ -14,19 +14,28 @@ Models will be imported and organized:
 These models are used by Repository adapters in infra/storage/
 """
 
-from sqlalchemy.orm import declarative_base
+from .base import Base
 
-Base = declarative_base()
-
+# Import all models
+from .library_models import LibraryModel
+from .bookshelf_models import BookshelfModel
+from .book_models import BookModel
+from .block_models import BlockModel
 from .tag_models import TagModel, TagAssociationModel, EntityType
 from .media_models import (
     MediaModel, MediaAssociationModel,
     MediaType, MediaMimeType, MediaState, EntityTypeForMedia
 )
+from .search_index_models import SearchIndexModel
 
 __all__ = [
     # Base
     "Base",
+    # Library models
+    "LibraryModel",
+    "BookshelfModel",
+    "BookModel",
+    "BlockModel",
     # Tag models
     "TagModel",
     "TagAssociationModel",
@@ -38,5 +47,7 @@ __all__ = [
     "MediaMimeType",
     "MediaState",
     "EntityTypeForMedia",
+    # Search
+    "SearchIndexModel",
 ]
 

@@ -11,9 +11,9 @@ from uuid import UUID
 from sqlalchemy import select, and_, desc, func
 from sqlalchemy.exc import IntegrityError
 
-from modules.book.domain import Book, BookTitle, BookSummary, BookStatus
-from modules.book.models import BookModel
-from modules.book.exceptions import BookAlreadyExistsError
+from api.app.modules.book.domain import Book, BookTitle, BookSummary, BookStatus
+from api.app.modules.book.models import BookModel
+from api.app.modules.book.exceptions import BookAlreadyExistsError
 
 logger = logging.getLogger(__name__)
 
