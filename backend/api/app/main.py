@@ -78,43 +78,43 @@ _routers = []
 if _infra_available:
     try:
         from api.app.modules.tag.routers.tag_router import router as tag_router
-        _routers.append((tag_router, "/api/tags", ["Tags"]))
+        _routers.append((tag_router, "/api/v1/tags", ["Tags"]))
     except ImportError as e:
         logger.warning(f"Tag router not available: {e}")
 
     try:
         from api.app.modules.media.routers.media_router import router as media_router
-        _routers.append((media_router, "/api/media", ["Media"]))
+        _routers.append((media_router, "/api/v1/media", ["Media"]))
     except ImportError as e:
         logger.warning(f"Media router not available: {e}")
 
     try:
         from api.app.modules.bookshelf.routers.bookshelf_router import router as bookshelf_router
-        _routers.append((bookshelf_router, "/api/bookshelves", ["Bookshelves"]))
+        _routers.append((bookshelf_router, "/api/v1/bookshelves", ["Bookshelves"]))
     except ImportError as e:
         logger.warning(f"Bookshelf router not available: {e}")
 
     try:
         from api.app.modules.book.routers.book_router import router as book_router
-        _routers.append((book_router, "/api/books", ["Books"]))
+        _routers.append((book_router, "/api/v1/books", ["Books"]))
     except ImportError as e:
         logger.warning(f"Book router not available: {e}")
 
     try:
         from api.app.modules.block.routers.block_router import router as block_router
-        _routers.append((block_router, "/api/blocks", ["Blocks"]))
+        _routers.append((block_router, "/api/v1/blocks", ["Blocks"]))
     except ImportError as e:
         logger.warning(f"Block router not available: {e}")
 
     try:
         from api.app.modules.library.routers.library_router import router as library_router
-        _routers.append((library_router, "/api/libraries", ["Libraries"]))
+        _routers.append((library_router, "/api/v1/libraries", ["Libraries"]))
     except ImportError as e:
         logger.warning(f"Library router not available: {e}")
 
     try:
         from api.app.modules.search.routers.search_router import router as search_router
-        _routers.append((search_router, "/api/search", ["Search"]))
+        _routers.append((search_router, "/api/v1/search", ["Search"]))
     except ImportError as e:
         logger.warning(f"Search router not available: {e}")
 
@@ -157,7 +157,7 @@ for router, prefix, tags in _routers:
 # Health Check Endpoint
 # ============================================================================
 
-@app.get("/health", tags=["Health"], summary="Health check")
+@app.get("/api/v1/health", tags=["Health"], summary="Health check")
 async def health_check():
     """Health check endpoint"""
     return {

@@ -18,6 +18,7 @@ interface UseAuthReturn {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -47,10 +48,23 @@ export function useAuth(): UseAuthReturn {
     window.location.href = '/auth/login';
   }, []);
 
+  const handleLogin = useCallback(async (email: string, password: string) => {
+    // In real app, call backend API
+    // For now, mock login
+    const mockUser: User = {
+      id: '1',
+      email,
+      name: email.split('@')[0],
+    };
+    localStorage.setItem('wl_token', 'mock-token-' + Date.now());
+    setUser(mockUser);
+  }, []);
+
   return {
     user,
     isAuthenticated: !!user,
     isLoading,
+    login: handleLogin,
     logout: handleLogout,
   };
 }

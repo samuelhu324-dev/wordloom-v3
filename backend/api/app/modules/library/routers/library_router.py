@@ -45,7 +45,7 @@ from api.app.config.security import get_current_user_id
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/api/v1/libraries",
+    prefix="",
     tags=["libraries"],
     responses={
         404: {"description": "Library not found", "model": ErrorDetail},
@@ -91,6 +91,30 @@ async def create_library(
         )
     except (LibraryAlreadyExistsError, InvalidLibraryNameError, LibraryException) as exc:
         raise _handle_domain_exception(exc)
+
+@router.get("", response_model=list[LibraryResponse])
+async def list_libraries(
+    user_id: UUID = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db_session),
+) -> list[LibraryResponse]:
+    """List all libraries for current user"""
+    try:
+        repository = SQLAlchemyLibraryRepository(session)
+        from api.app.modules.library.application.use_cases.list_libraries import ListLibrariesUseCase
+        use_case = ListLibrariesUseCase(repository=repository)
+        uc_request = GetLibraryRequest(user_id=user_id)
+        uc_response = await use_case.execute(uc_request)
+        # Return as list (typically one library per user)
+        return [LibraryResponse(
+            id=uc_response.library_id,
+            user_id=uc_response.user_id,
+            name=uc_response.name,
+            created_at=uc_response.created_at,
+            updated_at=uc_response.updated_at,
+        )]
+    except Exception as exc:
+        logger.error(f"Error listing libraries: {exc}")
+        return []
 
 @router.get("/{library_id}", response_model=LibraryDetailResponse)
 async def get_library(
@@ -171,4 +195,27 @@ async def delete_library(
 @router.get("/health", tags=["health"])
 async def health_check() -> dict:
     return {"status": "ok", "service": "library"}
+
+@router.get("/test/create-sample", tags=["test"])
+async def create_sample_library(session: AsyncSession = Depends(get_db_session)) -> LibraryResponse:
+    """
+    Test endpoint: Create a sample library
+    For development/testing only
+    """
+    try:
+        repository = SQLAlchemyLibraryRepository(session)
+        user_id = UUID("550e8400-e29b-41d4-a716-446655440000")
+        uc_request = CreateLibraryRequest(user_id=user_id, name="Test Library")
+        use_case = CreateLibraryUseCase(repository=repository)
+        uc_response = await use_case.execute(uc_request)
+        return LibraryResponse(
+            id=uc_response.library_id,
+            user_id=uc_response.user_id,
+            name=uc_response.name,
+            created_at=uc_response.created_at,
+            updated_at=uc_response.updated_at,
+        )
+    except Exception as exc:
+        logger.error(f"Error creating sample library: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
 

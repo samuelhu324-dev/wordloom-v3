@@ -152,3 +152,8 @@ export function generateCSSVariables(colors: ThemeColors): string {
 export function getAvailableThemes(): ThemeName[] {
   return Object.keys(themes) as ThemeName[];
 }
+
+/**
+ * THEMES constant for easier access
+ */
+export const THEMES = getAvailableThemes();

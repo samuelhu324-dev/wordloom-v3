@@ -7,22 +7,27 @@
 # 版本：1.2
 
 metadata:
-  version: "1.2"
+  version: "1.3"
   architecture: "Hexagonal (Ports & Adapters) + Domain-Driven Design"
   purpose: "Architecture constraints and infrastructure implementation guidelines"
   conversion_date: "2025-11-13"
   created_at: "2025-11-13"
-  last_updated: "2025-11-15"
+  last_updated: "2025-11-16"
   maturity: "Production Ready ✅"
-  current_phase: "API ROUTERS FULLY INTEGRATED & OPERATIONAL (Nov 15, 2025)"
-  latest_adr: "ADR-055-api-router-integration-completion.md"
+  current_phase: "FRONTEND-BACKEND INTEGRATION OPERATIONAL (Nov 16, 2025)"
+  latest_adr: "ADR-058-frontend-backend-integration-startup-success.md (NEW)"
+  frontend_backend_integration_status: "✅ BOTH SERVICES RUNNING & CONNECTED"
+  integration_verification_date: "2025-11-16"
 
-  # Frontend Rules Synchronization (NEW - Nov 15, 2025)
+  # Frontend Rules Synchronization (UPDATED - Nov 15, 2025)
   frontend_rules_file: "assets/docs/VISUAL_RULES.yaml"
-  frontend_rules_status: "✅ GENERATED & IN SYNC (Nov 15, 2025)"
+  frontend_rules_status: "✅ VERTICAL SLICE 1 COMPLETE (Nov 15, 2025)"
+  frontend_adr_reference: "ADR-057-frontend-layer-architecture-vertical-slice.md"
   frontend_ui_component_rules: "Component styles, state management, error handling"
-  frontend_architecture_layers: "lib (config/api/hooks), components (ui/shared/feature), app (routing)"
-  frontend_hexagonal_pattern: "Input Ports (useCase hooks) → Output Ports (API adapter) → Domain (components)"
+  frontend_architecture_layers: "lib (api/hooks), components (ui/shared/business), app (dynamic routes)"
+  frontend_hexagonal_pattern: "Input Ports (useXxx hooks) → Output Ports (API adapters) → Presentation (components)"
+  frontend_vertical_slice_ready: "✅ Library → Bookshelf → Book → Block (4-layer navigation complete)"
+  frontend_4_layer_architecture: "API Adapter + Hooks + Components + Routes"
 
   # ========================================
   # CURRENT PHASE: P0 + P1 Infrastructure Completion (Nov 14, 2025)

@@ -5,22 +5,31 @@
 # 最后更新：2025-11-12
 
 metadata:
-  version: "3.3"
+  version: "3.4"
   domain_model: "Library → Bookshelf → Book → Block"
   architecture_style: "Hexagonal + Domain-Driven Design"
   aggregate_model: "Independent Aggregate Roots (不嵌套)"
   created_at: "2025-11-10"
-  last_updated: "2025-11-15"
-  current_milestone: "API ROUTERS FULLY OPERATIONAL ✅ (7/7 routers loading, 73 endpoints registered)"
-  latest_adr: "ADR-055-api-router-integration-completion.md"
+  last_updated: "2025-11-16"
+  current_milestone: "FRONTEND + BACKEND STARTUP SUCCESSFUL ✅ (Nov 16, 2025)"
+  latest_adr: "ADR-058-frontend-backend-integration-startup-success.md (NEW)"
+  frontend_startup_status: "✅ RUNNING (http://localhost:3002 on Nov 16, 2025)"
+  backend_startup_status: "✅ RUNNING (http://localhost:30001 on Nov 16, 2025)"
+  integration_test_readiness: "✅ READY FOR END-TO-END TESTING"
 
-  # Frontend Rules Synchronization (NEW - Nov 15, 2025)
+  # Frontend Rules Synchronization (UPDATED - Nov 15, 2025)
   frontend_rules_file: "assets/docs/VISUAL_RULES.yaml"
-  frontend_rules_status: "✅ GENERATED & IN SYNC (Nov 15, 2025)"
-  frontend_rules_version: "1.0"
+  frontend_rules_status: "✅ VERTICAL SLICE 1 COMPLETE (Nov 15, 2025)"
+  frontend_rules_version: "1.1"
   frontend_architecture: "Next.js 14 App Router + TypeScript + TanStack Query"
   frontend_themes: "Light, Dark, Loom (灰蓝)"
   frontend_frameworks: "Vitest + React Testing Library (unit), Playwright (e2e)"
+  frontend_adr_reference: "ADR-057-frontend-layer-architecture-vertical-slice.md (NEW - Nov 15, 2025)"
+  frontend_vertical_slice: "Library → Bookshelf → Book → Block (4-layer navigation complete)"
+  frontend_api_layer: "✅ 5 files (types.ts + bookshelf/book/block/index.ts)"
+  frontend_hooks_layer: "✅ 5 files (useBookshelves/useBooks/useBlocks/useToast/index.ts)"
+  frontend_components_layer: "✅ 12 files in 3 folders (bookshelf/book/block, 4 files each)"
+  frontend_routes_layer: "✅ 4 pages (libraries/[id], bookshelves/[id], books/[id], books/[id]/edit)"
 
   # Database Schema (NEW - Nov 15, 2025)
   database_status: "✅ CORE SCHEMA CREATED & VERIFIED (Nov 15, 2025)"

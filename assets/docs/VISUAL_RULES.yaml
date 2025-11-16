@@ -7,16 +7,24 @@
 # 版本：1.0
 
 metadata:
-  version: "1.1"
+  version: "1.3"
   frontend_framework: "Next.js 14 App Router + TypeScript + TanStack Query"
-  sync_status: "✅ IN SYNC with DDD_RULES.yaml & HEXAGONAL_RULES.yaml (Nov 15, 2025)"
+  sync_status: "✅ VERTICAL SLICE 1 COMPLETE + RUNNING (Nov 16, 2025)"
+  frontend_startup_status: "✅ RUNNING ON http://localhost:3002 (Nov 16, 2025)"
   backend_database_ready: "✅ CORE SCHEMA CREATED - CONNECTION READY (Nov 15, 2025)"
   backend_api_routers_ready: "✅ ALL 7/7 ROUTERS LOADED & OPERATIONAL (Nov 15, 2025)"
   backend_api_endpoints_ready: "✅ 73 ENDPOINTS REGISTERED (Nov 15, 2025)"
+  backend_startup_status: "✅ RUNNING ON http://localhost:30001 (Nov 16, 2025)"
   backend_database_adr: "ADR-053-wordloom-core-database-schema.md"
   backend_api_adr: "ADR-054-api-bootstrap-and-dependency-injection.md"
   backend_router_adr: "ADR-055-api-router-integration-completion.md"
-  api_integration_phase: "Phase 2 (Week 2) - Endpoints ready for frontend integration"
+  frontend_adr: "ADR-057-frontend-layer-architecture-vertical-slice.md (NEW - Nov 15, 2025)"
+  api_integration_phase: "Phase 2 (Week 2) - Complete vertical slice ready for testing"
+  frontend_layers_implemented:
+    - "✅ lib/api/ - 5 files (types + bookshelf + book + block)"
+    - "✅ lib/hooks/ - 5 files (useBookshelves + useBooks + useBlocks + useToast)"
+    - "✅ components/ - 12 files in 3 folders (bookshelf/ book/ block/)"
+    - "✅ app/(admin)/ - 4 pages (libraries/[id] + bookshelves/[id] + books/[id] + books/[id]/edit)"
   sync_source:
     - "DDD_RULES.yaml (business rules)"
     - "HEXAGONAL_RULES.yaml (architecture rules)"
@@ -96,8 +104,11 @@ metadata:
     - "✅ Week 2: All 7 routers successfully loaded (COMPLETE)"
     - "✅ Week 2: 73 endpoints registered (COMPLETE)"
     - "✅ Week 2: Database async driver configured (COMPLETE)"
-    - "⏳ Week 2: Connect frontend TanStack Query to backend endpoints (IN PROGRESS)"
-    - "⏳ Week 2: Test end-to-end integration with database (PENDING)"
+    - "✅ Week 2: Frontend 4-layer architecture complete (COMPLETE - ADR-057)"
+    - "⏳ Week 2: Connect frontend TanStack Query to backend endpoints (TESTING)"
+    - "⏳ Week 2: End-to-end integration testing with database (PENDING)"
+    - "⏳ Week 3: Tag management + media upload implementation (PENDING)"
+    - "⏳ Week 3: Global search integration (PENDING)"
 
 # ============================================
 # Part 1: Theme System Rules
