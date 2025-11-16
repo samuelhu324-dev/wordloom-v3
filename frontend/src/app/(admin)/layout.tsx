@@ -1,16 +1,10 @@
-// app/(admin)/layout.tsx
-// ✅ 后台布局（带 sidebar）
+import type { Metadata } from 'next';
+import { Layout } from '@/shared/layouts';
 
-import { Layout } from '@/components/shared';
+export const metadata: Metadata = {
+  title: 'Admin - Wordloom',
+};
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <Layout showSidebar>
-      {children}
-    </Layout>
-  );
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return <Layout showSidebar>{children}</Layout>;
 }

@@ -1,13 +1,12 @@
-// app/(admin)/dashboard/page.tsx
-// ✅ 仪表板页面
-
 'use client';
+
+import React from 'react';
 
 export default function DashboardPage() {
   return (
-    <div className="dashboard">
-      <h1>Welcome to Wordloom</h1>
-      <p>Select a library or create a new one to get started.</p>
-    </div>
+    <main style={{ padding: 'var(--spacing-2xl)' }}>
+      <h1>Dashboard</h1>
+      <p>Coming soon...</p>
+    </main>
   );
 }

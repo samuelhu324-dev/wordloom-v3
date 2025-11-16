@@ -1,19 +1,27 @@
-import Link from 'next/link';
+'use client';
 
-export default function Home() {
+import React from 'react';
+import Link from 'next/link';
+import { Button } from '@/shared/ui';
+
+export default function HomePage() {
   return (
-    <main className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="text-center px-6">
-        <h1 className="text-6xl font-bold text-gray-900 mb-2">Wordloom</h1>
-        <p className="text-xl text-gray-600 mb-8">Your Personal Knowledge Management System</p>
-        <div className="space-x-4">
-          <Link href="/admin/dashboard" className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            Dashboard
-          </Link>
-          <Link href="/(auth)/login" className="px-8 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+    <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-xl)' }}>
+      <div style={{ textAlign: 'center' }}>
+        <h1>Welcome to Wordloom</h1>
+        <p>Your knowledge management system</p>
+      </div>
+      <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
+        <Link href="/admin/libraries">
+          <Button variant="primary" size="lg">
+            Go to Admin
+          </Button>
+        </Link>
+        <Link href="/login">
+          <Button variant="secondary" size="lg">
             Login
-          </Link>
-        </div>
+          </Button>
+        </Link>
       </div>
     </main>
   );

@@ -1,0 +1,1 @@
+export { BookshelfMainWidget } from './BookshelfMainWidget';

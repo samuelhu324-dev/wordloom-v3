@@ -3,7 +3,10 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    styledComponents: true,
+  },
+  typescript: {
+    tsconfigPath: './tsconfig.json',
   },
 };
 

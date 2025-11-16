@@ -1,0 +1,1 @@
+export { BookMainWidget } from './BookMainWidget';
