@@ -6,5 +6,5 @@ export const metadata: Metadata = {
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return <Layout showSidebar>{children}</Layout>;
+  return <Layout showSidebar={false}>{children}</Layout>;
 }

@@ -2,7 +2,10 @@
 
 import { useParams } from 'next/navigation'
 import { BlockMainWidget } from '@/widgets/block'
-import { Spinner } from '@/shared/ui'
+import { Spinner, Breadcrumb } from '@/shared/ui'
+import { config } from '@/shared/lib/config'
+import { useBook } from '@/features/book'
+import { useBlocks } from '@/features/block'
 import styles from './page.module.css'
 
 // Mock data for development/testing
@@ -97,11 +100,27 @@ export default function BookDetailPage() {
   const bookshelfId = params.bookshelfId as string
   const bookId = params.bookId as string
 
-  // Use mock data for development
-  const book = MOCK_BOOK_DATA[bookId]
-  const blocks = MOCK_BLOCKS_DATA[bookId] || []
-  const isLoading = false
-  const error = !book ? new Error('Book not found') : null
+  const useMock = config.flags.useMock
+
+  const mockBook = MOCK_BOOK_DATA[bookId]
+  const mockBlocks = MOCK_BLOCKS_DATA[bookId] || []
+
+  const {
+    data: realBook,
+    isLoading: isBookLoading,
+    error: bookError,
+  } = useMock ? ({} as any) : useBook(libraryId, bookshelfId, bookId)
+
+  const {
+    data: realBlocks = [],
+    isLoading: isBlocksLoading,
+    error: blocksError,
+  } = useMock ? ({} as any) : useBlocks(libraryId, bookshelfId, bookId)
+
+  const book = useMock ? mockBook : realBook
+  const blocks = useMock ? mockBlocks : realBlocks
+  const isLoading = useMock ? false : !!(isBookLoading || isBlocksLoading)
+  const error = useMock ? (!book ? new Error('Book not found') : null) : (bookError || blocksError)
 
   if (isLoading) {
     return (
@@ -125,16 +144,14 @@ export default function BookDetailPage() {
 
   return (
     <div className={styles.container}>
-      {/* Breadcrumb */}
-      <div className={styles.breadcrumb}>
-        <a href="/admin/libraries">书库列表</a>
-        <span> / </span>
-        <a href={`/admin/libraries/${libraryId}`}>我的书库</a>
-        <span> / </span>
-        <a href={`/admin/libraries/${libraryId}/bookshelves/${bookshelfId}`}>阅读中</a>
-        <span> / </span>
-        <span className={styles.active}>{book.name}</span>
-      </div>
+      <Breadcrumb
+        items={[
+          { label: '书库列表', href: '/admin/libraries' },
+          { label: '书库详情', href: `/admin/libraries/${libraryId}` },
+          { label: '书架详情', href: `/admin/libraries/${libraryId}/bookshelves/${bookshelfId}` },
+          { label: book.name, active: true },
+        ]}
+      />
 
       {/* Header */}
       <div className={styles.header}>

@@ -10,13 +10,8 @@ export const Header: React.FC = () => {
           <h1>Wordloom</h1>
         </Link>
         <nav className={styles.nav}>
-          <Link href="/admin/libraries">Libraries</Link>
-          <Link href="/admin/bookshelves">Bookshelves</Link>
-          <Link href="/admin/books">Books</Link>
-          <Link href="/admin/tags">Tags</Link>
-          <Link href="/admin/media">Media</Link>
-          <Link href="/admin/search">Search</Link>
           <Link href="/admin/dashboard">Dashboard</Link>
+          <Link href="/admin/libraries">Libraries</Link>
         </nav>
       </div>
     </header>

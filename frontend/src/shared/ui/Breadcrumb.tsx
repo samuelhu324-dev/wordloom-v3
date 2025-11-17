@@ -1,0 +1,24 @@
+import React from 'react'
+
+export interface BreadcrumbItem {
+  label: string
+  href?: string
+  active?: boolean
+}
+
+export const Breadcrumb: React.FC<{ items: BreadcrumbItem[] }> = ({ items }) => {
+  return (
+    <nav aria-label="Breadcrumb" style={{ marginBottom: 12 }}>
+      {items.map((item, idx) => (
+        <span key={idx}>
+          {item.href && !item.active ? (
+            <a href={item.href} style={{ color: '#06c' }}>{item.label}</a>
+          ) : (
+            <span style={{ fontWeight: item.active ? 600 : 400 }}>{item.label}</span>
+          )}
+          {idx < items.length - 1 && <span> / </span>}
+        </span>
+      ))}
+    </nav>
+  )
+}

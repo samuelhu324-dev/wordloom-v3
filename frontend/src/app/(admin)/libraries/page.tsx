@@ -2,10 +2,42 @@
 
 import React, { useState } from 'react';
 import { useLibraries, useCreateLibrary, useDeleteLibrary } from '@/features/library';
+import { config } from '@/shared/lib/config';
+import { LibraryDto } from '@/entities/library';
 import styles from './libraries.module.css';
 
+// Mock libraries for development/testing
+const MOCK_LIBRARIES: LibraryDto[] = [
+  {
+    id: 'test-123',
+    name: '我的书库',
+    description: '这是一个测试书库，包含我收藏的所有书籍',
+    user_id: 'user-1',
+    created_at: '2025-11-01T10:00:00Z',
+    updated_at: '2025-11-16T10:00:00Z',
+  },
+  {
+    id: 'demo-456',
+    name: '团队知识库',
+    description: '团队共享的学习和项目文档',
+    user_id: 'user-1',
+    created_at: '2025-10-20T09:30:00Z',
+    updated_at: '2025-11-10T09:30:00Z',
+  },
+];
+
 export default function LibrariesPage() {
-  const { data: libraries = [], isLoading, error } = useLibraries();
+  const useMock = config.flags.useMock;
+
+  const {
+    data: realLibraries = [],
+    isLoading: isRealLoading,
+    error: realError,
+  } = useMock ? ({} as any) : useLibraries();
+
+  const libraries: LibraryDto[] = useMock ? MOCK_LIBRARIES : (realLibraries as LibraryDto[]);
+  const isLoading = useMock ? false : isRealLoading;
+  const error = useMock ? null : (realError as any);
   const createMutation = useCreateLibrary();
   const deleteMutation = useDeleteLibrary();
 
@@ -14,7 +46,7 @@ export default function LibrariesPage() {
   const [sortBy, setSortBy] = useState('latest');
   const [formData, setFormData] = useState({ name: '', description: '' });
 
-  const filteredLibraries = (libraries || []).filter(lib =>
+  const filteredLibraries = (libraries || []).filter((lib: LibraryDto) =>
     lib.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (lib.description && lib.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -121,7 +153,7 @@ export default function LibrariesPage() {
       {!isLoading && (
         <div className={styles.librariesGrid}>
           {filteredLibraries && filteredLibraries.length > 0 ? (
-            filteredLibraries.map((library) => (
+            filteredLibraries.map((library: LibraryDto) => (
               <div
                 key={library.id}
                 className={styles.libraryCard}

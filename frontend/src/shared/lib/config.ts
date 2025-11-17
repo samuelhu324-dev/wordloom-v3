@@ -8,6 +8,13 @@ export const config = {
     timeout: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '30000', 10),
   },
 
+  // Feature Flags
+  flags: {
+    useMock:
+      (process.env.NEXT_PUBLIC_USE_MOCK || '').toLowerCase() === '1' ||
+      (process.env.NEXT_PUBLIC_USE_MOCK || '').toLowerCase() === 'true',
+  },
+
   // Theme
   theme: {
     default: (process.env.NEXT_PUBLIC_DEFAULT_THEME as 'Light' | 'Dark' | 'Loom') || 'Light',

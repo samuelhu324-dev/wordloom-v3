@@ -3,6 +3,7 @@ export type { ButtonProps } from './Button';
 
 export { Card, CardHeader, CardContent, CardFooter } from './Card';
 
+export { Breadcrumb } from './Breadcrumb'
 export { Input } from './Input';
 export type { InputProps } from './Input';
 
