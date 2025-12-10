@@ -1,0 +1,12 @@
+.page {
+  padding: var(--spacing-2xl);
+  min-height: 100vh;
+  background-color: var(--color-bg-app);
+  background-image: linear-gradient(rgba(255,255,255,0.4), rgba(255,255,255,0.4)), radial-gradient(circle at 40% 20%, rgba(200,210,220,0.15), transparent 60%);
+  background-blend-mode: normal, multiply;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}

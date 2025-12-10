@@ -10,7 +10,7 @@ export { API_BASE, resolveApiUrl, apiFetch };
 
 // 后端挂载前缀（建议保持相对路径，最终由 apiFetch 用 API_BASE 拼接）
 export const ORBIT_BASE = forceAbsolute
-  ? (process.env.NEXT_PUBLIC_ORBIT_API_BASE || "http://localhost:8000")
+  ? (process.env.NEXT_PUBLIC_ORBIT_API_BASE || "http://localhost:18080")
   : "/api/orbit";
 
 export const LOOM_BASE = forceAbsolute

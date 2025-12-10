@@ -16,18 +16,15 @@ export const BookCard = React.forwardRef<HTMLDivElement, BookCardProps>(
         <div className={styles.header}>
           <h3>{book.title}</h3>
           {onDelete && (
-            <Button variant="ghost" size="sm" onClick={() => onDelete(book.id)}>
+            <Button variant="secondary" size="sm" onClick={() => onDelete(book.id)}>
               ×
             </Button>
           )}
         </div>
-        {book.description && <p className={styles.description}>{book.description}</p>}
-        <div className={styles.meta}>
-          <span>{book.blocks_count || 0} blocks</span>
-        </div>
+        {book.summary && <p className={styles.description}>{book.summary}</p>}
         {onSelect && (
           <Button variant="secondary" size="sm" onClick={() => onSelect(book.id)}>
-            View Blocks
+            查看
           </Button>
         )}
       </Card>

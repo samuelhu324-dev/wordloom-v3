@@ -7,17 +7,18 @@ Wordloom Database Initialization Script
 import os
 import sys
 from pathlib import Path
+# Note: Migration scripts may use psycopg (sync). Keep as-is.
 import psycopg
 from psycopg import sql
 
 # 配置
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:pgpass@127.0.0.1:5433/wordloom")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:pgpass@localhost:5432/wordloom")
 
 def init_database():
     """初始化数据库（执行 schema.sql）"""
     print("🔄 初始化数据库..." )
 
-    schema_path = Path(__file__).parent / "migrations" / "001_create_core_schema.sql"
+    schema_path = Path(__file__).parent / "001_create_core_schema.sql"
 
     if not schema_path.exists():
         print(f"❌ Schema 文件不存在: {schema_path}")

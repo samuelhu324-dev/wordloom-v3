@@ -4,8 +4,8 @@ Library Models - SQLAlchemy ORM models for persistence
 Maps Library Domain aggregate to database table.
 """
 
-from sqlalchemy import Column, String, DateTime, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, DateTime, Text, Boolean, Integer, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID, BIGINT
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -42,11 +42,60 @@ class LibraryModel(Base):
         UUID(as_uuid=True),
         nullable=False,
         index=True,
-        unique=True,  # One Library per user (RULE-001),
+        # unique removed (Migration 002): multi-library per user now allowed
+    )
+    basement_bookshelf_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("bookshelves.id"),
+        nullable=True,
+        index=True,
     )
     name = Column(
         String(255),
         nullable=False,
+    )
+    description = Column(
+        Text,
+        nullable=True,
+    )
+    cover_media_id = Column(
+        UUID(as_uuid=True),
+        nullable=True,
+        index=True,
+    )
+    theme_color = Column(
+        String(16),
+        nullable=True,
+        comment="Hex color (e.g. #336699) for consistent theming",
+    )
+    pinned = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+    pinned_order = Column(
+        Integer,
+        nullable=True,
+    )
+    archived_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
+    last_activity_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
+    views_count = Column(
+        BIGINT,
+        default=0,
+        nullable=False,
+    )
+    last_viewed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
     )
     created_at = Column(
         DateTime(timezone=True),
@@ -87,7 +136,17 @@ class LibraryModel(Base):
         return {
             "id": self.id,
             "user_id": self.user_id,
+            "basement_bookshelf_id": self.basement_bookshelf_id,
             "name": self.name,
+            "description": self.description,
+            "cover_media_id": self.cover_media_id,
+            "theme_color": self.theme_color,
+            "pinned": self.pinned,
+            "pinned_order": self.pinned_order,
+            "archived_at": self.archived_at,
+            "last_activity_at": self.last_activity_at,
+            "views_count": self.views_count,
+            "last_viewed_at": self.last_viewed_at,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "soft_deleted_at": self.soft_deleted_at,
@@ -117,6 +176,16 @@ class LibraryModel(Base):
             id=data.get("id"),
             user_id=data.get("user_id"),
             name=data.get("name"),
+            description=data.get("description"),
+            basement_bookshelf_id=data.get("basement_bookshelf_id"),
+            cover_media_id=data.get("cover_media_id"),
+            theme_color=data.get("theme_color"),
+            pinned=data.get("pinned", False),
+            pinned_order=data.get("pinned_order"),
+            archived_at=data.get("archived_at"),
+            last_activity_at=data.get("last_activity_at"),
+            views_count=data.get("views_count", 0),
+            last_viewed_at=data.get("last_viewed_at"),
             created_at=data.get("created_at"),
             updated_at=data.get("updated_at"),
             soft_deleted_at=data.get("soft_deleted_at"),

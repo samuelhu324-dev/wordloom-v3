@@ -94,7 +94,8 @@ class AggregateRoot(ABC):
     Example:
         class Book(AggregateRoot):
             def __init__(self, id: UUID, title: str, author: str):
-                super().__init__(id)
+                super().__init__()  # No parameters needed
+                self.id = id
                 self.title = title
                 self.author = author
 
@@ -111,11 +112,15 @@ class AggregateRoot(ABC):
     updated_at: datetime
     _events: List[DomainEvent] = []
 
-    def __init__(self, id: UUID):
-        self.id = id
-        self.created_at = datetime.now(timezone.utc)
-        self.updated_at = datetime.now(timezone.utc)
-        self._events = []
+    def __init__(self):
+        # Do NOT set id here - subclasses will set it
+        # Only initialize timestamps and events
+        if not hasattr(self, 'created_at') or self.created_at is None:
+            self.created_at = datetime.now(timezone.utc)
+        if not hasattr(self, 'updated_at') or self.updated_at is None:
+            self.updated_at = datetime.now(timezone.utc)
+        if not hasattr(self, '_events'):
+            self._events = []
 
     def add_event(self, event: DomainEvent) -> None:
         """
@@ -128,6 +133,15 @@ class AggregateRoot(ABC):
             event: DomainEvent instance to add
         """
         self._events.append(event)
+
+    # Convenience alias used by some aggregates (legacy naming)
+    def emit(self, event: DomainEvent) -> None:
+        """Alias for add_event to support legacy aggregate code calling `emit()`.
+
+        Args:
+            event: DomainEvent instance to add
+        """
+        self.add_event(event)
 
     def get_events(self) -> List[DomainEvent]:
         """
@@ -145,82 +159,4 @@ class AggregateRoot(ABC):
         Called by repository after saving to database and publishing events.
         Ensures events are not replayed on subsequent saves.
         """
-        self._events.clear()
-
-
-from abc import ABC
-from typing import List, Any
-from datetime import datetime, timezone
-from uuid import UUID
-
-
-class ValueObject(ABC):
-    """
-    Base class for Value Objects
-
-    Characteristics:
-    - No identity (immutable)
-    - Compared by value, not reference
-    - No database id column
-    """
-
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, self.__class__):
-            return False
-        return self.__dict__ == other.__dict__
-
-    def __hash__(self) -> int:
-        return hash(tuple(sorted(self.__dict__.items())))
-
-
-class DomainEvent(ABC):
-    """
-    Base class for Domain Events
-
-    Characteristics:
-    - Records something that happened in domain
-    - Immutable (occurred in past)
-    - Timestamp indicates when event occurred
-    - Can be published to event bus for side effects
-    """
-
-    occurred_at: datetime
-
-    def __init__(self):
-        self.occurred_at = datetime.now(timezone.utc)
-
-
-class AggregateRoot(ABC):
-    """
-    Base class for Aggregate Roots
-
-    Characteristics:
-    - Has identity (UUID)
-    - Contains value objects and entities
-    - Enforces invariants within aggregate boundary
-    - Publishes domain events when state changes
-    - Responsible for transaction consistency
-    """
-
-    id: UUID
-    created_at: datetime
-    updated_at: datetime
-    _events: List[DomainEvent] = []
-
-    def __init__(self, id: UUID):
-        self.id = id
-        self.created_at = datetime.now(timezone.utc)
-        self.updated_at = datetime.now(timezone.utc)
-        self._events = []
-
-    def add_event(self, event: DomainEvent) -> None:
-        """Add event to pending events (will be published on save)"""
-        self._events.append(event)
-
-    def get_events(self) -> List[DomainEvent]:
-        """Get all pending events"""
-        return self._events.copy()
-
-    def clear_events(self) -> None:
-        """Clear pending events (called after saving to database)"""
         self._events.clear()

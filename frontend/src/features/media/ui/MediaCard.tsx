@@ -14,26 +14,26 @@ export const MediaCard = React.forwardRef<HTMLDivElement, MediaCardProps>(
     return (
       <Card ref={ref} className={styles.card}>
         <div className={styles.preview}>
-          {media.type.startsWith('image/') ? (
-            <img src={media.url} alt={media.filename} className={styles.image} />
+          {media.mime_type.startsWith('image/') ? (
+            <img src={media.path} alt={media.path} className={styles.image} />
           ) : (
-            <div className={styles.filetype}>{media.type}</div>
+            <div className={styles.filetype}>{media.media_type}</div>
           )}
         </div>
         <div className={styles.content}>
-          <h4>{media.filename}</h4>
-          <p className={styles.meta}>{(media.size / 1024).toFixed(2)} KB</p>
-          {media.deleted_at && <span className={styles.deleted}>Deleted</span>}
+          <h4>{media.path.split('/').pop()}</h4>
+          <p className={styles.meta}>{(media.size_bytes / 1024).toFixed(2)} KB</p>
+          {media.trashed_at && <span className={styles.deleted}>已删除</span>}
         </div>
         <div className={styles.actions}>
-          {media.deleted_at && onRestore && (
+          {media.trashed_at && onRestore && (
             <Button variant="secondary" size="sm" onClick={() => onRestore(media.id)}>
-              Restore
+              恢复
             </Button>
           )}
           {onDelete && (
             <Button variant="danger" size="sm" onClick={() => onDelete(media.id)}>
-              Delete
+              删除
             </Button>
           )}
         </div>

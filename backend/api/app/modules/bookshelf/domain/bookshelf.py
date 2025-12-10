@@ -30,6 +30,9 @@ from .events import (
     BookshelfDeleted,
 )
 
+# Default display name for the hidden Basement bookshelf
+DEFAULT_BASEMENT_NAME = "Basement"
+
 
 # ============================================================================
 # Enums
@@ -113,6 +116,7 @@ class Bookshelf(AggregateRoot):
         name: str,
         description: Optional[str] = None,
         type_: BookshelfType = BookshelfType.NORMAL,
+        bookshelf_id: Optional[UUID] = None,
     ) -> Bookshelf:
         """
         Factory method to create a new Bookshelf
@@ -130,7 +134,7 @@ class Bookshelf(AggregateRoot):
             bookshelf_description = BookshelfDescription(description)
 
         bookshelf = Bookshelf(
-            id=uuid4(),
+            id=bookshelf_id or uuid4(),
             library_id=library_id,
             name=bookshelf_name,
             description=bookshelf_description,
@@ -151,6 +155,23 @@ class Bookshelf(AggregateRoot):
         )
 
         return bookshelf
+
+    @staticmethod
+    def create_basement(
+        library_id: UUID,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        bookshelf_id: Optional[UUID] = None,
+    ) -> Bookshelf:
+        """Factory helper for the special Basement bookshelf."""
+        return Bookshelf.create(
+            library_id=library_id,
+            name=name or DEFAULT_BASEMENT_NAME,
+            description=description,
+            type_=BookshelfType.BASEMENT,
+            bookshelf_id=bookshelf_id,
+        )
 
     # ========================================================================
     # Business Methods
@@ -340,3 +361,7 @@ class Bookshelf(AggregateRoot):
     def can_be_deleted(self) -> bool:
         """Check if bookshelf can be deleted"""
         return self.type != BookshelfType.BASEMENT
+
+    def get_name_value(self) -> str:
+        """Expose the primitive shelf name used by legacy callers."""
+        return self.name.value

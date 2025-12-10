@@ -7,7 +7,7 @@ Provides:
 - BaseResponse: Generic response envelope
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Generic, TypeVar, List, Any, Optional
 from datetime import datetime
 
@@ -40,8 +40,7 @@ class PageResponse(BaseModel, Generic[T]):
         """Alias for total_pages"""
         return self.total_pages
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ErrorResponse(BaseModel):
@@ -58,8 +57,8 @@ class ErrorResponse(BaseModel):
     details: Optional[dict] = Field(None, description="Additional context")
     trace_id: Optional[str] = Field(None, description="Request ID for debugging")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "error_code": "LIBRARY_NOT_FOUND",
                 "message": "Library '123' not found",
@@ -68,6 +67,7 @@ class ErrorResponse(BaseModel):
                 "trace_id": "req-abc123",
             }
         }
+    )
 
 
 class BaseResponse(BaseModel):
@@ -89,12 +89,13 @@ class BaseResponse(BaseModel):
     error: Optional[ErrorResponse] = Field(None, description="Error details if failed")
     timestamp: datetime = Field(default_factory=lambda: datetime.utcnow())
 
-    class Config:
-        arbitrary_types_allowed = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        json_schema_extra={
             "example": {
                 "success": True,
                 "data": {"id": "123", "name": "My Library"},
                 "timestamp": "2025-11-14T10:30:00Z",
             }
-        }
+        },
+    )

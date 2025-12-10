@@ -14,7 +14,7 @@ export const TagBadge = React.forwardRef<HTMLDivElement, TagBadgeProps>(
       <div ref={ref} className={styles.badge}>
         <span>{tag.name}</span>
         {onRemove && (
-          <Button variant="ghost" size="sm" onClick={() => onRemove(tag.id)}>
+          <Button variant="secondary" size="sm" onClick={() => onRemove(tag.id)}>
             ×
           </Button>
         )}

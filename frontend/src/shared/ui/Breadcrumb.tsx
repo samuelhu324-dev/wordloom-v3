@@ -12,9 +12,21 @@ export const Breadcrumb: React.FC<{ items: BreadcrumbItem[] }> = ({ items }) => 
       {items.map((item, idx) => (
         <span key={idx}>
           {item.href && !item.active ? (
-            <a href={item.href} style={{ color: '#06c' }}>{item.label}</a>
+            <a
+              href={item.href}
+              style={{ color: 'var(--color-brand-wordmark, var(--color-primary))' }}
+            >
+              {item.label}
+            </a>
           ) : (
-            <span style={{ fontWeight: item.active ? 600 : 400 }}>{item.label}</span>
+            <span
+              style={{
+                fontWeight: item.active ? 600 : 400,
+                color: item.active ? 'inherit' : undefined,
+              }}
+            >
+              {item.label}
+            </span>
           )}
           {idx < items.length - 1 && <span> / </span>}
         </span>

@@ -1,0 +1,133 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--card-shadow);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--card-shadow-hover);
+  border-color: var(--color-primary);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--color-bg-secondary), var(--color-bg-tertiary));
+}
+
+.cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: inherit;
+}
+
+.icon {
+  font-size: 48px;
+  opacity: 0.6;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card:hover .overlay {
+  opacity: 1;
+}
+
+.overlayText {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+}
+
+.content {
+  padding: var(--spacing-md);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-xs) 0;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.description {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin: 0 0 auto 0;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 12px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  padding: 4px 8px;
+  border-radius: 12px;
+  margin-top: var(--spacing-sm);
+  width: fit-content;
+}
+
+@media (max-width: 768px) {
+  .card {
+    border-radius: 8px;
+  }
+
+  .title {
+    font-size: 15px;
+  }
+
+  .description {
+    font-size: 13px;
+  }
+}

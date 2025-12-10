@@ -11,6 +11,7 @@ Modules (one per domain):
   - bookshelf_repository_impl.py: SQLAlchemyBookshelfRepository
   - book_repository_impl.py: SQLAlchemyBookRepository
   - block_repository_impl.py: SQLAlchemyBlockRepository
+  - maturity_repository_impl.py: SQLAlchemyMaturitySnapshotRepository
 
 These adapters are injected into use cases via DI container.
 """
@@ -21,6 +22,9 @@ from .library_repository_impl import SQLAlchemyLibraryRepository
 from .bookshelf_repository_impl import SQLAlchemyBookshelfRepository
 from .book_repository_impl import SQLAlchemyBookRepository
 from .block_repository_impl import SQLAlchemyBlockRepository
+from .library_tag_association_repository_impl import SQLAlchemyLibraryTagAssociationRepository
+from .chronicle_repository_impl import SQLAlchemyChronicleRepository
+from .maturity_repository_impl import SQLAlchemyMaturitySnapshotRepository
 
 __all__ = [
     "SQLAlchemyTagRepository",
@@ -29,5 +33,8 @@ __all__ = [
     "SQLAlchemyBookshelfRepository",
     "SQLAlchemyBookRepository",
     "SQLAlchemyBlockRepository",
+    "SQLAlchemyLibraryTagAssociationRepository",
+    "SQLAlchemyChronicleRepository",
+    "SQLAlchemyMaturitySnapshotRepository",
 ]
 

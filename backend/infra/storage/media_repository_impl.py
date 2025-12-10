@@ -17,8 +17,8 @@ Architecture:
 from typing import List, Optional, Tuple
 from uuid import UUID
 from datetime import datetime, timezone, timedelta
-from sqlalchemy import and_, func
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.app.modules.media.domain import Media, MediaState, EntityTypeForMedia
 from api.app.modules.media.domain import (
@@ -49,7 +49,7 @@ class SQLAlchemyMediaRepository(MediaRepository):
     - Handle transaction rollback on errors
     """
 
-    def __init__(self, db_session: Session):
+    def __init__(self, db_session: AsyncSession):
         """Initialize repository with database session
 
         Args:
@@ -60,13 +60,19 @@ class SQLAlchemyMediaRepository(MediaRepository):
     async def save(self, media: Media) -> Media:
         """Persist media (create or update)"""
         try:
-            existing = self.session.query(MediaModel).filter(
-                MediaModel.id == media.id
-            ).first()
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"[SAVE] Attempting to save media: id={media.id}, user_id={media.user_id}, storage_key={media.storage_key}, filename={media.filename}")
+
+            stmt = select(MediaModel).where(MediaModel.id == media.id)
+            result = await self.session.execute(stmt)
+            existing = result.scalar_one_or_none()
 
             if existing:
-                # Update
+                logger.info(f"[SAVE] Updating existing media: {media.id}")
                 existing.filename = media.filename
+                existing.user_id = media.user_id
+                existing.media_type = media.media_type.value
                 existing.mime_type = media.mime_type.value
                 existing.file_size = media.file_size
                 existing.width = media.width
@@ -77,9 +83,10 @@ class SQLAlchemyMediaRepository(MediaRepository):
                 existing.deleted_at = media.deleted_at
                 existing.updated_at = media.updated_at
             else:
-                # Insert
+                logger.info(f"[SAVE] Creating new media: {media.id}")
                 model = MediaModel(
                     id=media.id,
+                    user_id=media.user_id,
                     filename=media.filename,
                     storage_key=media.storage_key,
                     media_type=media.media_type.value,
@@ -95,55 +102,106 @@ class SQLAlchemyMediaRepository(MediaRepository):
                     updated_at=media.updated_at,
                 )
                 self.session.add(model)
+                logger.info(f"[SAVE] Model added to session")
 
-            self.session.commit()
+            await self.session.commit()
+            logger.info(f"[SAVE] Successfully committed media: {media.id}")
+            # Verify the saved data by loading from database
+            logger.info(f"[SAVE] Verifying save by loading from database...")
+            stmt_verify = select(MediaModel).where(MediaModel.id == media.id)
+            result_verify = await self.session.execute(stmt_verify)
+            verified_model = result_verify.scalar_one_or_none()
+            if verified_model:
+                logger.info(f"[SAVE] Verified: media_type={verified_model.media_type}, state={verified_model.state}")
             return media
 
         except Exception as e:
-            self.session.rollback()
-            raise MediaRepositorySaveError(str(e))
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception(f"[MediaRepositoryImpl.save] Exception during save: {type(e).__name__}: {e}")
+            await self.session.rollback()
+            # Include original exception type and message for diagnostic clarity
+            raise MediaRepositorySaveError(f"{type(e).__name__}: {e}")
 
     async def get_by_id(self, media_id: UUID) -> Optional[Media]:
         """Fetch media by ID"""
         try:
-            model = self.session.query(MediaModel).filter(
-                MediaModel.id == media_id
-            ).first()
+            stmt = select(MediaModel).where(MediaModel.id == media_id)
+            result = await self.session.execute(stmt)
+            model = result.scalar_one_or_none()
             if not model:
                 return None
             return self._model_to_domain(model)
         except Exception as e:
             raise MediaRepositoryQueryError(str(e))
 
+    async def list_active(self, skip: int = 0, limit: int = 100) -> List[Media]:
+        """List active media items (without totals)"""
+        media, _ = await self.find_active(skip=skip, limit=limit)
+        return media
+
+    async def list_in_trash(self, skip: int = 0, limit: int = 100) -> List[Media]:
+        """List trash media items (without totals)"""
+        media, _ = await self.find_in_trash(skip=skip, limit=limit)
+        return media
+
     async def delete(self, media_id: UUID) -> None:
+        """Hard delete media (delegates to purge semantics)"""
+        await self.purge(media_id)
+
+    async def purge_expired(self, older_than_days: int = 30) -> int:
+        """Purge all media older than the given retention threshold"""
+        eligible = await self.find_eligible_for_purge(older_than_days)
+        purged = 0
+        for media in eligible:
+            await self.purge(media.id)
+            purged += 1
+        return purged
+
+    async def count_by_state(self, state: MediaState) -> int:
+        """Count media items in the specified state"""
+        try:
+            stmt = select(func.count(MediaModel.id)).where(
+                and_(
+                    MediaModel.state == state.value,
+                    MediaModel.deleted_at.is_(None)
+                )
+            )
+            result = await self.session.execute(stmt)
+            return result.scalar_one()
+        except Exception as e:
+            raise MediaRepositoryQueryError(str(e))
+
+    async def move_to_trash(self, media_id: UUID) -> None:
         """Soft delete media (move to trash)"""
         try:
-            model = self.session.query(MediaModel).filter(
-                MediaModel.id == media_id
-            ).first()
+            stmt = select(MediaModel).where(MediaModel.id == media_id)
+            result = await self.session.execute(stmt)
+            model = result.scalar_one_or_none()
             if not model:
                 raise MediaNotFoundError(media_id)
 
             if model.state == ModelMediaState.TRASH.value:
                 raise MediaInTrashError(media_id, "delete")
 
+            now = datetime.now(timezone.utc)
             model.state = ModelMediaState.TRASH.value
-            model.trash_at = datetime.now(timezone.utc)
-            model.updated_at = datetime.now(timezone.utc)
-            self.session.commit()
+            model.trash_at = now
+            model.updated_at = now
+            await self.session.commit()
 
         except (MediaNotFoundError, MediaInTrashError):
             raise
         except Exception as e:
-            self.session.rollback()
+            await self.session.rollback()
             raise MediaRepositoryDeleteError(str(e))
 
-    async def restore(self, media_id: UUID) -> None:
+    async def restore_from_trash(self, media_id: UUID) -> None:
         """Restore media from trash"""
         try:
-            model = self.session.query(MediaModel).filter(
-                MediaModel.id == media_id
-            ).first()
+            stmt = select(MediaModel).where(MediaModel.id == media_id)
+            result = await self.session.execute(stmt)
+            model = result.scalar_one_or_none()
             if not model:
                 raise MediaNotFoundError(media_id)
 
@@ -156,20 +214,20 @@ class SQLAlchemyMediaRepository(MediaRepository):
             model.state = ModelMediaState.ACTIVE.value
             model.trash_at = None
             model.updated_at = datetime.now(timezone.utc)
-            self.session.commit()
+            await self.session.commit()
 
         except (MediaNotFoundError, CannotRestoreError):
             raise
         except Exception as e:
-            self.session.rollback()
+            await self.session.rollback()
             raise MediaRepositoryDeleteError(str(e))
 
     async def purge(self, media_id: UUID) -> None:
         """Hard delete media (after 30-day retention)"""
         try:
-            model = self.session.query(MediaModel).filter(
-                MediaModel.id == media_id
-            ).first()
+            stmt = select(MediaModel).where(MediaModel.id == media_id)
+            result = await self.session.execute(stmt)
+            model = result.scalar_one_or_none()
             if not model:
                 raise MediaNotFoundError(media_id)
 
@@ -179,7 +237,6 @@ class SQLAlchemyMediaRepository(MediaRepository):
                     "Media is not in trash"
                 )
 
-            # Check 30-day retention
             if model.trash_at:
                 trash_duration = datetime.now(timezone.utc) - model.trash_at
                 thirty_days = timedelta(days=30)
@@ -192,12 +249,12 @@ class SQLAlchemyMediaRepository(MediaRepository):
                     )
 
             model.deleted_at = datetime.now(timezone.utc)
-            self.session.commit()
+            await self.session.commit()
 
         except (MediaNotFoundError, CannotPurgeError):
             raise
         except Exception as e:
-            self.session.rollback()
+            await self.session.rollback()
             raise MediaRepositoryDeleteError(str(e))
 
     async def find_by_entity(
@@ -207,24 +264,28 @@ class SQLAlchemyMediaRepository(MediaRepository):
     ) -> List[Media]:
         """Get all active media associated with an entity"""
         try:
-            associations = self.session.query(MediaAssociationModel).filter(
+            assoc_stmt = select(MediaAssociationModel).where(
                 and_(
                     MediaAssociationModel.entity_type == entity_type.value,
                     MediaAssociationModel.entity_id == entity_id
                 )
-            ).all()
+            )
+            assoc_result = await self.session.execute(assoc_stmt)
+            associations = assoc_result.scalars().all()
 
             media_ids = [assoc.media_id for assoc in associations]
             if not media_ids:
                 return []
 
-            models = self.session.query(MediaModel).filter(
+            media_stmt = select(MediaModel).where(
                 and_(
                     MediaModel.id.in_(media_ids),
                     MediaModel.state == ModelMediaState.ACTIVE.value,
                     MediaModel.deleted_at.is_(None)
                 )
-            ).all()
+            )
+            media_result = await self.session.execute(media_stmt)
+            models = media_result.scalars().all()
             return [self._model_to_domain(m) for m in models]
 
         except Exception as e:
@@ -237,23 +298,25 @@ class SQLAlchemyMediaRepository(MediaRepository):
     ) -> Tuple[List[Media], int]:
         """Get paginated trash media with total count"""
         try:
-            # Count total
-            total = self.session.query(func.count(MediaModel.id)).filter(
+            count_stmt = select(func.count(MediaModel.id)).where(
                 and_(
                     MediaModel.state == ModelMediaState.TRASH.value,
                     MediaModel.deleted_at.is_(None)
                 )
-            ).scalar()
+            )
+            count_result = await self.session.execute(count_stmt)
+            total = count_result.scalar_one()
 
-            # Get paginated items
-            models = self.session.query(MediaModel).filter(
+            list_stmt = select(MediaModel).where(
                 and_(
                     MediaModel.state == ModelMediaState.TRASH.value,
                     MediaModel.deleted_at.is_(None)
                 )
             ).order_by(
                 MediaModel.trash_at.desc()
-            ).offset(skip).limit(limit).all()
+            ).offset(skip).limit(limit)
+            list_result = await self.session.execute(list_stmt)
+            models = list_result.scalars().all()
 
             return [self._model_to_domain(m) for m in models], total
 
@@ -267,23 +330,25 @@ class SQLAlchemyMediaRepository(MediaRepository):
     ) -> Tuple[List[Media], int]:
         """Get paginated active media with total count"""
         try:
-            # Count total
-            total = self.session.query(func.count(MediaModel.id)).filter(
+            count_stmt = select(func.count(MediaModel.id)).where(
                 and_(
                     MediaModel.state == ModelMediaState.ACTIVE.value,
                     MediaModel.deleted_at.is_(None)
                 )
-            ).scalar()
+            )
+            count_result = await self.session.execute(count_stmt)
+            total = count_result.scalar_one()
 
-            # Get paginated items
-            models = self.session.query(MediaModel).filter(
+            list_stmt = select(MediaModel).where(
                 and_(
                     MediaModel.state == ModelMediaState.ACTIVE.value,
                     MediaModel.deleted_at.is_(None)
                 )
             ).order_by(
                 MediaModel.created_at.desc()
-            ).offset(skip).limit(limit).all()
+            ).offset(skip).limit(limit)
+            list_result = await self.session.execute(list_stmt)
+            models = list_result.scalars().all()
 
             return [self._model_to_domain(m) for m in models], total
 
@@ -293,28 +358,32 @@ class SQLAlchemyMediaRepository(MediaRepository):
     async def count_in_trash(self) -> int:
         """Count total media items in trash"""
         try:
-            return self.session.query(func.count(MediaModel.id)).filter(
+            stmt = select(func.count(MediaModel.id)).where(
                 and_(
                     MediaModel.state == ModelMediaState.TRASH.value,
                     MediaModel.deleted_at.is_(None)
                 )
-            ).scalar()
+            )
+            result = await self.session.execute(stmt)
+            return result.scalar_one()
         except Exception as e:
             raise MediaRepositoryQueryError(str(e))
 
-    async def find_eligible_for_purge(self) -> List[Media]:
-        """Find media that has been in trash for 30+ days"""
+    async def find_eligible_for_purge(self, older_than_days: int = 30) -> List[Media]:
+        """Find media that has been in trash past the retention threshold"""
         try:
-            thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+            threshold = datetime.now(timezone.utc) - timedelta(days=older_than_days)
 
-            models = self.session.query(MediaModel).filter(
+            stmt = select(MediaModel).where(
                 and_(
                     MediaModel.state == ModelMediaState.TRASH.value,
                     MediaModel.trash_at.isnot(None),
-                    MediaModel.trash_at <= thirty_days_ago,
+                    MediaModel.trash_at <= threshold,
                     MediaModel.deleted_at.is_(None)
                 )
-            ).all()
+            )
+            result = await self.session.execute(stmt)
+            models = result.scalars().all()
 
             return [self._model_to_domain(m) for m in models]
 
@@ -324,12 +393,14 @@ class SQLAlchemyMediaRepository(MediaRepository):
     async def find_by_storage_key(self, storage_key: str) -> Optional[Media]:
         """Find media by storage key (for duplicate prevention)"""
         try:
-            model = self.session.query(MediaModel).filter(
+            stmt = select(MediaModel).where(
                 and_(
                     MediaModel.storage_key == storage_key,
                     MediaModel.deleted_at.is_(None)
                 )
-            ).first()
+            )
+            result = await self.session.execute(stmt)
+            model = result.scalar_one_or_none()
             if not model:
                 return None
             return self._model_to_domain(model)
@@ -344,19 +415,19 @@ class SQLAlchemyMediaRepository(MediaRepository):
     ) -> None:
         """Create media-entity association"""
         try:
-            # Check if association already exists
-            existing = self.session.query(MediaAssociationModel).filter(
+            stmt = select(MediaAssociationModel).where(
                 and_(
                     MediaAssociationModel.media_id == media_id,
                     MediaAssociationModel.entity_type == entity_type.value,
                     MediaAssociationModel.entity_id == entity_id
                 )
-            ).first()
+            )
+            result = await self.session.execute(stmt)
+            existing = result.scalar_one_or_none()
 
             if existing:
-                return  # Idempotent
+                return
 
-            # Create new association
             model = MediaAssociationModel(
                 media_id=media_id,
                 entity_type=entity_type.value,
@@ -364,10 +435,10 @@ class SQLAlchemyMediaRepository(MediaRepository):
                 created_at=datetime.now(timezone.utc)
             )
             self.session.add(model)
-            self.session.commit()
+            await self.session.commit()
 
         except Exception as e:
-            self.session.rollback()
+            await self.session.rollback()
             raise MediaRepositorySaveError(str(e))
 
     async def disassociate_media_from_entity(
@@ -378,42 +449,48 @@ class SQLAlchemyMediaRepository(MediaRepository):
     ) -> None:
         """Remove media-entity association"""
         try:
-            assoc = self.session.query(MediaAssociationModel).filter(
+            stmt = select(MediaAssociationModel).where(
                 and_(
                     MediaAssociationModel.media_id == media_id,
                     MediaAssociationModel.entity_type == entity_type.value,
                     MediaAssociationModel.entity_id == entity_id
                 )
-            ).first()
+            )
+            result = await self.session.execute(stmt)
+            assoc = result.scalar_one_or_none()
 
             if not assoc:
-                return  # Idempotent
+                return
 
-            self.session.delete(assoc)
-            self.session.commit()
+            await self.session.delete(assoc)
+            await self.session.commit()
 
         except Exception as e:
-            self.session.rollback()
+            await self.session.rollback()
             raise MediaRepositoryDeleteError(str(e))
 
     async def count_associations(self, media_id: UUID) -> int:
         """Count total associations for media"""
         try:
-            return self.session.query(func.count(MediaAssociationModel.id)).filter(
+            stmt = select(func.count(MediaAssociationModel.id)).where(
                 MediaAssociationModel.media_id == media_id
-            ).scalar()
+            )
+            result = await self.session.execute(stmt)
+            return result.scalar_one()
         except Exception as e:
             raise MediaRepositoryQueryError(str(e))
 
     async def check_key_exists(self, storage_key: str) -> bool:
         """Check if a storage key already exists"""
         try:
-            return self.session.query(MediaModel).filter(
+            stmt = select(MediaModel).where(
                 and_(
                     MediaModel.storage_key == storage_key,
                     MediaModel.deleted_at.is_(None)
                 )
-            ).first() is not None
+            )
+            result = await self.session.execute(stmt)
+            return result.scalar_one_or_none() is not None
         except Exception as e:
             raise MediaRepositoryQueryError(str(e))
 
@@ -423,18 +500,26 @@ class SQLAlchemyMediaRepository(MediaRepository):
 
     def _model_to_domain(self, model: MediaModel) -> Media:
         """Convert ORM model to domain object"""
-        from api.app.modules.media.domain import MediaMimeType
+        from api.app.modules.media.domain import MediaType, MediaMimeType, MediaState
+
+        # Handle string values from database
+        media_type = MediaType(model.media_type) if model.media_type else MediaType.IMAGE
+        mime_type = MediaMimeType(model.mime_type) if model.mime_type else MediaMimeType.JPEG
+        state_value = (model.state or MediaState.ACTIVE.value)
+        state = MediaState(state_value.upper()) if isinstance(state_value, str) else MediaState.ACTIVE
+
         return Media(
             id=model.id,
+            user_id=model.user_id,
             filename=model.filename,
-            media_type=model.media_type,
-            mime_type=MediaMimeType(model.mime_type),
+            media_type=media_type,
+            mime_type=mime_type,
             file_size=model.file_size,
             storage_key=model.storage_key,
             width=model.width,
             height=model.height,
             duration_ms=model.duration_ms,
-            state=model.state,
+            state=state,
             trash_at=model.trash_at,
             deleted_at=model.deleted_at,
             created_at=model.created_at,

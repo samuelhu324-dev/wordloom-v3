@@ -1,0 +1,2 @@
+src/widgets/**/*.tsx
+src/features/media/ui/ImageUrlDialog.tsx

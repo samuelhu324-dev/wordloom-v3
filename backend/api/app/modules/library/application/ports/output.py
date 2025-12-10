@@ -17,8 +17,11 @@ Cross-Reference:
 """
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional, List
 from uuid import UUID
+from enum import Enum
 
 from api.app.modules.library.domain import Library
 
@@ -116,31 +119,35 @@ class ILibraryRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_by_user_id(self, user_id: UUID) -> Optional[Library]:
+    async def list_by_user_id(self, user_id: UUID) -> List[Library]:
         """
-        Retrieve a Library by user ID (unique relationship - RULE-001)
-
-        Implements RULE-001: Each user has exactly one Library
+        List all Libraries owned by a user (multi-library supported)
 
         Args:
-            user_id: UUID of the user who owns the library
+            user_id: UUID of the user who owns the libraries
 
         Returns:
-            Library domain aggregate if found, None otherwise
-            (Excludes soft-deleted libraries)
-
-        Behavior:
-        - Should return exactly one or zero libraries (RULE-001 invariant)
-        - If multiple found: log error (data corruption) and return first one
+            List of Library domain aggregates (excludes soft-deleted libraries)
 
         Side Effects:
-        - Database: Single SELECT query with WHERE user_id = ?
-        - Session: Adds Library to SQLAlchemy identity map
+        - Database: SELECT query with WHERE user_id = ?
+        - Session: Adds results to SQLAlchemy identity map
 
         Example:
-            library = await repository.get_by_user_id(user_id)
-            # Per RULE-001, this is the user's one and only library
+            libraries = await repository.list_by_user_id(user_id)
         """
+        pass
+
+    @abstractmethod
+    async def list_overview(
+        self,
+        *,
+        query: Optional[str] = None,
+        include_archived: bool = False,
+        sort: "LibrarySort" = None,
+        pinned_first: bool = True,
+    ) -> List[Library]:
+        """List libraries with sorting/search options for overview page."""
         pass
 
     @abstractmethod
@@ -286,6 +293,57 @@ class IBookshelfRepository(ABC):
 
 
 # ============================================================================
+# Output Port: ILibraryTagAssociationRepository
+# ============================================================================
+
+@dataclass(frozen=True)
+class LibraryTagAssociationDTO:
+    """Lightweight tag record used to hydrate Plan_31 chips."""
+
+    library_id: UUID
+    tag_id: UUID
+    tag_name: str
+    tag_color: str
+    tag_description: Optional[str]
+    created_at: datetime
+
+
+class ILibraryTagAssociationRepository(ABC):
+    """Repository contract for Library ↔ Tag associations."""
+
+    @abstractmethod
+    async def fetch_option_a_tags(
+        self,
+        library_ids: List[UUID],
+        *,
+        limit_per_library: int = 3,
+    ) -> List[LibraryTagAssociationDTO]:
+        """Return earliest-created tags per Library for chip row rendering."""
+        pass
+
+    @abstractmethod
+    async def count_tags_by_library(self, library_ids: List[UUID]) -> dict[UUID, int]:
+        """Return total tag counts for each Library (Option A +N tooltip)."""
+        pass
+
+    @abstractmethod
+    async def replace_library_tags(
+        self,
+        library_id: UUID,
+        tag_ids: List[UUID],
+        *,
+        actor_id: Optional[UUID] = None,
+    ) -> None:
+        """Replace Library tag associations atomically (used by edit modal)."""
+        pass
+
+    @abstractmethod
+    async def list_tag_ids(self, library_id: UUID) -> List[UUID]:
+        """Return all tag IDs currently linked to the Library."""
+        pass
+
+
+# ============================================================================
 # Module Exports
 # ============================================================================
 
@@ -293,5 +351,17 @@ __all__ = [
     "ILibraryRepository",
     "IBookRepository",
     "IBookshelfRepository",
+    "ILibraryTagAssociationRepository",
+    "LibraryTagAssociationDTO",
+    "LibrarySort",
 ]
+
+
+class LibrarySort(str, Enum):
+    """Sorting strategy for library overview listing."""
+
+    LAST_ACTIVITY_DESC = "last_activity"
+    CREATED_DESC = "created"
+    NAME_ASC = "name"
+    VIEWS_DESC = "views"
 

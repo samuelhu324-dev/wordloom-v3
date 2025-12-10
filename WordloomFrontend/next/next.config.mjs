@@ -2,8 +2,8 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      { protocol: 'http', hostname: 'localhost', port: '8000', pathname: '/uploads/**' },
-      { protocol: 'http', hostname: 'localhost', port: '8000', pathname: '/media/**' },
+      { protocol: 'http', hostname: 'localhost', port: '18080', pathname: '/uploads/**' },
+      { protocol: 'http', hostname: 'localhost', port: '18080', pathname: '/media/**' },
     ],
   },
 
@@ -13,12 +13,12 @@ const nextConfig = {
         // Orbit 图片 - 直接转发到后端的 /uploads
         {
           source: "/uploads/:path*",
-          destination: "http://localhost:8000/uploads/:path*",
+          destination: "http://localhost:18080/uploads/:path*",
         },
         // Orbit API
         {
           source: "/api/orbit/:path*",
-          destination: "http://localhost:8000/api/orbit/:path*",
+          destination: "http://localhost:18080/api/orbit/:path*",
         },
         // Loom API
         {

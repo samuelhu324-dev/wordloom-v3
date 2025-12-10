@@ -38,6 +38,7 @@ from .base import Base
 
 class EntityType(PyEnum):
     """Enum for entity types that can be tagged"""
+    LIBRARY = "library"
     BOOKSHELF = "bookshelf"
     BOOK = "book"
     BLOCK = "block"
@@ -78,6 +79,11 @@ class TagModel(Base):
     )
 
     # Core fields
+    user_id = Column(
+        UUID(as_uuid=True),
+        nullable=False
+    )
+
     name = Column(
         String(50),
         nullable=False,
@@ -85,12 +91,15 @@ class TagModel(Base):
     )
 
     color = Column(
-        String(9),  # #RRGGBB or #RRGGBBAA
-        nullable=False
+        String(7),  # Stored as #RRGGBB
+        nullable=False,
+        default="#6366F1"
     )
 
     icon = Column(
-        String(50),
+        "icon_emoji",
+        String(10),
+        key="icon",
         nullable=True
     )
 
@@ -124,20 +133,20 @@ class TagModel(Base):
 
     # Metadata
     created_at = Column(
-        DateTime,
+        DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(dt.timezone.utc)
     )
 
     updated_at = Column(
-        DateTime,
+        DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(dt.timezone.utc),
         onupdate=lambda: datetime.now(dt.timezone.utc)
     )
 
     deleted_at = Column(
-        DateTime,
+        DateTime(timezone=True),
         nullable=True,
         index=True
     )
@@ -152,24 +161,17 @@ class TagModel(Base):
 
     # Constraints
     __table_args__ = (
-        UniqueConstraint(
-            "name",
-            name="uq_tags_name_active"
-        ),
-        Index(
-            "ix_tags_parent_level",
-            "parent_tag_id", "level"
-        ),
-        Index(
-            "ix_tags_usage_count",
-            "usage_count"
-        ),
+        UniqueConstraint("user_id", "name", name="uq_tags_user_name"),
+        Index("idx_tags_user_id", "user_id"),
+        Index("idx_tags_parent_tag_id", "parent_tag_id"),
+        Index("idx_tags_deleted_at", "deleted_at"),
     )
 
     def to_dict(self) -> dict:
         """Convert ORM model to dictionary (for serialization)"""
         return {
             "id": str(self.id),
+            "user_id": self.user_id,
             "name": self.name,
             "color": self.color,
             "icon": self.icon,
@@ -189,6 +191,7 @@ class TagModel(Base):
 
         return TagModel(
             id=UUID(data["id"]) if "id" in data else uuid4(),
+            user_id=data.get("user_id", 1),
             name=data["name"],
             color=data["color"],
             icon=data.get("icon"),
@@ -205,10 +208,10 @@ class TagModel(Base):
 class TagAssociationModel(Base):
     """TagAssociation ORM Model
 
-    Represents the N:N relationship between Tags and entities (Books/Bookshelves/Blocks).
+    Represents the N:N relationship between Tags and entities (Libraries/Bookshelves/Books/Blocks).
 
     Key Features:
-    - Links a Tag to a specific entity (Book/Bookshelf/Block)
+    - Links a Tag to a specific entity (Library/Book/Bookshelf/Block)
     - entity_type determines the target entity class
     - Separate table for each entity type would require JOINs; this is denormalized for query performance
     - Soft delete is NOT used here; associations are hard-deleted when a tag/entity is deleted
@@ -221,6 +224,7 @@ class TagAssociationModel(Base):
 
     Query Patterns:
     - Get all tags for a book: SELECT * FROM tag_associations WHERE entity_type='book' AND entity_id=?
+    - Get all tags for a library: SELECT * FROM tag_associations WHERE entity_type='library' AND entity_id=?
     - Get all entities tagged with a tag: SELECT * FROM tag_associations WHERE tag_id=?
     - Check if association exists: SELECT COUNT(*) FROM tag_associations WHERE tag_id=? AND entity_type=? AND entity_id=?
     """

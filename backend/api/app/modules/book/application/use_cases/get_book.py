@@ -1,46 +1,40 @@
-"""GetBook UseCase - Get a book by ID
+"""GetBook UseCase - Retrieve a book by ID
 
-This use case handles:
-- Validating book exists (not soft-deleted)
-- Returning Book domain object
+Aligns with input port interface (expects GetBookRequest) and router pattern
+that passes a request object instead of raw UUID.
 """
-
-from uuid import UUID
 
 from ...domain import Book
 from ...application.ports.output import BookRepository
-from ...exceptions import (
-    BookNotFoundError,
-    BookOperationError,
-)
+from ...application.ports.input import GetBookRequest
+from ...exceptions import BookNotFoundError, BookOperationError
 
 
 class GetBookUseCase:
-    """Get a book by ID"""
+    """Use case: Get Book by ID (excludes soft-deleted)"""
 
     def __init__(self, repository: BookRepository):
         self.repository = repository
 
-    async def execute(self, book_id: UUID) -> Book:
-        """
-        Get book
+    async def execute(self, request: GetBookRequest) -> Book:
+        """Execute retrieval using request DTO.
 
         Args:
-            book_id: Book ID
+            request: GetBookRequest containing book_id
 
         Returns:
-            Book domain object
+            Book domain aggregate
 
         Raises:
-            BookNotFoundError: If book not found or is soft-deleted
-            BookOperationError: On query error
+            BookNotFoundError: Book missing or soft-deleted
+            BookOperationError: Any unexpected repository failure
         """
         try:
-            book = await self.repository.get_by_id(book_id)
+            book = await self.repository.get_by_id(request.book_id)
             if not book:
-                raise BookNotFoundError(book_id)
+                raise BookNotFoundError(request.book_id)
             return book
         except Exception as e:
             if isinstance(e, BookNotFoundError):
                 raise
-            raise BookOperationError(f"Failed to get book: {str(e)}")
+            raise BookOperationError(f"Failed to get book: {e}")

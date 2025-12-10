@@ -155,6 +155,23 @@ class InvalidBookTitleError(BookException):
         )
 
 
+class InvalidBookDataError(BookException):
+    """Raised when incoming book payload violates invariants"""
+
+    code = "INVALID_BOOK_DATA"
+    http_status = 422
+
+    def __init__(self, detail: str, *, field: Optional[str] = None):
+        message = f"Invalid book data: {detail}"
+        super().__init__(
+            message=message,
+            details={
+                "reason": detail,
+                "field": field,
+            },
+        )
+
+
 class BookshelfNotFoundError(BookException):
     """
     RULE-010: 当 Book 的 Bookshelf 不存在时触发
@@ -246,26 +263,41 @@ class BookAlreadyDeletedError(BookException):
 
 
 class BookOperationError(BookException):
-    """Generic Book operation failure"""
+    """Generic Book operation failure
+
+    Flexible constructor to support both detailed (book_id, operation, reason)
+    usage and simplified single-message usage currently used in UseCases:
+        raise BookOperationError(f"Failed to list books: {str(e)}")
+    This prevents TypeError due to signature mismatch.
+    """
     code = "BOOK_OPERATION_ERROR"
     http_status = 500
 
     def __init__(
         self,
-        book_id: str,
-        operation: str,
-        reason: str,
+        book_id_or_message: str,
+        operation: Optional[str] = None,
+        reason: Optional[str] = None,
         original_error: Optional[Exception] = None,
     ):
-        super().__init__(
-            message=f"Failed to {operation} Book {book_id}: {reason}",
-            details={
-                "book_id": book_id,
-                "operation": operation,
-                "reason": reason,
-                "original_error": str(original_error) if original_error else None,
-            }
-        )
+        # If operation & reason are omitted, treat first argument as a full message
+        if operation is None and reason is None:
+            super().__init__(
+                message=book_id_or_message,
+                details={
+                    "original_error": str(original_error) if original_error else None,
+                }
+            )
+        else:
+            super().__init__(
+                message=f"Failed to {operation} Book {book_id_or_message}: {reason}",
+                details={
+                    "book_id": book_id_or_message,
+                    "operation": operation,
+                    "reason": reason,
+                    "original_error": str(original_error) if original_error else None,
+                }
+            )
 
 
 # ============================================

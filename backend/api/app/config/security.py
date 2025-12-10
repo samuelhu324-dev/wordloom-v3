@@ -71,24 +71,24 @@ class SecurityConfig:
 
 
 async def get_current_user_id() -> UUID:
+    """开发环境当前用户 ID 依赖。
+
+    之前写死为固定 UUID 导致：数据库里已有的库都是另外的 user_id → /libraries 按用户过滤结果为空。
+
+    改进：
+    1. 支持通过环境变量 DEV_USER_ID 覆盖。
+       在 WSL2 或 Windows 设置后端进程环境：
+         Linux/WSL2: `export DEV_USER_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
+         Windows PowerShell: `$env:DEV_USER_ID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"`
+    2. 若未设置则回退到原始固定测试 UUID。
+    3. 保留后续 TODO（JWT 解析）。
     """
-    Dependency injection for current user ID
-
-    In production, this would decode JWT tokens from request headers.
-    For development/testing, returns a fixed UUID.
-
-    Usage in FastAPI route:
-        async def get_libraries(user_id: UUID = Depends(get_current_user_id)):
-            ...
-
-    Returns:
-        UUID: Current user ID
-
-    TODO:
-        - Extract JWT from Authorization header
-        - Validate token and extract user_id claim
-        - Handle token expiration
-    """
-    # TODO: In production, extract from JWT token or session
-    # For now, return a test user ID
+    import os
+    override = os.getenv("DEV_USER_ID")
+    if override:
+        try:
+            return UUID(override)
+        except Exception:
+            # 环境变量格式不合法时仍使用默认测试 ID，避免启动失败
+            pass
     return UUID("550e8400-e29b-41d4-a716-446655440000")

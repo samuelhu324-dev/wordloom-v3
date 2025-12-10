@@ -97,14 +97,14 @@ export default function NoteEditor({
 
     // 获取当前位置的域名和协议
     if (typeof window !== 'undefined') {
-      // 前端运行在 :3000，后端运行在 :8000
+      // 前端运行在 :3000，后端运行在 :18080
       const origin = window.location.origin;
-      const backendUrl = origin.replace(':3000', ':8000');
+      const backendUrl = origin.replace(':3000', ':18080');
       return `${backendUrl}${relativeUrl}`;
     }
 
     // 服务器端渲染时的默认值
-    return `http://localhost:8000${relativeUrl}`;
+    return `http://localhost:18080${relativeUrl}`;
   };
 
   // 当 note 数据更新时，同步所有状态

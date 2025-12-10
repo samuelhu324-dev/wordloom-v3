@@ -29,7 +29,7 @@ Query Patterns:
 """
 
 from enum import Enum
-from sqlalchemy import Column, String, DateTime, Text, Numeric, Integer, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, String, DateTime, Text, Numeric, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -50,6 +50,7 @@ class BlockType(str, Enum):
     IMAGE = "image"        # Image reference
     QUOTE = "quote"        # Blockquote
     LIST = "list"          # Bullet/numbered list
+    TODO_LIST = "todo_list"  # Checkbox todo list
     TABLE = "table"        # Table structure
     DIVIDER = "divider"    # Horizontal divider
 
@@ -94,8 +95,9 @@ class BlockModel(Base):
     )
 
     # Block type and content
+    # Use plain VARCHAR + CHECK constraint (migration sets valid_block_type) to avoid enum type mismatch
     type = Column(
-        SQLEnum(BlockType),
+        String(32),
         nullable=False
     )
 
@@ -105,8 +107,9 @@ class BlockModel(Base):
     )
 
     # Fractional index ordering (O(1) drag/drop operations per RULE-015-REVISED)
+    # Precision upgraded to NUMERIC(36,18) via Migration 012 for higher insertion density
     order = Column(
-        Numeric(precision=19, scale=10),
+        Numeric(precision=36, scale=18),
         nullable=False,
         default=Decimal('0')
     )
@@ -144,6 +147,20 @@ class BlockModel(Base):
         String(500),
         nullable=True,
         index=True
+    )
+
+    deleted_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+        comment="Timestamp of soft delete"
+    )
+
+    # ========== NEW: Meta (Phase 0 reserved) ==========
+    # Lightweight JSON/string metadata (e.g., cached render hints) - not yet used by domain
+    meta = Column(
+        Text,
+        nullable=True
     )
 
     # Audit timestamps
@@ -193,6 +210,7 @@ class BlockModel(Base):
             "deleted_prev_id": str(self.deleted_prev_id) if self.deleted_prev_id else None,
             "deleted_next_id": str(self.deleted_next_id) if self.deleted_next_id else None,
             "deleted_section_path": self.deleted_section_path,
+            "deleted_at": self.deleted_at.isoformat() if self.deleted_at else None,
             # === Audit timestamps ===
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
@@ -231,6 +249,7 @@ class BlockModel(Base):
             deleted_prev_id=UUID(data.get("deleted_prev_id")) if data.get("deleted_prev_id") else None,
             deleted_next_id=UUID(data.get("deleted_next_id")) if data.get("deleted_next_id") else None,
             deleted_section_path=data.get("deleted_section_path"),
+            deleted_at=data.get("deleted_at"),
             # === Audit timestamps ===
             created_at=data.get("created_at"),
             updated_at=data.get("updated_at"),

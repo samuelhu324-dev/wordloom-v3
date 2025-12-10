@@ -1,0 +1,60 @@
+.switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.switcherMenu {
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+}
+
+.button {
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-family-sans);
+  font-size: 14px;
+  line-height: 1.2;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.inlineButton {
+  background: transparent;
+  color: var(--color-text);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.inlineButton:hover,
+.inlineButton:focus {
+  background: var(--color-surface-hover);
+  color: var(--color-primary);
+}
+
+.menuButton {
+  width: 100%;
+  text-align: left;
+  padding: 10px 16px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-xs);
+}
+
+.menuButton:hover,
+.menuButton:focus {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.activeInline {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.activeMenu {
+  background: var(--color-surface-hover);
+  color: var(--color-primary);
+  font-weight: 500;
+}

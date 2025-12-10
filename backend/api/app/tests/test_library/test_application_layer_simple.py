@@ -12,7 +12,7 @@ Progress Metrics:
 """
 
 import pytest
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from api.app.modules.library.application.use_cases.create_library import CreateLibraryUseCase
 from api.app.modules.library.application.use_cases.get_library import GetLibraryUseCase
@@ -28,6 +28,8 @@ from api.app.modules.library.application.ports.input import (
 )
 from api.app.modules.library.exceptions import LibraryNotFoundError
 from api.app.shared.exceptions import IllegalStateError, ResourceNotFoundError
+from api.app.modules.library.domain.library import Library
+from api.app.modules.bookshelf.domain import Bookshelf
 from datetime import datetime, timezone
 
 
@@ -102,6 +104,7 @@ class MockBookshelfRepository:
     """In-memory bookshelf repository for testing"""
     def __init__(self):
         self._bookshelves = {}
+        self._basement_seed_factory = None
 
     def add_bookshelf(self, bookshelf_id, name, library_id):
         """Test helper to add bookshelves"""
@@ -109,9 +112,51 @@ class MockBookshelfRepository:
         self._bookshelves[bookshelf_id] = shelf
         return shelf
 
+    def seed_basement_on_lookup(self, factory):
+        """Provide a hook to simulate legacy basement rows."""
+        self._basement_seed_factory = factory
+
     async def get_by_id(self, bookshelf_id):
         """Get bookshelf by ID"""
         return self._bookshelves.get(bookshelf_id)
+
+    async def get_basement_by_library_id(self, library_id):
+        for shelf in self._bookshelves.values():
+            if shelf.library_id == library_id and getattr(shelf, "is_basement", False):
+                return shelf
+        if self._basement_seed_factory:
+            seeded = self._basement_seed_factory(library_id)
+            if seeded:
+                self._bookshelves[seeded.id] = seeded
+                return seeded
+        return None
+
+    async def save(self, bookshelf):
+        """Persist a bookshelf aggregate (simplified)."""
+        self._bookshelves[bookshelf.id] = bookshelf
+        return bookshelf
+
+    async def exists(self, bookshelf_id):
+        return bookshelf_id in self._bookshelves
+
+    async def delete(self, bookshelf_id):
+        self._bookshelves.pop(bookshelf_id, None)
+
+
+def _make_create_library_use_case(repo, bus, bookshelf_repo=None):
+    bookshelf_repo = bookshelf_repo or MockBookshelfRepository()
+    use_case = CreateLibraryUseCase(
+        repository=repo,
+        bookshelf_repository=bookshelf_repo,
+        event_bus=bus,
+    )
+    return use_case, bookshelf_repo
+
+
+async def _seed_library(repository, *, user_id=None, name="Test Library"):
+    library = Library.create(user_id=user_id or uuid4(), name=name)
+    await repository.save(library)
+    return library
 
 
 class MockLibraryRepository:
@@ -132,18 +177,13 @@ class MockLibraryRepository:
 
     async def get_by_id(self, library_id):
         lib = self._libraries.get(library_id)
-        if not lib:
-            raise LibraryNotFoundError(f"Library {library_id} not found")
         return lib
 
     async def get_by_user_id(self, user_id):
         if user_id not in self._user_libraries:
-            raise LibraryNotFoundError(f"User {user_id} has no library")
+            return None
         lib_id = self._user_libraries[user_id]
-        lib = self._libraries.get(lib_id)
-        if not lib:
-            raise LibraryNotFoundError(f"Library {lib_id} not found")
-        return lib
+        return self._libraries.get(lib_id)
 
     async def delete(self, library_id):
         library = self._libraries.pop(library_id, None)
@@ -166,7 +206,7 @@ class TestCreateLibrary:
         """✓ Create library succeeds with valid input"""
         repo = MockLibraryRepository()
         bus = MockEventBus()
-        use_case = CreateLibraryUseCase(repository=repo, event_bus=bus)
+        use_case, _ = _make_create_library_use_case(repo, bus)
         user_id = uuid4()
 
         request = CreateLibraryRequest(user_id=user_id, name="My Library")
@@ -178,11 +218,57 @@ class TestCreateLibrary:
         assert response.created_at is not None
 
     @pytest.mark.asyncio
+    async def test_create_library_creates_basement_bookshelf(self):
+        """✓ Create library persists the basement bookshelf via repository"""
+        repo = MockLibraryRepository()
+        bus = MockEventBus()
+        bookshelf_repo = MockBookshelfRepository()
+        use_case, injected_bookshelf_repo = _make_create_library_use_case(
+            repo,
+            bus,
+            bookshelf_repo=bookshelf_repo,
+        )
+        user_id = uuid4()
+
+        request = CreateLibraryRequest(user_id=user_id, name="Basement Check")
+        response = await use_case.execute(request)
+
+        stored_basement = await injected_bookshelf_repo.get_by_id(
+            response.basement_bookshelf_id
+        )
+        assert stored_basement is not None
+        assert stored_basement.library_id == response.library_id
+        assert stored_basement.get_name_value() == "Basement"
+
+    @pytest.mark.asyncio
+    async def test_create_library_reuses_existing_basement(self):
+        """✓ Library creation reuses legacy basement shelf if present"""
+        repo = MockLibraryRepository()
+        bus = MockEventBus()
+        bookshelf_repo = MockBookshelfRepository()
+        captured_id: dict[str, UUID] = {}
+
+        def _legacy_factory(library_id):
+            seeded = Bookshelf.create_basement(library_id=library_id)
+            captured_id["value"] = seeded.id
+            return seeded
+
+        bookshelf_repo.seed_basement_on_lookup(_legacy_factory)
+        use_case, _ = _make_create_library_use_case(repo, bus, bookshelf_repo=bookshelf_repo)
+        user_id = uuid4()
+
+        request = CreateLibraryRequest(user_id=user_id, name="Reuse Basement")
+        response = await use_case.execute(request)
+
+        assert response.basement_bookshelf_id == captured_id["value"]
+        assert captured_id["value"] in bookshelf_repo._bookshelves
+
+    @pytest.mark.asyncio
     async def test_create_library_duplicate_user_fails(self):
         """✗ Creating second library for same user fails (RULE-001)"""
         repo = MockLibraryRepository()
         bus = MockEventBus()
-        use_case = CreateLibraryUseCase(repository=repo, event_bus=bus)
+        use_case, _ = _make_create_library_use_case(repo, bus)
         user_id = uuid4()
 
         req1 = CreateLibraryRequest(user_id=user_id, name="Library 1")
@@ -198,7 +284,7 @@ class TestCreateLibrary:
         """✗ Creating library with empty name fails"""
         repo = MockLibraryRepository()
         bus = MockEventBus()
-        use_case = CreateLibraryUseCase(repository=repo, event_bus=bus)
+        use_case, _ = _make_create_library_use_case(repo, bus)
         user_id = uuid4()
 
         request = CreateLibraryRequest(user_id=user_id, name="")
@@ -211,7 +297,7 @@ class TestCreateLibrary:
         """✗ Creating library with name > 255 chars fails"""
         repo = MockLibraryRepository()
         bus = MockEventBus()
-        use_case = CreateLibraryUseCase(repository=repo, event_bus=bus)
+        use_case, _ = _make_create_library_use_case(repo, bus)
         user_id = uuid4()
 
         request = CreateLibraryRequest(user_id=user_id, name="x" * 256)
@@ -224,7 +310,7 @@ class TestCreateLibrary:
         """✓ Library name with whitespace is trimmed"""
         repo = MockLibraryRepository()
         bus = MockEventBus()
-        use_case = CreateLibraryUseCase(repository=repo, event_bus=bus)
+        use_case, _ = _make_create_library_use_case(repo, bus)
         user_id = uuid4()
 
         request = CreateLibraryRequest(user_id=user_id, name="  My Library  ")
@@ -246,7 +332,7 @@ class TestGetLibrary:
         """✓ Get library by ID succeeds"""
         repo = MockLibraryRepository()
         bus = MockEventBus()
-        create_uc = CreateLibraryUseCase(repository=repo, event_bus=bus)
+        create_uc, _ = _make_create_library_use_case(repo, bus)
         get_uc = GetLibraryUseCase(repository=repo)
         user_id = uuid4()
 
@@ -274,11 +360,11 @@ class TestGetLibrary:
             await get_uc.execute(request)
 
     @pytest.mark.asyncio
-    async def test_get_library_by_user_id_found(self):
-        """✓ Get library by user ID succeeds"""
+    async def test_get_library_by_user_id_rejected(self):
+        """✗ Querying by user ID is deprecated and raises ValueError"""
         repo = MockLibraryRepository()
         bus = MockEventBus()
-        create_uc = CreateLibraryUseCase(repository=repo, event_bus=bus)
+        create_uc, _ = _make_create_library_use_case(repo, bus)
         get_uc = GetLibraryUseCase(repository=repo)
         user_id = uuid4()
 
@@ -286,22 +372,20 @@ class TestGetLibrary:
         create_req = CreateLibraryRequest(user_id=user_id, name="User Library")
         await create_uc.execute(create_req)
 
-        # Get library by user ID
+        # Get library by user ID should raise ValueError per use case contract
         get_req = GetLibraryRequest(user_id=user_id)
-        get_resp = await get_uc.execute(get_req)
-
-        assert get_resp.user_id == user_id
-        assert get_resp.name == "User Library"
+        with pytest.raises(ValueError):
+            await get_uc.execute(get_req)
 
     @pytest.mark.asyncio
-    async def test_get_library_by_user_id_not_found(self):
-        """✗ Get library by non-existent user ID fails"""
+    async def test_get_library_by_user_id_not_supported_without_data(self):
+        """✗ Querying by user ID without data also raises ValueError"""
         repo = MockLibraryRepository()
         get_uc = GetLibraryUseCase(repository=repo)
 
         request = GetLibraryRequest(user_id=uuid4())
 
-        with pytest.raises(LibraryNotFoundError):
+        with pytest.raises(ValueError):
             await get_uc.execute(request)
 
 
@@ -317,7 +401,7 @@ class TestDeleteLibrary:
         """✓ Delete library succeeds"""
         repo = MockLibraryRepository()
         bus = MockEventBus()
-        create_uc = CreateLibraryUseCase(repository=repo, event_bus=bus)
+        create_uc, _ = _make_create_library_use_case(repo, bus)
         delete_uc = DeleteLibraryUseCase(repository=repo, event_bus=bus)
         user_id = uuid4()
 
@@ -359,7 +443,7 @@ class TestBusinessRules:
         """RULE-001: Each user has exactly one library"""
         repo = MockLibraryRepository()
         bus = MockEventBus()
-        use_case = CreateLibraryUseCase(repository=repo, event_bus=bus)
+        use_case, _ = _make_create_library_use_case(repo, bus)
         user_id = uuid4()
 
         # Create first library
@@ -377,7 +461,7 @@ class TestBusinessRules:
         """RULE-003: Name must be 1-255 characters"""
         repo = MockLibraryRepository()
         bus = MockEventBus()
-        use_case = CreateLibraryUseCase(repository=repo, event_bus=bus)
+        use_case, _ = _make_create_library_use_case(repo, bus)
 
         # Valid: single character
         req1 = CreateLibraryRequest(user_id=uuid4(), name="A")
@@ -414,7 +498,7 @@ class TestRestoreLibrary:
         repo = MockLibraryRepository()
         bus = MockEventBus()
 
-        create_uc = CreateLibraryUseCase(repository=repo, event_bus=bus)
+        create_uc, _ = _make_create_library_use_case(repo, bus)
         user_id = uuid4()
         create_req = CreateLibraryRequest(user_id=user_id, name="Test Library")
         create_resp = await create_uc.execute(create_req)
@@ -429,7 +513,7 @@ class TestRestoreLibrary:
         assert lib_deleted.is_deleted()
 
         # Restore the library
-        restore_uc = RestoreLibraryUseCase(repository=repo, event_bus=bus)
+        restore_uc = RestoreLibraryUseCase(library_repository=repo, event_bus=bus)
         restore_req = RestoreLibraryRequest(library_id=create_resp.library_id)
         restore_resp = await restore_uc.execute(restore_req)
 
@@ -447,12 +531,12 @@ class TestRestoreLibrary:
         """✗ Restore fails if library doesn't exist"""
         repo = MockLibraryRepository()
         bus = MockEventBus()
-        restore_uc = RestoreLibraryUseCase(repository=repo, event_bus=bus)
+        restore_uc = RestoreLibraryUseCase(library_repository=repo, event_bus=bus)
 
         fake_id = uuid4()
         restore_req = RestoreLibraryRequest(library_id=fake_id)
 
-        with pytest.raises(LibraryNotFoundError):
+        with pytest.raises(ResourceNotFoundError):
             await restore_uc.execute(restore_req)
 
     @pytest.mark.asyncio
@@ -462,13 +546,13 @@ class TestRestoreLibrary:
         repo = MockLibraryRepository()
         bus = MockEventBus()
 
-        create_uc = CreateLibraryUseCase(repository=repo, event_bus=bus)
+        create_uc, _ = _make_create_library_use_case(repo, bus)
         user_id = uuid4()
         create_req = CreateLibraryRequest(user_id=user_id, name="Active Library")
         create_resp = await create_uc.execute(create_req)
 
         # Try to restore a non-deleted library (should fail)
-        restore_uc = RestoreLibraryUseCase(repository=repo, event_bus=bus)
+        restore_uc = RestoreLibraryUseCase(library_repository=repo, event_bus=bus)
         restore_req = RestoreLibraryRequest(library_id=create_resp.library_id)
 
         with pytest.raises(IllegalStateError):
@@ -481,7 +565,7 @@ class TestRestoreLibrary:
         repo = MockLibraryRepository()
         bus = MockEventBus()
 
-        create_uc = CreateLibraryUseCase(repository=repo, event_bus=bus)
+        create_uc, _ = _make_create_library_use_case(repo, bus)
         user_id = uuid4()
         create_req = CreateLibraryRequest(user_id=user_id, name="Test Library")
         create_resp = await create_uc.execute(create_req)
@@ -491,7 +575,7 @@ class TestRestoreLibrary:
         await delete_uc.execute(delete_req)
 
         # Restore and verify event
-        restore_uc = RestoreLibraryUseCase(repository=repo, event_bus=bus)
+        restore_uc = RestoreLibraryUseCase(library_repository=repo, event_bus=bus)
         restore_req = RestoreLibraryRequest(library_id=create_resp.library_id)
         await restore_uc.execute(restore_req)
 
@@ -508,7 +592,7 @@ class TestRestoreLibrary:
         repo = MockLibraryRepository()
         bus = MockEventBus()
 
-        create_uc = CreateLibraryUseCase(repository=repo, event_bus=bus)
+        create_uc, _ = _make_create_library_use_case(repo, bus)
         user_id = uuid4()
         create_req = CreateLibraryRequest(user_id=user_id, name="Test Library")
         create_resp = await create_uc.execute(create_req)
@@ -520,7 +604,7 @@ class TestRestoreLibrary:
         await delete_uc.execute(delete_req)
 
         # Restore and verify timestamp update
-        restore_uc = RestoreLibraryUseCase(repository=repo, event_bus=bus)
+        restore_uc = RestoreLibraryUseCase(library_repository=repo, event_bus=bus)
         restore_req = RestoreLibraryRequest(library_id=create_resp.library_id)
         await restore_uc.execute(restore_req)
 
@@ -535,7 +619,7 @@ class TestRestoreLibrary:
         repo = MockLibraryRepository()
         bus = MockEventBus()
 
-        create_uc = CreateLibraryUseCase(repository=repo, event_bus=bus)
+        create_uc, _ = _make_create_library_use_case(repo, bus)
         user_id = uuid4()
         create_req = CreateLibraryRequest(user_id=user_id, name="Test Library")
         create_resp = await create_uc.execute(create_req)
@@ -545,7 +629,7 @@ class TestRestoreLibrary:
         await delete_uc.execute(delete_req)
 
         # First restore should succeed
-        restore_uc = RestoreLibraryUseCase(repository=repo, event_bus=bus)
+        restore_uc = RestoreLibraryUseCase(library_repository=repo, event_bus=bus)
         restore_req = RestoreLibraryRequest(library_id=create_resp.library_id)
         resp1 = await restore_uc.execute(restore_req)
         assert resp1.library_id == create_resp.library_id
@@ -571,7 +655,11 @@ class TestListBasementBooks:
         bus = MockEventBus()
 
         # Create library
-        create_uc = CreateLibraryUseCase(repository=library_repo, event_bus=bus)
+        create_uc, _ = _make_create_library_use_case(
+            library_repo,
+            bus,
+            bookshelf_repo=bookshelf_repo,
+        )
         user_id = uuid4()
         create_req = CreateLibraryRequest(user_id=user_id, name="My Library")
         create_resp = await create_uc.execute(create_req)
@@ -592,7 +680,6 @@ class TestListBasementBooks:
     @pytest.mark.asyncio
     async def test_list_basement_single_deleted_book(self):
         """✓ List basement returns single deleted book with shelf grouping"""
-        library_id = uuid4()
         bookshelf_id = uuid4()
         book_id = uuid4()
         deleted_at = datetime.now(timezone.utc)
@@ -602,9 +689,8 @@ class TestListBasementBooks:
         bookshelf_repo = MockBookshelfRepository()
 
         # Create library manually in repo
-        from api.app.modules.library.domain.library import Library
-        lib = Library.create(user_id=uuid4(), name="Test Library", library_id=library_id)
-        await library_repo.save(lib)
+        lib = await _seed_library(library_repo, name="Test Library")
+        library_id = lib.id
 
         # Add deleted book
         book_repo.add_book(
@@ -642,7 +728,6 @@ class TestListBasementBooks:
     @pytest.mark.asyncio
     async def test_list_basement_multiple_books_single_shelf(self):
         """✓ List basement groups multiple deleted books from same shelf"""
-        library_id = uuid4()
         bookshelf_id = uuid4()
         deleted_at = datetime.now(timezone.utc)
 
@@ -651,9 +736,8 @@ class TestListBasementBooks:
         bookshelf_repo = MockBookshelfRepository()
 
         # Create library
-        from api.app.modules.library.domain.library import Library
-        lib = Library.create(user_id=uuid4(), name="Test Library", library_id=library_id)
-        await library_repo.save(lib)
+        lib = await _seed_library(library_repo, name="Test Library")
+        library_id = lib.id
 
         # Add 3 deleted books from same shelf
         for i in range(3):
@@ -689,7 +773,6 @@ class TestListBasementBooks:
     @pytest.mark.asyncio
     async def test_list_basement_books_multiple_shelves(self):
         """✓ List basement groups books by their original shelves"""
-        library_id = uuid4()
         shelf1_id = uuid4()
         shelf2_id = uuid4()
         deleted_at = datetime.now(timezone.utc)
@@ -699,9 +782,8 @@ class TestListBasementBooks:
         bookshelf_repo = MockBookshelfRepository()
 
         # Create library
-        from api.app.modules.library.domain.library import Library
-        lib = Library.create(user_id=uuid4(), name="Test Library", library_id=library_id)
-        await library_repo.save(lib)
+        lib = await _seed_library(library_repo, name="Test Library")
+        library_id = lib.id
 
         # Add books from shelf 1
         for i in range(2):
@@ -738,10 +820,9 @@ class TestListBasementBooks:
 
         assert list_resp.total_count == 5
         assert len(list_resp.shelf_groups) == 2
-        # First group should have 2 books
-        assert list_resp.shelf_groups[0].book_count == 2
-        # Second group should have 3 books
-        assert list_resp.shelf_groups[1].book_count == 3
+        groups = {group.bookshelf_id: group for group in list_resp.shelf_groups}
+        assert groups[shelf1_id].book_count == 2
+        assert groups[shelf2_id].book_count == 3
 
     @pytest.mark.asyncio
     async def test_list_basement_library_not_found(self):
@@ -765,7 +846,6 @@ class TestListBasementBooks:
     @pytest.mark.asyncio
     async def test_list_basement_preserves_bookshelf_relationships(self):
         """✓ List basement preserves original bookshelf_id in response"""
-        library_id = uuid4()
         bookshelf_id = uuid4()
         book_id = uuid4()
         deleted_at = datetime.now(timezone.utc)
@@ -775,9 +855,8 @@ class TestListBasementBooks:
         bookshelf_repo = MockBookshelfRepository()
 
         # Create library
-        from api.app.modules.library.domain.library import Library
-        lib = Library.create(user_id=uuid4(), name="Test Library", library_id=library_id)
-        await library_repo.save(lib)
+        lib = await _seed_library(library_repo, name="Test Library")
+        library_id = lib.id
 
         # Add deleted book
         book_repo.add_book(
@@ -809,7 +888,6 @@ class TestListBasementBooks:
     @pytest.mark.asyncio
     async def test_list_basement_handles_orphaned_books_missing_shelf(self):
         """✓ List basement handles books with missing shelf (orphaned)"""
-        library_id = uuid4()
         orphan_shelf_id = uuid4()  # This shelf doesn't exist in repo
         book_id = uuid4()
         deleted_at = datetime.now(timezone.utc)
@@ -819,9 +897,8 @@ class TestListBasementBooks:
         bookshelf_repo = MockBookshelfRepository()
 
         # Create library
-        from api.app.modules.library.domain.library import Library
-        lib = Library.create(user_id=uuid4(), name="Test Library", library_id=library_id)
-        await library_repo.save(lib)
+        lib = await _seed_library(library_repo, name="Test Library")
+        library_id = lib.id
 
         # Add deleted book with non-existent shelf
         book_repo.add_book(
@@ -850,7 +927,6 @@ class TestListBasementBooks:
     @pytest.mark.asyncio
     async def test_list_basement_pagination_offset(self):
         """✓ List basement respects pagination offset"""
-        library_id = uuid4()
         bookshelf_id = uuid4()
         deleted_at = datetime.now(timezone.utc)
 
@@ -859,9 +935,8 @@ class TestListBasementBooks:
         bookshelf_repo = MockBookshelfRepository()
 
         # Create library
-        from api.app.modules.library.domain.library import Library
-        lib = Library.create(user_id=uuid4(), name="Test Library", library_id=library_id)
-        await library_repo.save(lib)
+        lib = await _seed_library(library_repo, name="Test Library")
+        library_id = lib.id
 
         # Add 5 deleted books
         for i in range(5):
@@ -892,7 +967,6 @@ class TestListBasementBooks:
     @pytest.mark.asyncio
     async def test_list_basement_pagination_limit(self):
         """✓ List basement respects pagination limit"""
-        library_id = uuid4()
         bookshelf_id = uuid4()
         deleted_at = datetime.now(timezone.utc)
 
@@ -901,9 +975,8 @@ class TestListBasementBooks:
         bookshelf_repo = MockBookshelfRepository()
 
         # Create library
-        from api.app.modules.library.domain.library import Library
-        lib = Library.create(user_id=uuid4(), name="Test Library", library_id=library_id)
-        await library_repo.save(lib)
+        lib = await _seed_library(library_repo, name="Test Library")
+        library_id = lib.id
 
         # Add 10 deleted books
         for i in range(10):
@@ -934,7 +1007,6 @@ class TestListBasementBooks:
     @pytest.mark.asyncio
     async def test_list_basement_returns_basket_items_dto(self):
         """✓ List basement returns proper BasementBookItem DTOs"""
-        library_id = uuid4()
         bookshelf_id = uuid4()
         book_id = uuid4()
         deleted_at = datetime.now(timezone.utc)
@@ -944,9 +1016,8 @@ class TestListBasementBooks:
         bookshelf_repo = MockBookshelfRepository()
 
         # Create library
-        from api.app.modules.library.domain.library import Library
-        lib = Library.create(user_id=uuid4(), name="Test Library", library_id=library_id)
-        await library_repo.save(lib)
+        lib = await _seed_library(library_repo, name="Test Library")
+        library_id = lib.id
 
         # Add deleted book
         book_repo.add_book(
@@ -980,7 +1051,6 @@ class TestListBasementBooks:
     @pytest.mark.asyncio
     async def test_list_basement_response_has_total_count(self):
         """✓ List basement response includes total count"""
-        library_id = uuid4()
         bookshelf_id = uuid4()
         deleted_at = datetime.now(timezone.utc)
 
@@ -989,9 +1059,8 @@ class TestListBasementBooks:
         bookshelf_repo = MockBookshelfRepository()
 
         # Create library
-        from api.app.modules.library.domain.library import Library
-        lib = Library.create(user_id=uuid4(), name="Test Library", library_id=library_id)
-        await library_repo.save(lib)
+        lib = await _seed_library(library_repo, name="Test Library")
+        library_id = lib.id
 
         # Add 7 deleted books
         for i in range(7):
@@ -1021,7 +1090,6 @@ class TestListBasementBooks:
     @pytest.mark.asyncio
     async def test_list_basement_response_message(self):
         """✓ List basement response includes descriptive message"""
-        library_id = uuid4()
         bookshelf_id = uuid4()
         deleted_at = datetime.now(timezone.utc)
 
@@ -1030,9 +1098,8 @@ class TestListBasementBooks:
         bookshelf_repo = MockBookshelfRepository()
 
         # Create library
-        from api.app.modules.library.domain.library import Library
-        lib = Library.create(user_id=uuid4(), name="Test Library", library_id=library_id)
-        await library_repo.save(lib)
+        lib = await _seed_library(library_repo, name="Test Library")
+        library_id = lib.id
 
         # Add 3 deleted books from 1 shelf
         for i in range(3):
@@ -1064,7 +1131,6 @@ class TestListBasementBooks:
     @pytest.mark.asyncio
     async def test_list_basement_without_bookshelf_repo(self):
         """✓ List basement works without bookshelf repository (fallback names)"""
-        library_id = uuid4()
         bookshelf_id = uuid4()
         book_id = uuid4()
         deleted_at = datetime.now(timezone.utc)
@@ -1074,9 +1140,8 @@ class TestListBasementBooks:
         # No bookshelf repo provided
 
         # Create library
-        from api.app.modules.library.domain.library import Library
-        lib = Library.create(user_id=uuid4(), name="Test Library", library_id=library_id)
-        await library_repo.save(lib)
+        lib = await _seed_library(library_repo, name="Test Library")
+        library_id = lib.id
 
         # Add deleted book
         book_repo.add_book(

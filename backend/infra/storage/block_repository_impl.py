@@ -20,7 +20,7 @@ from uuid import UUID
 from decimal import Decimal
 from datetime import datetime, timezone
 from sqlalchemy import select, func, and_
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.app.modules.block.domain import Block, BlockContent, BlockType
 from api.app.modules.block.application.ports.output import BlockRepository
@@ -43,19 +43,19 @@ class SQLAlchemyBlockRepository(BlockRepository):
     - Handle transaction rollback on errors
     """
 
-    def __init__(self, session: Session):
-        """Initialize repository with database session
+    def __init__(self, session: AsyncSession):
+        """Initialize repository with async database session
 
         Args:
-            session: SQLAlchemy session for database access
+            session: AsyncSession for async database access
         """
         self.session = session
 
-    async def save(self, block: Block) -> None:
-        """Save Block (create or update)"""
-        model = self.session.query(BlockModel).filter(
-            BlockModel.id == block.id
-        ).first()
+    async def save(self, block: Block) -> Block:
+        """Save Block (create or update) and return refreshed domain aggregate."""
+        stmt = select(BlockModel).where(BlockModel.id == block.id)
+        result = await self.session.execute(stmt)
+        model = result.scalar_one_or_none()
 
         if model is None:
             # INSERT new block
@@ -66,6 +66,11 @@ class SQLAlchemyBlockRepository(BlockRepository):
                 content=block.content.value,
                 order=block.order,
                 heading_level=block.heading_level if block.type == BlockType.HEADING else None,
+                soft_deleted_at=block.soft_deleted_at,
+                deleted_prev_id=getattr(block, "deleted_prev_id", None),
+                deleted_next_id=getattr(block, "deleted_next_id", None),
+                deleted_section_path=getattr(block, "deleted_section_path", None),
+                deleted_at=getattr(block, "deleted_at", None),
                 created_at=block.created_at,
                 updated_at=block.updated_at,
             )
@@ -73,15 +78,21 @@ class SQLAlchemyBlockRepository(BlockRepository):
             logger.debug(f"Inserting new block {block.id}")
         else:
             # UPDATE existing block
+            previous_soft_deleted = model.soft_deleted_at
             model.type = block.type.value
             model.content = block.content.value
             model.order = block.order
             model.heading_level = block.heading_level if block.type == BlockType.HEADING else None
             model.updated_at = block.updated_at
+            model.deleted_prev_id = getattr(block, "deleted_prev_id", None)
+            model.deleted_next_id = getattr(block, "deleted_next_id", None)
+            model.deleted_section_path = getattr(block, "deleted_section_path", None)
+            model.deleted_at = getattr(block, "deleted_at", None)
+            model.soft_deleted_at = getattr(block, "soft_deleted_at", None)
 
             # === NEW: Capture Paperballs context from domain events if block is being deleted ===
             # Check if BlockDeleted event was raised (soft delete)
-            if hasattr(block, 'soft_deleted_at') and block.soft_deleted_at and not model.soft_deleted_at:
+            if hasattr(block, 'soft_deleted_at') and block.soft_deleted_at and not previous_soft_deleted:
                 # Block is being soft-deleted, capture Paperballs fields
                 model.soft_deleted_at = block.soft_deleted_at
 
@@ -92,6 +103,7 @@ class SQLAlchemyBlockRepository(BlockRepository):
                     model.deleted_next_id = block.deleted_next_id
                 if hasattr(block, 'deleted_section_path'):
                     model.deleted_section_path = block.deleted_section_path
+                model.deleted_at = getattr(block, 'deleted_at', model.deleted_at)
 
                 logger.debug(
                     f"Updating block {block.id} with soft_deleted_at, "
@@ -101,17 +113,20 @@ class SQLAlchemyBlockRepository(BlockRepository):
             else:
                 logger.debug(f"Updating block {block.id}")
 
-        self.session.commit()
+        await self.session.commit()
+        return block
 
     async def get_by_id(self, block_id: UUID) -> Optional[Block]:
         """Get Block by ID (with soft-delete filtering)"""
         try:
-            model = self.session.query(BlockModel).filter(
+            stmt = select(BlockModel).where(
                 and_(
                     BlockModel.id == block_id,
                     BlockModel.soft_deleted_at.is_(None)
                 )
-            ).first()
+            )
+            result = await self.session.execute(stmt)
+            model = result.scalar_one_or_none()
 
             if not model:
                 logger.debug(f"Block {block_id} not found or deleted")
@@ -125,12 +140,15 @@ class SQLAlchemyBlockRepository(BlockRepository):
     async def get_by_book_id(self, book_id: UUID) -> List[Block]:
         """Get all Blocks in a Book, ordered by fractional index"""
         try:
-            models = self.session.query(BlockModel).filter(
+            stmt = select(BlockModel).where(
                 and_(
                     BlockModel.book_id == book_id,
                     BlockModel.soft_deleted_at.is_(None)
                 )
-            ).order_by(BlockModel.order.asc()).all()
+            ).order_by(BlockModel.order.asc())
+
+            result = await self.session.execute(stmt)
+            models = result.scalars().all()
 
             logger.debug(f"Retrieved {len(models)} blocks for book {book_id}")
             return [self._to_domain(m) for m in models]
@@ -143,29 +161,40 @@ class SQLAlchemyBlockRepository(BlockRepository):
         book_id: UUID,
         page: int = 1,
         page_size: int = 20,
+        include_deleted: bool = False,
     ) -> Tuple[List[Block], int]:
         """Get paginated Blocks in a Book with fractional index ordering"""
         try:
+            filters = [BlockModel.book_id == book_id]
+            if not include_deleted:
+                filters.append(BlockModel.soft_deleted_at.is_(None))
+
             # Query 1: Get total count
-            total_count = self.session.query(func.count(BlockModel.id)).filter(
-                and_(
-                    BlockModel.book_id == book_id,
-                    BlockModel.soft_deleted_at.is_(None)
-                )
-            ).scalar() or 0
+            count_stmt = select(func.count(BlockModel.id)).where(and_(*filters))
+            count_result = await self.session.execute(count_stmt)
+            total_count = count_result.scalar() or 0
 
             # Query 2: Get paginated results
             offset = (page - 1) * page_size
-            models = self.session.query(BlockModel).filter(
-                and_(
-                    BlockModel.book_id == book_id,
-                    BlockModel.soft_deleted_at.is_(None)
-                )
-            ).order_by(BlockModel.order.asc()).offset(offset).limit(page_size).all()
+            stmt = (
+                select(BlockModel)
+                .where(and_(*filters))
+                .order_by(BlockModel.order.asc())
+                .offset(offset)
+                .limit(page_size)
+            )
+
+            result = await self.session.execute(stmt)
+            models = result.scalars().all()
 
             logger.debug(
-                f"Retrieved page {page} (size {page_size}) for book {book_id}: "
-                f"{len(models)} items of {total_count} total"
+                "Retrieved page %s (size %s) for book %s include_deleted=%s: %s items of %s total",
+                page,
+                page_size,
+                book_id,
+                include_deleted,
+                len(models),
+                total_count,
             )
             return ([self._to_domain(m) for m in models], total_count)
         except Exception as e:
@@ -175,12 +204,15 @@ class SQLAlchemyBlockRepository(BlockRepository):
     async def get_deleted_blocks(self, book_id: UUID) -> List[Block]:
         """Get soft-deleted Blocks in a Book"""
         try:
-            models = self.session.query(BlockModel).filter(
+            stmt = select(BlockModel).where(
                 and_(
                     BlockModel.book_id == book_id,
                     BlockModel.soft_deleted_at.isnot(None)
                 )
-            ).order_by(BlockModel.soft_deleted_at.desc()).all()
+            ).order_by(BlockModel.soft_deleted_at.desc())
+
+            result = await self.session.execute(stmt)
+            models = result.scalars().all()
 
             logger.debug(f"Retrieved {len(models)} deleted blocks for book {book_id}")
             return [self._to_domain(m) for m in models]
@@ -208,23 +240,30 @@ class SQLAlchemyBlockRepository(BlockRepository):
         """
         try:
             # Get target block first to find its section and order
-            target_model = self.session.query(BlockModel).filter(
-                BlockModel.id == block_id,
-                BlockModel.book_id == book_id
-            ).first()
+            target_stmt = select(BlockModel).where(
+                and_(
+                    BlockModel.id == block_id,
+                    BlockModel.book_id == book_id
+                )
+            )
+            target_result = await self.session.execute(target_stmt)
+            target_model = target_result.scalar_one_or_none()
 
             if not target_model:
                 logger.debug(f"Target block {block_id} not found")
                 return None
 
             # Get previous block in same book/section with smaller order
-            prev_model = self.session.query(BlockModel).filter(
+            prev_stmt = select(BlockModel).where(
                 and_(
                     BlockModel.book_id == book_id,
                     BlockModel.order < target_model.order,
                     BlockModel.soft_deleted_at.is_(None)
                 )
-            ).order_by(BlockModel.order.desc()).first()
+            ).order_by(BlockModel.order.desc())
+
+            prev_result = await self.session.execute(prev_stmt)
+            prev_model = prev_result.scalars().first()
 
             if not prev_model:
                 logger.debug(f"No previous sibling found for block {block_id}")
@@ -254,23 +293,30 @@ class SQLAlchemyBlockRepository(BlockRepository):
         """
         try:
             # Get target block first to find its section and order
-            target_model = self.session.query(BlockModel).filter(
-                BlockModel.id == block_id,
-                BlockModel.book_id == book_id
-            ).first()
+            target_stmt = select(BlockModel).where(
+                and_(
+                    BlockModel.id == block_id,
+                    BlockModel.book_id == book_id
+                )
+            )
+            target_result = await self.session.execute(target_stmt)
+            target_model = target_result.scalar_one_or_none()
 
             if not target_model:
                 logger.debug(f"Target block {block_id} not found")
                 return None
 
             # Get next block in same book/section with larger order
-            next_model = self.session.query(BlockModel).filter(
+            next_stmt = select(BlockModel).where(
                 and_(
                     BlockModel.book_id == book_id,
                     BlockModel.order > target_model.order,
                     BlockModel.soft_deleted_at.is_(None)
                 )
-            ).order_by(BlockModel.order.asc()).first()
+            ).order_by(BlockModel.order.asc())
+
+            next_result = await self.session.execute(next_stmt)
+            next_model = next_result.scalars().first()
 
             if not next_model:
                 logger.debug(f"No next sibling found for block {block_id}")
@@ -379,12 +425,17 @@ class SQLAlchemyBlockRepository(BlockRepository):
         """
         try:
             # Fetch target block to restore
-            block_model = self.session.query(BlockModel).filter(
+            stmt = select(BlockModel).where(
                 and_(
                     BlockModel.id == block_id,
                     BlockModel.book_id == book_id
                 )
-            ).one()
+            )
+            result = await self.session.execute(stmt)
+            block_model = result.scalar_one_or_none()
+
+            if not block_model:
+                raise Exception(f"Block {block_id} not found")
 
             new_sort_key = None
             recovery_level = None
@@ -394,24 +445,29 @@ class SQLAlchemyBlockRepository(BlockRepository):
             # ===== Level 1: Previous Sibling Recovery =====
             if deleted_prev_id:
                 logger.debug(f"Level 1: Attempting recovery via deleted_prev_id={deleted_prev_id}")
-                prev_model = self.session.query(BlockModel).filter(
+                prev_stmt = select(BlockModel).where(
                     and_(
                         BlockModel.id == deleted_prev_id,
                         BlockModel.book_id == book_id,
                         BlockModel.soft_deleted_at.is_(None)
                     )
-                ).one_or_none()
+                )
+                prev_result = await self.session.execute(prev_stmt)
+                prev_model = prev_result.scalar_one_or_none()
 
                 if prev_model:
                     logger.debug(f"Previous sibling {prev_model.id} found and active")
                     # Get next sibling of the previous block
-                    next_model = self.session.query(BlockModel).filter(
+                    next_stmt = select(BlockModel).where(
                         and_(
                             BlockModel.book_id == book_id,
                             BlockModel.order > prev_model.order,
                             BlockModel.soft_deleted_at.is_(None)
                         )
-                    ).order_by(BlockModel.order.asc()).first()
+                    ).order_by(BlockModel.order.asc())
+
+                    next_result = await self.session.execute(next_stmt)
+                    next_model = next_result.scalars().first()
 
                     new_sort_key = self.new_key_between(
                         prev_model.order,
@@ -423,24 +479,29 @@ class SQLAlchemyBlockRepository(BlockRepository):
             # ===== Level 2: Next Sibling Recovery =====
             if not new_sort_key and deleted_next_id:
                 logger.debug(f"Level 2: Attempting recovery via deleted_next_id={deleted_next_id}")
-                next_model = self.session.query(BlockModel).filter(
+                next_stmt = select(BlockModel).where(
                     and_(
                         BlockModel.id == deleted_next_id,
                         BlockModel.book_id == book_id,
                         BlockModel.soft_deleted_at.is_(None)
                     )
-                ).one_or_none()
+                )
+                next_result = await self.session.execute(next_stmt)
+                next_model = next_result.scalar_one_or_none()
 
                 if next_model:
                     logger.debug(f"Next sibling {next_model.id} found and active")
                     # Get previous sibling of the next block
-                    prev_model = self.session.query(BlockModel).filter(
+                    prev_stmt = select(BlockModel).where(
                         and_(
                             BlockModel.book_id == book_id,
                             BlockModel.order < next_model.order,
                             BlockModel.soft_deleted_at.is_(None)
                         )
-                    ).order_by(BlockModel.order.desc()).first()
+                    ).order_by(BlockModel.order.desc())
+
+                    prev_result = await self.session.execute(prev_stmt)
+                    prev_model = prev_result.scalars().first()
 
                     new_sort_key = self.new_key_between(
                         prev_model.order if prev_model else None,
@@ -452,12 +513,15 @@ class SQLAlchemyBlockRepository(BlockRepository):
             # ===== Level 3: Section End Recovery =====
             if not new_sort_key and deleted_section_path:
                 logger.debug(f"Level 3: Attempting recovery at end of section={deleted_section_path}")
-                last_model = self.session.query(BlockModel).filter(
+                last_stmt = select(BlockModel).where(
                     and_(
                         BlockModel.book_id == book_id,
                         BlockModel.soft_deleted_at.is_(None)
                     )
-                ).order_by(BlockModel.order.desc()).first()
+                ).order_by(BlockModel.order.desc())
+
+                last_result = await self.session.execute(last_stmt)
+                last_model = last_result.scalars().first()
 
                 new_sort_key = (last_model.order + Decimal(1)) if last_model else Decimal(1)
                 recovery_level = 3
@@ -466,12 +530,15 @@ class SQLAlchemyBlockRepository(BlockRepository):
             # ===== Level 4: Book End Recovery (Ultimate Fallback) =====
             if not new_sort_key:
                 logger.debug("Level 4: Falling back to book end recovery")
-                last_model = self.session.query(BlockModel).filter(
+                last_stmt = select(BlockModel).where(
                     and_(
                         BlockModel.book_id == book_id,
                         BlockModel.soft_deleted_at.is_(None)
                     )
-                ).order_by(BlockModel.order.desc()).first()
+                ).order_by(BlockModel.order.desc())
+
+                last_result = await self.session.execute(last_stmt)
+                last_model = last_result.scalars().first()
 
                 new_sort_key = (last_model.order + Decimal(1)) if last_model else Decimal(1)
                 recovery_level = 4
@@ -480,13 +547,14 @@ class SQLAlchemyBlockRepository(BlockRepository):
             # ===== Update Block State =====
             block_model.order = new_sort_key
             block_model.soft_deleted_at = None
+            block_model.deleted_at = None
 
             # Clear Paperballs fields (recovery context no longer needed)
             block_model.deleted_prev_id = None
             block_model.deleted_next_id = None
             block_model.deleted_section_path = None
 
-            self.session.commit()
+            await self.session.commit()
 
             logger.info(
                 f"Block {block_id} successfully restored via Level {recovery_level} "
@@ -496,7 +564,7 @@ class SQLAlchemyBlockRepository(BlockRepository):
             return self._to_domain(block_model)
         except Exception as e:
             logger.error(f"Error restoring block from Paperballs: {e}")
-            self.session.rollback()
+            await self.session.rollback()
             raise
 
     def _to_domain(self, model: BlockModel) -> Block:
@@ -511,6 +579,77 @@ class SQLAlchemyBlockRepository(BlockRepository):
             content=BlockContent(value=model.content),
             order=Decimal(str(model.order)) if model.order is not None else Decimal("0"),
             heading_level=heading_level,
+            soft_deleted_at=model.soft_deleted_at,
+            deleted_prev_id=model.deleted_prev_id,
+            deleted_next_id=model.deleted_next_id,
+            deleted_section_path=model.deleted_section_path,
+            deleted_at=getattr(model, "deleted_at", None),
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
+
+    async def delete(self, block_id: UUID) -> None:
+        """Delete (soft-delete) a Block by ID"""
+        try:
+            block = await self.get_by_id(block_id)
+            if not block:
+                raise Exception(f"Block {block_id} not found")
+
+            stmt = select(BlockModel).where(BlockModel.id == block_id)
+            result = await self.session.execute(stmt)
+            model = result.scalar_one_or_none()
+
+            if model:
+                deletion_time = datetime.now(timezone.utc)
+                model.soft_deleted_at = deletion_time
+                model.deleted_at = deletion_time
+                await self.session.commit()
+        except Exception as e:
+            await self.session.rollback()
+            logger.error(f"Error deleting block {block_id}: {e}")
+            raise
+
+    async def list_by_book(
+        self,
+        book_id: UUID,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[Block]:
+        """List all Blocks in a Book (excluding soft-deleted)"""
+        try:
+            stmt = select(BlockModel).where(
+                and_(
+                    BlockModel.book_id == book_id,
+                    BlockModel.soft_deleted_at.is_(None)
+                )
+            ).order_by(BlockModel.order).limit(limit).offset(offset)
+
+            result = await self.session.execute(stmt)
+            models = result.scalars().all()
+
+            return [self._to_domain(model) for model in models]
+        except Exception as e:
+            logger.error(f"Error listing blocks for book {book_id}: {e}")
+            raise
+
+    async def count_active_blocks(self, book_id: UUID) -> tuple[int, int]:
+        """Return aggregate metrics for non-deleted blocks."""
+        try:
+            stmt = select(
+                func.count(BlockModel.id),
+                func.count(func.distinct(BlockModel.type)),
+            ).where(
+                and_(
+                    BlockModel.book_id == book_id,
+                    BlockModel.soft_deleted_at.is_(None),
+                )
+            )
+            result = await self.session.execute(stmt)
+            row = result.first()
+            if not row:
+                return 0, 0
+            count, type_count = row
+            return int(count or 0), int(type_count or 0)
+        except Exception as exc:
+            logger.error(f"Error counting blocks for book {book_id}: {exc}")
+            raise

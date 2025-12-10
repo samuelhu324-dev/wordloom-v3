@@ -1,188 +1,182 @@
-"""
-Tag Router - Hexagonal Architecture Pattern
+﻿"""Tag Router - Hexagonal Architecture Pattern"""
 
-FastAPI 路由适配器，将 HTTP 请求转换为 UseCase 调用。
-
-职责:
-1. 解析 HTTP 请求 → 转换为 Input DTO
-2. 从 DI 容器获取 UseCase
-3. 执行 UseCase
-4. 将 Output DTO → 转换为 HTTP 响应
-5. 异常映射到 HTTP 错误码
-"""
-
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from dataclasses import asdict
 from typing import List, Optional
 from uuid import UUID
-import logging
 
-from api.app.dependencies import DIContainer, get_di_container_provider
-from api.app.modules.tag.application.ports.input import (
-    CreateTagRequest,
-    CreateSubtagRequest,
-    UpdateTagRequest,
-    DeleteTagRequest,
-    RestoreTagRequest,
-    AssociateTagRequest,
-    DisassociateTagRequest,
-    SearchTagsRequest,
-    GetMostUsedTagsRequest,
-    TagResponse,
-)
-from api.app.modules.tag.domain.exceptions import (
-    TagNotFoundError,
-    TagAlreadyExistsError,
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
+
+from api.app.dependencies import DIContainer, get_di_container
+from api.app.modules.tag.domain import EntityType
+from api.app.modules.tag.exceptions import (
     DomainException,
+    TagAlreadyExistsError,
+    TagNotFoundError,
+)
+from api.app.modules.tag.schemas import (
+    CreateTagRequest as CreateTagSchema,
+    CreateSubtagRequest as CreateSubtagSchema,
+    UpdateTagRequest as UpdateTagSchema,
+    AssociateTagRequest as AssociateTagSchema,
+)
+from api.app.modules.tag.application.ports.input import (
+    AssociateTagRequest as AssociateTagInput,
+    CreateSubtagRequest as CreateSubtagInput,
+    CreateTagRequest as CreateTagInput,
+    DeleteTagRequest,
+    DisassociateTagRequest,
+    GetMostUsedTagsRequest,
+    ListTagsRequest,
+    RestoreTagRequest,
+    SearchTagsRequest,
+    TagResponse,
+    UpdateTagRequest as UpdateTagInput,
 )
 
 
-logger = logging.getLogger(__name__)
-
-router = APIRouter(prefix="/tags", tags=["tags"])
+router = APIRouter(prefix="", tags=["Tags"])
 
 
-# ============================================================================
-# Dependency: Get DI Container
-# ============================================================================
+def _normalize_entity_type(raw: EntityType | str) -> EntityType:
+    """Allow case-insensitive entity_type parsing for backward compatibility."""
 
-async def get_di_container() -> DIContainer:
-    """
-    获取 DI 容器（FastAPI 依赖）
+    if isinstance(raw, EntityType):
+        return raw
 
-    在实际应用中，这会从全局初始化的容器获取。
-    """
-    return get_di_container_provider()
+    value = (raw or "").strip().lower()
+    try:
+        return EntityType(value)
+    except Exception as exc:  # pragma: no cover - defensive
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "INVALID_ENTITY_TYPE",
+                "message": f"Unsupported entity_type '{raw}'. Use library/bookshelf/book/block.",
+            },
+        ) from exc
 
 
-# ============================================================================
-# Endpoints
-# ============================================================================
+def _resolve_association_payload(
+    query_entity_type: str | EntityType | None,
+    query_entity_id: UUID | None,
+    body: AssociateTagSchema | None,
+) -> tuple[EntityType, UUID]:
+    """Resolve entity_type/entity_id from either query params or JSON body."""
+
+    if body is not None:
+        return _normalize_entity_type(body.entity_type), body.entity_id
+
+    if query_entity_type is None or query_entity_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "MISSING_ASSOCIATION_PARAMS",
+                "message": "Provide entity_type/entity_id via query parameters or JSON body.",
+            },
+        )
+
+    return _normalize_entity_type(query_entity_type), query_entity_id
+
 
 @router.post(
     "",
-    response_model=dict,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new tag",
 )
 async def create_tag(
-    request: CreateTagRequest,
-    di: DIContainer = Depends(get_di_container)
+    request: CreateTagSchema,
+    di: DIContainer = Depends(get_di_container),
 ):
-    """
-    创建新的顶层 Tag
+    """创建新的顶层 Tag。"""
 
-    请求体:
-    ```json
-    {
-        "name": "Python",
-        "color": "#3776AB",
-        "icon": "python",
-        "description": "Python programming language"
-    }
-    ```
-
-    返回: TagResponse
-    """
     try:
         use_case = di.get_create_tag_use_case()
-        response: TagResponse = await use_case.execute(request)
-        return response.to_dict()
-    except TagAlreadyExistsError as e:
+        dto = CreateTagInput(
+            name=request.name,
+            color=request.color,
+            icon=request.icon,
+            description=request.description,
+        )
+        response: TagResponse = await use_case.execute(dto)
+        return asdict(response)
+    except TagAlreadyExistsError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=str(e)
-        )
-    except DomainException as e:
+            detail=str(exc),
+        ) from exc
+    except DomainException as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+            detail=str(exc),
+        ) from exc
 
 
 @router.post(
     "/{tag_id}/subtags",
-    response_model=dict,
     status_code=status.HTTP_201_CREATED,
     summary="Create a subtag under a parent tag",
 )
 async def create_subtag(
     tag_id: UUID,
-    request: CreateSubtagRequest,
-    di: DIContainer = Depends(get_di_container)
+    request: CreateSubtagSchema,
+    di: DIContainer = Depends(get_di_container),
 ):
-    """创建 Subtag"""
+    """创建子标签。"""
+
     try:
-        request.parent_tag_id = tag_id
         use_case = di.get_create_subtag_use_case()
-        response: TagResponse = await use_case.execute(request)
-        return response.to_dict()
-    except TagNotFoundError as e:
+        dto = CreateSubtagInput(
+            parent_tag_id=tag_id,
+            name=request.name,
+            color=request.color,
+            icon=request.icon,
+        )
+        response: TagResponse = await use_case.execute(dto)
+        return asdict(response)
+    except TagNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
-    except DomainException as e:
+            detail=str(exc),
+        ) from exc
+    except DomainException as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-
-
-@router.get(
-    "/{tag_id}",
-    response_model=dict,
-    summary="Get tag by ID",
-)
-async def get_tag(
-    tag_id: UUID,
-    di: DIContainer = Depends(get_di_container)
-):
-    """获取单个 Tag 详情"""
-    try:
-        request = SearchTagsRequest(tag_id=tag_id, limit=1)
-        use_case = di.get_search_tags_use_case()
-        responses: List[TagResponse] = await use_case.execute(request)
-
-        if not responses:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Tag {tag_id} not found"
-            )
-
-        return responses[0].to_dict()
-    except DomainException as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+            detail=str(exc),
+        ) from exc
 
 
 @router.patch(
     "/{tag_id}",
-    response_model=dict,
     summary="Update a tag",
 )
 async def update_tag(
     tag_id: UUID,
-    request: UpdateTagRequest,
-    di: DIContainer = Depends(get_di_container)
+    request: UpdateTagSchema,
+    di: DIContainer = Depends(get_di_container),
 ):
-    """更新 Tag"""
+    """更新 Tag。"""
+
     try:
-        request.tag_id = tag_id
         use_case = di.get_update_tag_use_case()
-        response: TagResponse = await use_case.execute(request)
-        return response.to_dict()
-    except TagNotFoundError as e:
+        dto = UpdateTagInput(
+            tag_id=tag_id,
+            name=request.name,
+            color=request.color,
+            icon=request.icon,
+            description=request.description,
+        )
+        response: TagResponse = await use_case.execute(dto)
+        return asdict(response)
+    except TagNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
-    except DomainException as e:
+            detail=str(exc),
+        ) from exc
+    except DomainException as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+            detail=str(exc),
+        ) from exc
 
 
 @router.delete(
@@ -192,162 +186,252 @@ async def update_tag(
 )
 async def delete_tag(
     tag_id: UUID,
-    di: DIContainer = Depends(get_di_container)
+    di: DIContainer = Depends(get_di_container),
 ):
-    """删除 Tag（逻辑删除）"""
+    """软删除 Tag。"""
+
     try:
-        request = DeleteTagRequest(tag_id=tag_id)
         use_case = di.get_delete_tag_use_case()
-        await use_case.execute(request)
-    except TagNotFoundError as e:
+        dto = DeleteTagRequest(tag_id=tag_id)
+        await use_case.execute(dto)
+    except TagNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
-    except DomainException as e:
+            detail=str(exc),
+        ) from exc
+    except DomainException as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+            detail=str(exc),
+        ) from exc
 
 
 @router.post(
     "/{tag_id}/restore",
-    response_model=dict,
     summary="Restore a deleted tag",
 )
 async def restore_tag(
     tag_id: UUID,
-    di: DIContainer = Depends(get_di_container)
+    di: DIContainer = Depends(get_di_container),
 ):
-    """恢复已删除的 Tag"""
+    """恢复已软删除的 Tag。"""
+
     try:
-        request = RestoreTagRequest(tag_id=tag_id)
         use_case = di.get_restore_tag_use_case()
-        response: TagResponse = await use_case.execute(request)
-        return response.to_dict()
-    except TagNotFoundError as e:
+        dto = RestoreTagRequest(tag_id=tag_id)
+        response: TagResponse = await use_case.execute(dto)
+        return asdict(response)
+    except TagNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
-    except DomainException as e:
+            detail=str(exc),
+        ) from exc
+    except DomainException as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+            detail=str(exc),
+        ) from exc
 
 
 @router.get(
     "",
-    response_model=dict,
     summary="Search tags",
 )
 async def search_tags(
     keyword: Optional[str] = Query(None, description="Search keyword"),
     limit: int = Query(50, ge=1, le=100),
-    skip: int = Query(0, ge=0),
-    di: DIContainer = Depends(get_di_container)
+    order: str = Query(
+        "name_asc",
+        description="Sort order: name_asc | name_desc | usage_desc | created_desc",
+    ),
+    di: DIContainer = Depends(get_di_container),
 ):
-    """搜索 Tags"""
+    """搜索 Tags。"""
+
     try:
-        request = SearchTagsRequest(
-            keyword=keyword,
-            limit=limit,
-            skip=skip
-        )
         use_case = di.get_search_tags_use_case()
-        responses: List[TagResponse] = await use_case.execute(request)
+        dto = SearchTagsRequest(
+            keyword=(keyword or ""),
+            limit=limit,
+            order=order,
+        )
+        responses: List[TagResponse] = await use_case.execute(dto)
         return {
             "total": len(responses),
-            "items": [r.to_dict() for r in responses]
+            "items": [asdict(item) for item in responses],
         }
-    except DomainException as e:
+    except DomainException as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+            detail=str(exc),
+        ) from exc
 
 
 @router.get(
     "/most-used",
-    response_model=dict,
     summary="Get most used tags",
 )
 async def get_most_used_tags(
     limit: int = Query(10, ge=1, le=50),
-    di: DIContainer = Depends(get_di_container)
+    di: DIContainer = Depends(get_di_container),
 ):
-    """获取最常用的 Tags"""
+    """获取最常用标签。"""
+
     try:
-        request = GetMostUsedTagsRequest(limit=limit)
         use_case = di.get_get_most_used_tags_use_case()
-        responses: List[TagResponse] = await use_case.execute(request)
+        dto = GetMostUsedTagsRequest(limit=limit)
+        responses: List[TagResponse] = await use_case.execute(dto)
         return {
             "total": len(responses),
-            "items": [r.to_dict() for r in responses]
+            "items": [asdict(item) for item in responses],
         }
-    except DomainException as e:
+    except DomainException as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail=str(exc),
+        ) from exc
+
+
+@router.get(
+    "/catalog",
+    summary="List tags catalog",
+)
+async def list_tags(
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=200),
+    include_deleted: bool = Query(False),
+    only_top_level: bool = Query(True),
+    order: str = Query(
+        "name_asc",
+        description="Sort order: name_asc | name_desc | usage_desc | created_desc",
+    ),
+    di: DIContainer = Depends(get_di_container),
+):
+    """分页列出标签目录。"""
+
+    try:
+        use_case = di.get_list_tags_use_case()
+        request = ListTagsRequest(
+            page=page,
+            size=size,
+            include_deleted=include_deleted,
+            only_top_level=only_top_level,
+            order_by=order,
         )
+        result = await use_case.execute(request)
+        return {
+            "total": result.total,
+            "items": [asdict(item) for item in result.items],
+            "page": result.page,
+            "size": result.size,
+            "has_more": result.has_more,
+        }
+    except DomainException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+
+@router.get(
+    "/{tag_id}",
+    summary="Get tag by ID",
+)
+async def get_tag(
+    tag_id: UUID,
+    di: DIContainer = Depends(get_di_container),
+):
+    """根据 ID 获取单个 Tag。"""
+
+    try:
+        use_case = di.get_search_tags_use_case()
+        dto = SearchTagsRequest(keyword=str(tag_id), limit=1)
+        responses: List[TagResponse] = await use_case.execute(dto)
+        if not responses:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Tag {tag_id} not found",
+            )
+        return asdict(responses[0])
+    except DomainException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
 
 
 @router.post(
     "/{tag_id}/associate",
-    status_code=status.HTTP_200_OK,
     summary="Associate tag with entity",
 )
 async def associate_tag(
     tag_id: UUID,
-    entity_type: str = Query(..., description="Entity type: BOOK, BOOKSHELF, BLOCK"),
-    entity_id: UUID = Query(..., description="Entity ID"),
-    di: DIContainer = Depends(get_di_container)
+    entity_type: str | EntityType | None = Query(
+        None,
+        description="Entity type (library/bookshelf/book/block). Prefer lowercase.",
+    ),
+    entity_id: Optional[UUID] = Query(None, description="Entity ID"),
+    body: Optional[AssociateTagSchema] = Body(
+        None,
+        description="Optional JSON payload for association (preferred).",
+    ),
+    di: DIContainer = Depends(get_di_container),
 ):
-    """关联 Tag 到实体（Book/Bookshelf/Block）"""
+    """关联 Tag 到实体。"""
+
     try:
-        request = AssociateTagRequest(
-            tag_id=tag_id,
-            entity_type=entity_type,
-            entity_id=entity_id
-        )
+        normalized_type, normalized_id = _resolve_association_payload(entity_type, entity_id, body)
         use_case = di.get_associate_tag_use_case()
-        await use_case.execute(request)
+        dto = AssociateTagInput(
+            tag_id=tag_id,
+            entity_type=normalized_type,
+            entity_id=normalized_id,
+        )
+        await use_case.execute(dto)
         return {"message": "Tag associated successfully"}
-    except DomainException as e:
+    except DomainException as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+            detail=str(exc),
+        ) from exc
 
 
 @router.delete(
     "/{tag_id}/disassociate",
-    status_code=status.HTTP_200_OK,
     summary="Disassociate tag from entity",
 )
 async def disassociate_tag(
     tag_id: UUID,
-    entity_type: str = Query(...),
-    entity_id: UUID = Query(...),
-    di: DIContainer = Depends(get_di_container)
+    entity_type: str | EntityType | None = Query(
+        None,
+        description="Entity type (library/bookshelf/book/block).",
+    ),
+    entity_id: Optional[UUID] = Query(None),
+    body: Optional[AssociateTagSchema] = Body(
+        None,
+        description="Optional JSON payload mirroring associate request.",
+    ),
+    di: DIContainer = Depends(get_di_container),
 ):
-    """取消关联 Tag 和实体"""
+    """取消 Tag 与实体的关联。"""
+
     try:
-        request = DisassociateTagRequest(
-            tag_id=tag_id,
-            entity_type=entity_type,
-            entity_id=entity_id
-        )
+        normalized_type, normalized_id = _resolve_association_payload(entity_type, entity_id, body)
         use_case = di.get_disassociate_tag_use_case()
-        await use_case.execute(request)
+        dto = DisassociateTagRequest(
+            tag_id=tag_id,
+            entity_type=normalized_type,
+            entity_id=normalized_id,
+        )
+        await use_case.execute(dto)
         return {"message": "Tag disassociated successfully"}
-    except DomainException as e:
+    except DomainException as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+            detail=str(exc),
+        ) from exc
 
 
 __all__ = ["router"]
+
+

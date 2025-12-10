@@ -27,6 +27,8 @@ from .media_models import (
     MediaType, MediaMimeType, MediaState, EntityTypeForMedia
 )
 from .search_index_models import SearchIndexModel
+from .chronicle_models import ChronicleEventModel
+from .maturity_models import MaturitySnapshotModel
 
 __all__ = [
     # Base
@@ -49,5 +51,9 @@ __all__ = [
     "EntityTypeForMedia",
     # Search
     "SearchIndexModel",
+    # Chronicle
+    "ChronicleEventModel",
+    # Maturity
+    "MaturitySnapshotModel",
 ]
 

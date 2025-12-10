@@ -16,7 +16,7 @@ Architecture:
 
 Invariants:
 - Block associated to Book through book_id FK (not embedded)
-- Type must be one of 8 valid BlockType values (TEXT, HEADING, CODE, IMAGE, QUOTE, LIST, TABLE, DIVIDER)
+- Type must be one of 9 valid BlockType values (TEXT, HEADING, CODE, IMAGE, QUOTE, LIST, TODO_LIST, TABLE, DIVIDER)
 - Content must be ≤ 10000 characters
 - order field stores Fractional Index value (DECIMAL(19,10) precision)
 - heading_level only valid for HEADING type (1-3 for H1-H3)
@@ -28,7 +28,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Union
 from uuid import UUID, uuid4
 from decimal import Decimal
 
@@ -56,6 +56,7 @@ class BlockType(str, Enum):
     - IMAGE: Image references (~5%)
     - QUOTE: Blockquotes (~5%)
     - LIST: Bullet/numbered lists (~3%)
+    - TODO_LIST: Checkbox-based todos (~3%)
     - TABLE: Tabular data (<1%)
     - DIVIDER: Visual separators (<1%)
     """
@@ -65,6 +66,7 @@ class BlockType(str, Enum):
     IMAGE = "image"        # Image reference
     QUOTE = "quote"        # Blockquote
     LIST = "list"          # Bullet/numbered list
+    TODO_LIST = "todo_list"  # Checkbox todo list
     TABLE = "table"        # Table structure
     DIVIDER = "divider"    # Horizontal divider
 
@@ -130,6 +132,7 @@ class Block(AggregateRoot):
         order: Decimal = Decimal('0'),
         heading_level: Optional[int] = None,
         soft_deleted_at: Optional[datetime] = None,
+        deleted_at: Optional[datetime] = None,
         deleted_prev_id: Optional[UUID] = None,
         deleted_next_id: Optional[UUID] = None,
         deleted_section_path: Optional[str] = None,
@@ -137,6 +140,7 @@ class Block(AggregateRoot):
         updated_at: datetime = None,
     ):
         """Initialize Block aggregate root"""
+        super().__init__()
         self.id = block_id
         self.book_id = book_id
         self.type = block_type
@@ -144,6 +148,7 @@ class Block(AggregateRoot):
         self.order = order
         self.heading_level = heading_level
         self.soft_deleted_at = soft_deleted_at  # ← Marks if in Basement
+        self.deleted_at = deleted_at
         self.deleted_prev_id = deleted_prev_id  # ← Paperballs Level 1
         self.deleted_next_id = deleted_next_id  # ← Paperballs Level 2
         self.deleted_section_path = deleted_section_path  # ← Paperballs Level 3
@@ -197,7 +202,7 @@ class Block(AggregateRoot):
         # Emit creation event
         block.events.append(
             BlockCreated(
-                aggregate_id=block_id,
+                block_id=block_id,
                 book_id=book_id,
                 block_type=block_type.value,
                 content=content[:100],  # First 100 chars for event
@@ -225,9 +230,40 @@ class Block(AggregateRoot):
 
         self.events.append(
             BlockUpdated(
-                aggregate_id=self.id,
+                block_id=self.id,
                 book_id=self.book_id,
-                new_content=new_content[:100],
+                content=new_content[:100],
+            )
+        )
+
+    def update_type(self, new_type: Union[BlockType, str], heading_level: Optional[int] = None) -> None:
+        """Update block type (e.g., paragraph -> list)."""
+        if isinstance(new_type, str):
+            try:
+                new_type = BlockType(new_type)
+            except ValueError as exc:
+                raise ValueError("new_type must be a valid BlockType") from exc
+        elif not isinstance(new_type, BlockType):
+            raise ValueError("new_type must be BlockType")
+
+        if new_type == BlockType.HEADING:
+            # Keep existing heading level if caller omitted a new one.
+            level = heading_level if heading_level is not None else self.heading_level
+            if level not in (1, 2, 3):
+                raise ValueError("heading_level must be 1, 2, or 3 for heading blocks")
+            heading_level = level
+        else:
+            heading_level = None
+
+        self.type = new_type
+        self.heading_level = heading_level
+        self.updated_at = datetime.now(timezone.utc)
+
+        self.events.append(
+            BlockUpdated(
+                block_id=self.id,
+                book_id=self.book_id,
+                content=str(self.content)[:100],
             )
         )
 
@@ -248,7 +284,7 @@ class Block(AggregateRoot):
 
         self.events.append(
             BlockReordered(
-                aggregate_id=self.id,
+                block_id=self.id,
                 book_id=self.book_id,
                 old_order=float(old_order),
                 new_order=float(new_order),
@@ -260,6 +296,7 @@ class Block(AggregateRoot):
         prev_sibling_id: Optional[UUID] = None,
         next_sibling_id: Optional[UUID] = None,
         section_path: Optional[str] = None,
+        deleted_at: Optional[datetime] = None,
     ) -> None:
         """
         Soft-delete block to Basement
@@ -276,15 +313,17 @@ class Block(AggregateRoot):
 
         Emits: BlockDeleted event
         """
-        self.soft_deleted_at = datetime.now(timezone.utc)
+        deletion_time = deleted_at or datetime.now(timezone.utc)
+        self.soft_deleted_at = deletion_time
+        self.deleted_at = deletion_time
         self.deleted_prev_id = prev_sibling_id
         self.deleted_next_id = next_sibling_id
         self.deleted_section_path = section_path
-        self.updated_at = self.soft_deleted_at
+        self.updated_at = deletion_time
 
         self.events.append(
             BlockDeleted(
-                aggregate_id=self.id,
+                block_id=self.id,
                 book_id=self.book_id,
                 prev_sibling_id=str(prev_sibling_id) if prev_sibling_id else None,
                 next_sibling_id=str(next_sibling_id) if next_sibling_id else None,
@@ -305,6 +344,7 @@ class Block(AggregateRoot):
         Emits: BlockRestored event
         """
         self.soft_deleted_at = None
+        self.deleted_at = None
         self.deleted_prev_id = None
         self.deleted_next_id = None
         self.deleted_section_path = None
@@ -313,7 +353,7 @@ class Block(AggregateRoot):
 
         self.events.append(
             BlockRestored(
-                aggregate_id=self.id,
+                block_id=self.id,
                 book_id=self.book_id,
                 new_order=float(new_order),
                 recovery_level=recovery_level,

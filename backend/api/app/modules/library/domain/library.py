@@ -42,6 +42,10 @@ from .events import (
 )
 
 
+# 默认主题色（丝绸蓝）Hex
+DEFAULT_LIBRARY_THEME_COLOR = "#2e5e92"
+
+
 # ============================================================================
 # Aggregate Root: Library
 # ============================================================================
@@ -84,6 +88,15 @@ class Library(AggregateRoot):
         user_id: UUID,
         name: LibraryName,
         basement_bookshelf_id: Optional[UUID] = None,
+        description: Optional[str] = None,
+        cover_media_id: Optional[UUID] = None,
+        theme_color: Optional[str] = None,
+        pinned: bool = False,
+        pinned_order: Optional[int] = None,
+        archived_at: Optional[datetime] = None,
+        last_activity_at: Optional[datetime] = None,
+        views_count: int = 0,
+        last_viewed_at: Optional[datetime] = None,
         created_at: Optional[datetime] = None,
         updated_at: Optional[datetime] = None,
         soft_deleted_at: Optional[datetime] = None,
@@ -108,17 +121,34 @@ class Library(AggregateRoot):
         self.user_id = user_id
         self.name = name  # LibraryName handles RULE-003 validation
         self.basement_bookshelf_id = basement_bookshelf_id
+        self.description = description  # Optional textual description (≤500 chars RULE-LIB-DESC-001)
+        self.cover_media_id = cover_media_id  # Points to Media aggregate (primary cover)
+        self.theme_color = _normalize_theme_color(theme_color)
+        self.pinned = pinned
+        self.pinned_order = pinned_order
+        self.archived_at = archived_at
+        self.last_activity_at = last_activity_at or datetime.now(timezone.utc)
+        self.views_count = views_count
+        self.last_viewed_at = last_viewed_at
         self.created_at = created_at or datetime.now(timezone.utc)
         self.updated_at = updated_at or datetime.now(timezone.utc)
         self.soft_deleted_at = soft_deleted_at
-        self.events: List = []  # Collected events (sent to EventBus by Service)
+        # Keep compatibility with legacy callers that inspect `library.events`
+        # by aliasing the public list to the AggregateRoot event buffer.
+        self.events = self._events
 
     # ========================================================================
     # Factory Methods (Creation)
     # ========================================================================
 
     @classmethod
-    def create(cls, user_id: UUID, name: str) -> Library:
+    def create(
+        cls,
+        user_id: UUID,
+        name: str,
+        description: Optional[str] = None,
+        theme_color: Optional[str] = None,
+    ) -> Library:
         """
         Factory method to create a new Library
 
@@ -156,18 +186,34 @@ class Library(AggregateRoot):
         library_name = LibraryName(value=name)  # Validates RULE-003
         now = datetime.now(timezone.utc)
 
+        # 为空时使用默认主题色（丝绸蓝）
+        normalized_theme_color = theme_color
+        if normalized_theme_color is None or (
+            isinstance(normalized_theme_color, str) and normalized_theme_color.strip() == ""
+        ):
+            normalized_theme_color = DEFAULT_LIBRARY_THEME_COLOR
+
         # 创建 Library 实例
         library = cls(
             library_id=library_id,
             user_id=user_id,
             name=library_name,
             basement_bookshelf_id=basement_id,
+            description=description,
+            cover_media_id=None,
+            theme_color=normalized_theme_color,
+            pinned=False,
+            pinned_order=None,
+            archived_at=None,
+            last_activity_at=now,
+            views_count=0,
+            last_viewed_at=None,
             created_at=now,
             updated_at=now,
         )
 
         # 发出 LibraryCreated 事件（RULE-001）
-        library.emit(
+        library.add_event(
             LibraryCreated(
                 library_id=library_id,
                 user_id=user_id,
@@ -177,7 +223,7 @@ class Library(AggregateRoot):
         )
 
         # 发出 BasementCreated 事件（RULE-010）
-        library.emit(
+        library.add_event(
             BasementCreated(
                 basement_bookshelf_id=basement_id,
                 library_id=library_id,
@@ -233,9 +279,10 @@ class Library(AggregateRoot):
         old_name = self.name.value
         self.name = new_library_name
         self.updated_at = datetime.now(timezone.utc)
+        self.last_activity_at = self.updated_at
 
         # Emit event for listeners (Audit, UI update, etc.)
-        self.emit(
+        self.add_event(
             LibraryRenamed(
                 library_id=self.id,
                 old_name=old_name,
@@ -243,6 +290,77 @@ class Library(AggregateRoot):
                 occurred_at=self.updated_at,
             )
         )
+
+    def update_description(self, new_description: Optional[str]) -> None:
+        """Update textual description (can be set to None)
+
+        RULE-LIB-DESC-001: Max length 500 enforced at schema/API layer.
+        Domain only stores value; empty string normalizes to None.
+        Emits no event (pure metadata change - can be audited by Chronicle).
+        """
+        normalized = (new_description or '').strip()
+        if normalized == '':
+            normalized = None
+        if self.description == normalized:
+            return
+        self.description = normalized
+        self.updated_at = datetime.now(timezone.utc)
+        self.last_activity_at = self.updated_at
+
+    def set_cover_media(self, media_id: Optional[UUID]) -> None:
+        """Assign or clear cover media for Library.
+
+        Emits no domain event (UI cosmetic). Chronicle can log externally.
+        """
+        if self.cover_media_id == media_id:
+            return
+        self.cover_media_id = media_id
+        self.updated_at = datetime.now(timezone.utc)
+        self.last_activity_at = self.updated_at
+
+    def set_theme_color(self, theme_color: Optional[str]) -> None:
+        """Assign or clear the explicit theme color for the library."""
+        normalized = _normalize_theme_color(theme_color)
+        if self.theme_color == normalized:
+            return
+        self.theme_color = normalized
+        self.updated_at = datetime.now(timezone.utc)
+        self.last_activity_at = self.updated_at
+
+    def set_pinned(self, pinned: bool, pinned_order: Optional[int] = None) -> None:
+        """Update pinned status and order for the library card list."""
+        if self.pinned == pinned and (not pinned or self.pinned_order == pinned_order):
+            return
+        self.pinned = pinned
+        self.pinned_order = pinned_order if pinned else None
+        self.updated_at = datetime.now(timezone.utc)
+
+    def archive(self) -> None:
+        """Mark library as archived (separate from soft delete)."""
+        if self.archived_at is not None:
+            return
+        now = datetime.now(timezone.utc)
+        self.archived_at = now
+        self.updated_at = now
+
+    def unarchive(self) -> None:
+        """Restore an archived library to active list."""
+        if self.archived_at is None:
+            return
+        self.archived_at = None
+        self.updated_at = datetime.now(timezone.utc)
+
+    def touch_activity(self, occurred_at: Optional[datetime] = None) -> None:
+        """Force refresh of last activity timestamp."""
+        timestamp = occurred_at or datetime.now(timezone.utc)
+        self.last_activity_at = timestamp
+        self.updated_at = timestamp
+
+    def record_view(self, occurred_at: Optional[datetime] = None) -> None:
+        """Increase view counter and update last_viewed_at."""
+        timestamp = occurred_at or datetime.now(timezone.utc)
+        self.views_count += 1
+        self.last_viewed_at = timestamp
 
     def mark_deleted(self) -> None:
         """
@@ -274,8 +392,9 @@ class Library(AggregateRoot):
         now = datetime.now(timezone.utc)
         self.updated_at = now
         self.soft_deleted_at = now  # Mark as deleted
+        self.archived_at = now if self.archived_at is None else self.archived_at
 
-        self.emit(
+        self.add_event(
             LibraryDeleted(
                 library_id=self.id,
                 user_id=self.user_id,
@@ -320,8 +439,9 @@ class Library(AggregateRoot):
         now = datetime.now(timezone.utc)
         self.soft_deleted_at = None  # Revert soft delete
         self.updated_at = now
+        self.archived_at = None
 
-        self.emit(
+        self.add_event(
             LibraryRestored(
                 library_id=self.id,
                 user_id=self.user_id,
@@ -365,3 +485,30 @@ class Library(AggregateRoot):
     def __hash__(self) -> int:
         """Hashable by ID"""
         return hash(self.id)
+
+
+HEX_DIGITS = set("0123456789abcdefABCDEF")
+
+
+def _normalize_theme_color(value: Optional[str]) -> Optional[str]:
+    """Ensure theme colors are stored as full #rrggbb strings or cleared."""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError("Theme color must be a string like #336699")
+    trimmed = value.strip()
+    if not trimmed:
+        return None
+    if not trimmed.startswith('#'):
+        trimmed = f'#' + trimmed
+    hex_part = trimmed[1:]
+    if len(hex_part) == 3:
+        if not all(ch in HEX_DIGITS for ch in hex_part):
+            raise ValueError("Theme color must be hex digits (e.g. #abc or #aabbcc)")
+        hex_part = ''.join(ch * 2 for ch in hex_part)
+    elif len(hex_part) == 6:
+        if not all(ch in HEX_DIGITS for ch in hex_part):
+            raise ValueError("Theme color must be hex digits (e.g. #abc or #aabbcc)")
+    else:
+        raise ValueError("Theme color must be 3 or 6 hex digits")
+    return f"#{hex_part.lower()}"

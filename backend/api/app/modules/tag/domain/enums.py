@@ -11,12 +11,14 @@ class EntityType(str, Enum):
     """Entity types that can be tagged.
 
     Supported entities:
+    - LIBRARY: Top-level knowledge spaces (Plan_31 tag row)
     - BOOKSHELF: Global bookshelves
     - BOOK: Books within bookshelves
     - BLOCK: Content blocks within books
 
     Used in TagAssociation to link tags to different aggregate types.
     """
+    LIBRARY = "library"
     BOOKSHELF = "bookshelf"
     BOOK = "book"
     BLOCK = "block"

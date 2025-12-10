@@ -6,7 +6,7 @@ Implementation: infra/storage/block_repository_impl.py
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from uuid import UUID
 from decimal import Decimal
 
@@ -34,6 +34,22 @@ class BlockRepository(ABC):
     @abstractmethod
     async def list_by_book(self, book_id: UUID) -> List[Block]:
         """Get all blocks in a book"""
+        pass
+
+    @abstractmethod
+    async def list_paginated(
+        self,
+        book_id: UUID,
+        page: int = 1,
+        page_size: int = 20,
+        include_deleted: bool = False,
+    ) -> Tuple[List[Block], int]:
+        """Get paginated blocks for a book with optional soft-delete filtering"""
+        pass
+
+    @abstractmethod
+    async def count_active_blocks(self, book_id: UUID) -> Tuple[int, int]:
+        """Return (block_count, distinct_block_type_count) for active blocks."""
         pass
 
     # ========== NEW: Paperballs Recovery Interface (Doc 8 Integration) ==========

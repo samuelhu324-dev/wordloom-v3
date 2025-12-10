@@ -25,6 +25,7 @@ class BlockTypeEnum(str, Enum):
     TABLE = "table"
     QUOTE = "quote"
     LIST = "list"
+    TODO_LIST = "todo_list"
     DIVIDER = "divider"
 
 

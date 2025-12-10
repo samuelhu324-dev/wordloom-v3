@@ -1,3 +1,9 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": "next/core-web-vitals",
+  "plugins": ["wordloom-custom"],
+  "rules": {
+    "wordloom-custom/no-raw-fetch-host": "error",
+    "wordloom-custom/selection-command-scope": "error",
+    "wordloom-custom/caret-selection-owner": "error"
+  }
 }

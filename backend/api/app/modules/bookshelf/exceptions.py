@@ -109,11 +109,18 @@ class BookshelfAlreadyExistsError(BookshelfException):
 
     def __init__(
         self,
-        library_id: str,
-        name: str,
+        library_id: Optional[str] = None,
+        name: Optional[str] = None,
         existing_bookshelf_id: Optional[str] = None,
     ):
-        message = f"Bookshelf with name '{name}' already exists in Library {library_id}"
+        core = "Bookshelf with this name already exists"
+        if library_id and name:
+            message = f"Bookshelf with name '{name}' already exists in Library {library_id}"
+        elif name:
+            message = f"Bookshelf named '{name}' already exists"
+        else:
+            message = core
+
         if existing_bookshelf_id:
             message += f" (ID: {existing_bookshelf_id})"
 
@@ -223,6 +230,22 @@ class BookshelfOperationError(BookshelfException):
                 "reason": reason,
                 "original_error": str(original_error) if original_error else None,
             }
+        )
+
+
+class BookshelfTagSyncError(BookshelfException):
+    """Tag 同步失败时抛出的异常"""
+
+    code = "BOOKSHELF_TAG_SYNC_ERROR"
+    http_status = 400
+
+    def __init__(self, bookshelf_id: str, reason: str):
+        super().__init__(
+            message=f"Failed to synchronize tags for Bookshelf {bookshelf_id}: {reason}",
+            details={
+                "bookshelf_id": bookshelf_id,
+                "reason": reason,
+            },
         )
 
 

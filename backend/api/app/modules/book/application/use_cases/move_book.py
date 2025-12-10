@@ -11,14 +11,13 @@ This use case handles:
 - Persisting changes via repository
 """
 
-from uuid import UUID
+from typing import Optional
 import logging
 
+from api.app.shared.events import EventBus
+
 from ...domain import Book
-from ..ports.input import (
-    MoveBookRequest,
-    BookResponse,
-)
+from ..ports.input import MoveBookRequest
 from ..ports.output import BookRepository
 from ...exceptions import (
     BookNotFoundError,
@@ -31,10 +30,11 @@ logger = logging.getLogger(__name__)
 class MoveBookUseCase:
     """Transfer a book to another bookshelf (RULE-011)"""
 
-    def __init__(self, repository: BookRepository):
+    def __init__(self, repository: BookRepository, event_bus: Optional[EventBus] = None):
         self.repository = repository
+        self.event_bus = event_bus
 
-    async def execute(self, request: MoveBookRequest) -> BookResponse:
+    async def execute(self, request: MoveBookRequest) -> Book:
         """
         Move a book to a different bookshelf
 
@@ -63,25 +63,47 @@ class MoveBookUseCase:
                 raise BookNotFoundError(f"Book {request.book_id} not found")
 
             # Validate move (throws ValueError if invalid)
-            logger.info(f"MoveBookUseCase: Moving book {book.id} from {book.bookshelf_id} to {request.target_bookshelf_id}")
+            logger.info(
+                "MoveBookUseCase: Moving book %s from %s to %s",
+                book.id,
+                book.bookshelf_id,
+                request.target_bookshelf_id,
+            )
 
-            # Call domain method which performs transfer and emits event
             book.move_to_bookshelf(request.target_bookshelf_id)
 
             # Persist the changes
             updated_book = await self.repository.save(book)
+            await self._publish_events(updated_book)
             logger.info(f"MoveBookUseCase: Book moved successfully: {updated_book.id}")
 
-            # Publish events (Infrastructure layer responsibility)
-            # Events are already in book.events from domain method
-
-            return BookResponse.from_domain(updated_book)
+            return updated_book
 
         except BookNotFoundError:
             raise
         except ValueError as e:
             logger.warning(f"Invalid move operation: {e}")
             raise InvalidBookMoveError(str(e))
+        except InvalidBookMoveError:
+            raise
         except Exception as e:
             logger.error(f"Unexpected error in MoveBookUseCase: {e}", exc_info=True)
             raise InvalidBookMoveError(f"Failed to move book: {str(e)}")
+
+    async def _publish_events(self, book: Book) -> None:
+        if not self.event_bus:
+            return
+
+        events = getattr(book, "get_events", lambda: [])()
+        if not events:
+            return
+
+        try:
+            for event in events:
+                await self.event_bus.publish(event)
+        except Exception as exc:
+            raise InvalidBookMoveError(f"Failed to publish move events: {str(exc)}")
+        else:
+            clear = getattr(book, "clear_events", None)
+            if callable(clear):
+                clear()

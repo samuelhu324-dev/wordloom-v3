@@ -11,7 +11,7 @@ from uuid import UUID
 from sqlalchemy import select, and_, desc, func
 from sqlalchemy.exc import IntegrityError
 
-from api.app.modules.book.domain import Book, BookTitle, BookSummary, BookStatus
+from api.app.modules.book.domain import Book, BookTitle, BookSummary, BookStatus, BookMaturity
 from api.app.modules.book.models import BookModel
 from api.app.modules.book.exceptions import BookAlreadyExistsError
 
@@ -19,36 +19,37 @@ logger = logging.getLogger(__name__)
 
 
 class BookRepository(ABC):
-    """Abstract Repository interface for Book aggregate"""
+    """Abstract Repository interface for Book aggregate (mirrors output port)
+
+    NOTE: save returns the Domain Book for fluent usage in use cases.
+    """
 
     @abstractmethod
-    async def save(self, book: Book) -> None:
-        """Persist or update a Book"""
+    async def save(self, book: Book) -> Book:
         pass
 
     @abstractmethod
     async def get_by_id(self, book_id: UUID) -> Optional[Book]:
-        """Retrieve by ID (excluding soft-deleted)"""
         pass
 
     @abstractmethod
-    async def get_by_bookshelf_id(self, bookshelf_id: UUID) -> List[Book]:
-        """Retrieve all Books in Bookshelf (excluding soft-deleted)"""
+    async def get_by_bookshelf_id(
+        self,
+        bookshelf_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+        include_deleted: bool = False,
+    ) -> tuple[List[Book], int]:
         pass
 
     @abstractmethod
-    async def get_deleted_books(self, bookshelf_id: UUID) -> List[Book]:
-        """Retrieve soft-deleted Books (for Basement/restore)"""
-        pass
-
-    @abstractmethod
-    async def delete(self, book_id: UUID) -> None:
-        """Hard delete a Book"""
-        pass
-
-    @abstractmethod
-    async def get_by_library_id(self, library_id: UUID) -> List[Book]:
-        """Retrieve all Books in a Library (for bulk operations)"""
+    async def get_by_library_id(
+        self,
+        library_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+        include_deleted: bool = False,
+    ) -> tuple[List[Book], int]:
         pass
 
     @abstractmethod
@@ -58,7 +59,24 @@ class BookRepository(ABC):
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[List[Book], int]:
-        """Retrieve paginated Books with total count"""
+        pass
+
+    @abstractmethod
+    async def get_deleted_books(
+        self,
+        skip: int = 0,
+        limit: int = 50,
+        bookshelf_id: Optional[UUID] = None,
+        library_id: Optional[UUID] = None,
+    ) -> tuple[List[Book], int]:
+        pass
+
+    @abstractmethod
+    async def delete(self, book_id: UUID) -> None:
+        pass
+
+    @abstractmethod
+    async def exists_by_id(self, book_id: UUID) -> bool:
         pass
 
 
@@ -68,7 +86,7 @@ class BookRepositoryImpl(BookRepository):
     def __init__(self, session):
         self.session = session
 
-    async def save(self, book: Book) -> None:
+    async def save(self, book: Book) -> Book:
         """
         Save or update Book aggregate
 
@@ -91,11 +109,22 @@ class BookRepositoryImpl(BookRepository):
                 existing.library_id = book.library_id  # ← CRITICAL!
                 existing.title = book.title.value
                 existing.summary = book.summary.value if book.summary else None
+                existing.cover_icon = book.cover_icon
+                existing.cover_media_id = book.cover_media_id
                 existing.is_pinned = book.is_pinned
                 existing.due_at = book.due_at
                 existing.status = book.status.value
+                existing.maturity = book.maturity.value
+                existing.maturity_score = getattr(book, "maturity_score", 0)
+                existing.legacy_flag = getattr(book, "legacy_flag", False)
+                existing.manual_maturity_override = getattr(book, "manual_maturity_override", False)
+                existing.manual_maturity_reason = getattr(book, "manual_maturity_reason", None)
+                existing.last_visited_at = getattr(book, "last_visited_at", None)
+                existing.visit_count_90d = getattr(book, "visit_count_90d", 0)
                 existing.block_count = book.block_count
                 existing.soft_deleted_at = book.soft_deleted_at  # ← RULE-012
+                existing.previous_bookshelf_id = getattr(book, "previous_bookshelf_id", None)
+                existing.moved_to_basement_at = getattr(book, "moved_to_basement_at", None)
                 existing.updated_at = book.updated_at
             else:
                 # Create new
@@ -106,15 +135,34 @@ class BookRepositoryImpl(BookRepository):
                     library_id=book.library_id,  # ← CRITICAL!
                     title=book.title.value,
                     summary=book.summary.value if book.summary else None,
+                    cover_icon=book.cover_icon,
+                    cover_media_id=book.cover_media_id,
                     is_pinned=book.is_pinned,
                     due_at=book.due_at,
                     status=book.status.value,
+                    maturity=book.maturity.value,
+                    maturity_score=getattr(book, "maturity_score", 0),
+                    legacy_flag=getattr(book, "legacy_flag", False),
+                    manual_maturity_override=getattr(book, "manual_maturity_override", False),
+                    manual_maturity_reason=getattr(book, "manual_maturity_reason", None),
+                    last_visited_at=getattr(book, "last_visited_at", None),
+                    visit_count_90d=getattr(book, "visit_count_90d", 0),
                     block_count=book.block_count,
                     soft_deleted_at=book.soft_deleted_at,  # ← RULE-012
+                    previous_bookshelf_id=getattr(book, "previous_bookshelf_id", None),
+                    moved_to_basement_at=getattr(book, "moved_to_basement_at", None),
                     created_at=book.created_at,
                     updated_at=book.updated_at,
                 )
                 self.session.add(model)
+
+            # Flush to persist (without committing here; Unit of Work may handle commit)
+            try:
+                await self.session.flush()
+            except Exception as flush_err:
+                logger.warning(f"Flush after save failed (non-fatal before commit): {flush_err}")
+
+            return book
 
         except IntegrityError as e:
             logger.error(f"Integrity constraint violated: {e}")
@@ -149,52 +197,82 @@ class BookRepositoryImpl(BookRepository):
             logger.error(f"Error fetching Book {book_id}: {e}")
             raise
 
-    async def get_by_bookshelf_id(self, bookshelf_id: UUID) -> List[Book]:
-        """
-        Retrieve all Books in Bookshelf (excluding soft-deleted)
-
-        Ordered by created_at DESC (newest first)
-        """
+    async def get_by_bookshelf_id(
+        self,
+        bookshelf_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+        include_deleted: bool = False,
+    ) -> tuple[List[Book], int]:
+        """Retrieve books in a bookshelf with pagination & optional deleted inclusion"""
         try:
-            stmt = select(BookModel).where(
+            # Total count (respect deleted filter)
+            total_stmt = select(func.count(BookModel.id)).where(
                 and_(
                     BookModel.bookshelf_id == bookshelf_id,
-                    BookModel.soft_deleted_at.is_(None),  # ← Exclude deleted
+                    (BookModel.soft_deleted_at.is_(None) if not include_deleted else True),
                 )
-            ).order_by(desc(BookModel.created_at))
+            )
+            total_result = await self.session.execute(total_stmt)
+            total = total_result.scalar() or 0
 
+            # Items query
+            where_clause = and_(
+                BookModel.bookshelf_id == bookshelf_id,
+                (BookModel.soft_deleted_at.is_(None) if not include_deleted else True),
+            )
+            stmt = (
+                select(BookModel)
+                .where(where_clause)
+                .order_by(desc(BookModel.created_at))
+                .offset(skip)
+                .limit(limit)
+            )
             result = await self.session.execute(stmt)
             models = result.scalars().all()
-
             logger.debug(
-                f"Retrieved {len(models)} Books from Bookshelf {bookshelf_id}"
+                f"Retrieved {len(models)} Books (total={total}) from Bookshelf {bookshelf_id} include_deleted={include_deleted}"
             )
-            return [self._to_domain(m) for m in models]
-
+            return [self._to_domain(m) for m in models], total
         except Exception as e:
             logger.error(f"Error fetching Books for Bookshelf {bookshelf_id}: {e}")
             raise
 
-    async def get_deleted_books(self, bookshelf_id: UUID) -> List[Book]:
-        """
-        Retrieve soft-deleted Books (for Basement/restore)
-
-        RULE-012 & RULE-013: Supports restoring Books from Basement
-        """
+    async def get_deleted_books(
+        self,
+        skip: int = 0,
+        limit: int = 50,
+        bookshelf_id: Optional[UUID] = None,
+        library_id: Optional[UUID] = None,
+        book_id: Optional[UUID] = None,
+    ) -> tuple[List[Book], int]:
+        """Retrieve soft-deleted books with optional filters"""
         try:
-            stmt = select(BookModel).where(
-                and_(
-                    BookModel.bookshelf_id == bookshelf_id,
-                    BookModel.soft_deleted_at.is_not(None),  # ← Only deleted
-                )
-            ).order_by(desc(BookModel.soft_deleted_at))
+            conditions = [BookModel.soft_deleted_at.is_not(None)]
+            if bookshelf_id:
+                conditions.append(BookModel.bookshelf_id == bookshelf_id)
+            if library_id:
+                conditions.append(BookModel.library_id == library_id)
+            if book_id:
+                conditions.append(BookModel.id == book_id)
 
+            total_stmt = select(func.count(BookModel.id)).where(and_(*conditions))
+            total_result = await self.session.execute(total_stmt)
+            total = total_result.scalar() or 0
+
+            stmt = (
+                select(BookModel)
+                .where(and_(*conditions))
+                .order_by(desc(BookModel.soft_deleted_at))
+                .offset(skip)
+                .limit(limit)
+            )
             result = await self.session.execute(stmt)
             models = result.scalars().all()
-
-            logger.debug(f"Retrieved {len(models)} deleted Books from {bookshelf_id}")
-            return [self._to_domain(m) for m in models]
-
+            logger.debug(
+                f"Retrieved {len(models)} deleted Books (total={total}) filters bookshelf={bookshelf_id} library={library_id}"
+            )
+            return [self._to_domain(m) for m in models], total
         except Exception as e:
             logger.error(f"Error fetching deleted Books: {e}")
             raise
@@ -211,6 +289,7 @@ class BookRepositoryImpl(BookRepository):
             if model:
                 logger.info(f"Hard-deleting Book: {book_id}")
                 await self.session.delete(model)
+                await self.session.flush()
             else:
                 logger.debug(f"Book not found for deletion: {book_id}")
         except Exception as e:
@@ -231,35 +310,66 @@ class BookRepositoryImpl(BookRepository):
             library_id=model.library_id,  # ← CRITICAL!
             title=BookTitle(value=model.title),
             summary=BookSummary(value=model.summary) if model.summary else None,
+            cover_icon=model.cover_icon,
+            cover_media_id=getattr(model, "cover_media_id", None),
             is_pinned=model.is_pinned or False,
             due_at=model.due_at,
             status=BookStatus(model.status),
+            maturity=BookMaturity(model.maturity),
+            maturity_score=model.maturity_score or 0,
+            legacy_flag=model.legacy_flag or False,
+            manual_maturity_override=model.manual_maturity_override or False,
+            manual_maturity_reason=model.manual_maturity_reason,
+            last_visited_at=model.last_visited_at,
+            visit_count_90d=model.visit_count_90d or 0,
             block_count=model.block_count or 0,
+            block_type_count=getattr(model, "block_type_count", 0) or 0,
+            tag_count_snapshot=getattr(model, "tag_count_snapshot", 0) or 0,
+            open_todo_snapshot=getattr(model, "open_todo_snapshot", 0) or 0,
+            operations_bonus=getattr(model, "operations_bonus", 0) or 0,
             soft_deleted_at=model.soft_deleted_at,  # ← RULE-012
+            previous_bookshelf_id=getattr(model, "previous_bookshelf_id", None),
+            moved_to_basement_at=getattr(model, "moved_to_basement_at", None),
             created_at=model.created_at,
             updated_at=model.updated_at,
+            last_content_edit_at=getattr(model, "last_content_edit_at", None),
         )
 
-    async def get_by_library_id(self, library_id: UUID) -> List[Book]:
-        """
-        Retrieve all Books in a Library (excluding soft-deleted)
-
-        Used for bulk operations and library-level queries
-        """
+    async def get_by_library_id(
+        self,
+        library_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+        include_deleted: bool = False,
+    ) -> tuple[List[Book], int]:
+        """Retrieve books in a library with pagination & optional deleted inclusion"""
         try:
-            stmt = select(BookModel).where(
+            total_stmt = select(func.count(BookModel.id)).where(
                 and_(
                     BookModel.library_id == library_id,
-                    BookModel.soft_deleted_at.is_(None),  # ← Exclude deleted
+                    (BookModel.soft_deleted_at.is_(None) if not include_deleted else True),
                 )
-            ).order_by(desc(BookModel.created_at))
+            )
+            total_result = await self.session.execute(total_stmt)
+            total = total_result.scalar() or 0
 
+            where_clause = and_(
+                BookModel.library_id == library_id,
+                (BookModel.soft_deleted_at.is_(None) if not include_deleted else True),
+            )
+            stmt = (
+                select(BookModel)
+                .where(where_clause)
+                .order_by(desc(BookModel.created_at))
+                .offset(skip)
+                .limit(limit)
+            )
             result = await self.session.execute(stmt)
             models = result.scalars().all()
-
-            logger.debug(f"Retrieved {len(models)} Books from Library {library_id}")
-            return [self._to_domain(m) for m in models]
-
+            logger.debug(
+                f"Retrieved {len(models)} Books (total={total}) from Library {library_id} include_deleted={include_deleted}"
+            )
+            return [self._to_domain(m) for m in models], total
         except Exception as e:
             logger.error(f"Error fetching Books for Library {library_id}: {e}")
             raise
@@ -312,3 +422,13 @@ class BookRepositoryImpl(BookRepository):
         except Exception as e:
             logger.error(f"Error fetching paginated Books: {e}")
             raise
+
+    async def exists_by_id(self, book_id: UUID) -> bool:
+        """Check if a Book exists (any status)"""
+        try:
+            stmt = select(func.count(BookModel.id)).where(BookModel.id == book_id)
+            result = await self.session.execute(stmt)
+            return (result.scalar() or 0) > 0
+        except Exception as e:
+            logger.error(f"Error checking existence for Book {book_id}: {e}")
+            return False

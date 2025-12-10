@@ -8,11 +8,21 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   helperText?: string;
   fullWidth?: boolean;
+  compact?: boolean;
+  wrapperClassName?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, fullWidth = false, className = '', ...props }, ref) => {
-    const containerClass = [styles.inputWrapper, fullWidth ? styles['inputWrapper--full'] : '', error ? styles['inputWrapper--error'] : ''].filter(Boolean).join(' ');
+  ({ label, error, helperText, fullWidth = false, compact = false, wrapperClassName = '', className = '', ...props }, ref) => {
+    const containerClass = [
+      styles.inputWrapper,
+      fullWidth ? styles['inputWrapper--full'] : '',
+      compact ? styles['inputWrapper--compact'] : '',
+      error ? styles['inputWrapper--error'] : '',
+      wrapperClassName,
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     return (
       <div className={containerClass}>

@@ -11,94 +11,151 @@ Design:
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
+from enum import Enum
 from uuid import UUID
+from dataclasses import dataclass, field  # Added missing import to enable @dataclass usage
 
-from api.app.modules.bookshelf.domain import Bookshelf
+from api.app.modules.bookshelf.domain import Bookshelf, BookshelfStatus
 
 
 # ============================================================================
-# Input DTOs (Request Models)
+# Input DTOs (Request Models - Pydantic v2)
 # ============================================================================
 
-@dataclass
-class CreateBookshelfRequest:
+class CreateBookshelfRequest(BaseModel):
     """Request to create a new Bookshelf"""
-    library_id: UUID
-    name: str
-    description: Optional[str] = None
+    library_id: UUID = Field(..., description="UUID of the library")
+    name: str = Field(..., min_length=1, max_length=255, description="Bookshelf name")
+    description: Optional[str] = Field(None, max_length=1000, description="Optional description")
+    tag_ids: Optional[List[UUID]] = Field(
+        None,
+        description="Initial tag IDs to associate (order preserved, max 3)",
+    )
 
-    def __post_init__(self):
+    @field_validator('name', 'description', mode='before')
+    @classmethod
+    def trim_whitespace(cls, v: Optional[str]) -> Optional[str]:
         """Trim whitespace from string fields"""
-        self.name = self.name.strip() if self.name else self.name
-        if self.description:
-            self.description = self.description.strip()
+        if isinstance(v, str):
+            v = v.strip() or None
+        return v
+
+    @field_validator('tag_ids', mode='after')
+    @classmethod
+    def validate_tag_ids(cls, value: Optional[List[UUID]]) -> Optional[List[UUID]]:
+        """Ensure tag selections stay unique and within limit"""
+        if value is None:
+            return None
+        unique: List[UUID] = []
+        seen = set()
+        for tag_id in value:
+            if tag_id in seen:
+                continue
+            unique.append(tag_id)
+            seen.add(tag_id)
+        if len(unique) > 3:
+            raise ValueError("tag_ids cannot contain more than 3 items")
+        return unique
 
 
-@dataclass
-class GetBookshelfRequest:
+class GetBookshelfRequest(BaseModel):
     """Request to retrieve a Bookshelf by ID"""
-    bookshelf_id: UUID
+    bookshelf_id: UUID = Field(..., description="UUID of the bookshelf")
 
 
-@dataclass
-class ListBookshelvesRequest:
+class ListBookshelvesRequest(BaseModel):
     """Request to list Bookshelves for a library"""
-    library_id: UUID
-    skip: int = 0
-    limit: int = 100
-    include_deleted: bool = False
+    library_id: UUID = Field(..., description="UUID of the library")
+    skip: int = Field(0, ge=0, description="Pagination skip")
+    limit: int = Field(100, ge=1, le=100, description="Pagination limit")
+    include_deleted: bool = Field(False, description="Include deleted items")
 
 
-@dataclass
-class GetBasementRequest:
+class GetBasementRequest(BaseModel):
     """Request to retrieve the Basement bookshelf for a library"""
-    library_id: UUID
+    library_id: UUID = Field(..., description="UUID of the library")
 
 
-@dataclass
-class DeleteBookshelfRequest:
+class DeleteBookshelfRequest(BaseModel):
     """Request to delete (soft delete) a Bookshelf"""
-    bookshelf_id: UUID
+    bookshelf_id: UUID = Field(..., description="UUID of the bookshelf")
 
 
-@dataclass
-class RestoreBookshelfRequest:
+class RestoreBookshelfRequest(BaseModel):
     """Request to restore a soft-deleted Bookshelf from Basement
 
     Fields:
     - bookshelf_id: UUID of the bookshelf to restore
     - cascade_restore_books: Whether to restore child books (optional, default False)
     """
-    bookshelf_id: UUID
-    cascade_restore_books: bool = False
+    bookshelf_id: UUID = Field(..., description="UUID of the bookshelf to restore")
+    cascade_restore_books: bool = Field(False, description="Cascade restore child books")
 
 
-@dataclass
-class RenameBookshelfRequest:
+class RenameBookshelfRequest(BaseModel):
     """Request to rename a Bookshelf"""
-    bookshelf_id: UUID
-    new_name: str
+    bookshelf_id: UUID = Field(..., description="UUID of the bookshelf")
+    new_name: str = Field(..., min_length=1, max_length=255, description="New name")
 
-    def __post_init__(self):
+    @field_validator('new_name', mode='before')
+    @classmethod
+    def trim_name(cls, v: str) -> str:
         """Trim whitespace from name"""
-        self.new_name = self.new_name.strip() if self.new_name else self.new_name
+        return v.strip() if isinstance(v, str) else v
 
 
-@dataclass
-class UpdateBookshelfRequest:
+class UpdateBookshelfRequest(BaseModel):
     """Request to update a Bookshelf (name and/or description)"""
-    bookshelf_id: UUID
-    name: Optional[str] = None
-    description: Optional[str] = None
+    bookshelf_id: Optional[UUID] = Field(None, description="UUID of the bookshelf")
+    name: Optional[str] = Field(None, min_length=1, max_length=255, description="New name")
+    description: Optional[str] = Field(None, max_length=1000, description="New description")
+    status: Optional[BookshelfStatus] = Field(
+        None,
+        description="New status (active or archived)",
+    )
+    is_pinned: Optional[bool] = Field(
+        None,
+        description="Toggle pinned state",
+    )
+    tag_ids: Optional[List[UUID]] = Field(
+        None,
+        description="Full replacement list of associated Tag IDs (max 3)",
+    )
 
-    def __post_init__(self):
+    @field_validator('name', 'description', mode='before')
+    @classmethod
+    def trim_fields(cls, v: Optional[str]) -> Optional[str]:
         """Trim whitespace from string fields"""
-        if self.name:
-            self.name = self.name.strip()
-        if self.description:
-            self.description = self.description.strip()
+        if isinstance(v, str):
+            v = v.strip() or None
+        return v
+
+    @field_validator('bookshelf_id')
+    @classmethod
+    def ensure_bookshelf_id_placeholder(cls, value: Optional[UUID]) -> Optional[UUID]:
+        """Allow router to hydrate bookshelf_id later, but reject empty strings."""
+        if value == "":
+            raise ValueError("bookshelf_id cannot be blank")
+        return value
+
+    @field_validator('tag_ids', mode='after')
+    @classmethod
+    def validate_tag_ids(cls, value: Optional[List[UUID]]) -> Optional[List[UUID]]:
+        """Ensure we keep ≤3 unique tag ids while preserving order"""
+        if value is None:
+            return None
+        unique: List[UUID] = []
+        seen = set()
+        for tag_id in value:
+            if tag_id in seen:
+                continue
+            unique.append(tag_id)
+            seen.add(tag_id)
+        if len(unique) > 3:
+            raise ValueError("tag_ids cannot contain more than 3 items")
+        return unique
 
 
 # ============================================================================
@@ -115,9 +172,20 @@ class CreateBookshelfResponse:
     bookshelf_type: str  # "REGULAR" or "BASEMENT"
     status: str  # "ACTIVE", "ARCHIVED", "DELETED"
     created_at: str
+    is_pinned: bool
+    is_favorite: bool
+    is_basement: bool
+    tag_ids: List[UUID] = field(default_factory=list)
+    tags_summary: List[str] = field(default_factory=list)
 
     @classmethod
-    def from_domain(cls, bookshelf: Bookshelf) -> "CreateBookshelfResponse":
+    def from_domain(
+        cls,
+        bookshelf: Bookshelf,
+        *,
+        tag_ids: Optional[List[UUID]] = None,
+        tags_summary: Optional[List[str]] = None,
+    ) -> "CreateBookshelfResponse":
         """Convert domain object to response DTO"""
         return cls(
             id=bookshelf.id,
@@ -127,6 +195,11 @@ class CreateBookshelfResponse:
             bookshelf_type=bookshelf.type.value,
             status=bookshelf.status.value,
             created_at=bookshelf.created_at.isoformat() if bookshelf.created_at else "",
+            is_pinned=bookshelf.is_pinned,
+            is_favorite=bookshelf.is_favorite,
+            is_basement=bookshelf.is_basement,
+            tag_ids=tag_ids or [],
+            tags_summary=tags_summary or [],
         )
 
 
@@ -139,6 +212,9 @@ class GetBookshelfResponse:
     description: Optional[str]
     bookshelf_type: str
     status: str
+    is_pinned: bool
+    is_favorite: bool
+    is_basement: bool
     created_at: str
     updated_at: Optional[str]
 
@@ -152,6 +228,9 @@ class GetBookshelfResponse:
             description=str(bookshelf.description) if bookshelf.description else None,
             bookshelf_type=bookshelf.type.value,
             status=bookshelf.status.value,
+            is_pinned=bookshelf.is_pinned,
+            is_favorite=bookshelf.is_favorite,
+            is_basement=bookshelf.is_basement,
             created_at=bookshelf.created_at.isoformat() if bookshelf.created_at else "",
             updated_at=bookshelf.updated_at.isoformat() if bookshelf.updated_at else None,
         )
@@ -202,6 +281,47 @@ class RenameBookshelfResponse:
 
 # Generic bookshelf response alias for router use
 BookshelfResponse = CreateBookshelfResponse
+
+
+@dataclass
+class UpdateBookshelfResponse:
+    """Response after updating a Bookshelf, including tag summary"""
+
+    id: UUID
+    library_id: UUID
+    name: str
+    description: Optional[str]
+    status: str
+    is_pinned: bool
+    is_favorite: bool
+    is_basement: bool
+    created_at: str
+    updated_at: Optional[str]
+    tag_ids: List[UUID]
+    tags_summary: List[str]
+
+    @classmethod
+    def from_domain(
+        cls,
+        bookshelf: Bookshelf,
+        *,
+        tag_ids: List[UUID],
+        tags_summary: List[str],
+    ) -> "UpdateBookshelfResponse":
+        return cls(
+            id=bookshelf.id,
+            library_id=bookshelf.library_id,
+            name=str(bookshelf.name),
+            description=str(bookshelf.description) if bookshelf.description else None,
+            status=bookshelf.status.value,
+            is_pinned=bookshelf.is_pinned,
+            is_favorite=bookshelf.is_favorite,
+            is_basement=bookshelf.is_basement,
+            created_at=bookshelf.created_at.isoformat() if bookshelf.created_at else "",
+            updated_at=bookshelf.updated_at.isoformat() if bookshelf.updated_at else None,
+            tag_ids=tag_ids,
+            tags_summary=tags_summary,
+        )
 
 
 # ============================================================================
@@ -321,6 +441,15 @@ class IRenameBookshelfUseCase(ABC):
         pass
 
 
+class IUpdateBookshelfUseCase(ABC):
+    """UseCase: Update Bookshelf metadata (name/description/status/tags)"""
+
+    @abstractmethod
+    async def execute(self, request: UpdateBookshelfRequest) -> UpdateBookshelfResponse:
+        """Execute bookshelf update"""
+        pass
+
+
 # ============================================================================
 # GetBasementBookshelves - NEW (Nov 14, 2025)
 # ============================================================================
@@ -346,8 +475,7 @@ class BasementBookshelfItem:
     deleted_at: str
 
 
-@dataclass
-class GetBasementBookshelvesRequest:
+class GetBasementBookshelvesRequest(BaseModel):
     """Request to list all deleted Bookshelves in a Library
 
     Fields:
@@ -355,9 +483,9 @@ class GetBasementBookshelvesRequest:
     - limit: Maximum number of shelves to return (optional, default 100)
     - offset: Pagination offset (optional, default 0)
     """
-    library_id: UUID
-    limit: int = 100
-    offset: int = 0
+    library_id: UUID = Field(..., description="UUID of the library")
+    limit: int = Field(100, ge=1, le=100, description="Result limit")
+    offset: int = Field(0, ge=0, description="Pagination offset")
 
 
 @dataclass
@@ -404,3 +532,44 @@ class IGetBasementBookshelvesUseCase(ABC):
             ValueError: If library not found
         """
         pass
+
+
+# ============================================================================
+# Dashboard Request DTOs (Bookshelf Overview)
+# ============================================================================
+
+
+class BookshelfDashboardSort(str, Enum):
+    """Sorting options for Bookshelf dashboard"""
+
+    RECENT_ACTIVITY = "recent_activity"
+    NAME_ASC = "name_asc"
+    CREATED_DESC = "created_desc"
+    BOOK_COUNT_DESC = "book_count_desc"
+
+
+class BookshelfDashboardFilter(str, Enum):
+    """Filter options for Bookshelf dashboard"""
+
+    ALL = "all"
+    ACTIVE = "active"
+    STALE = "stale"
+    ARCHIVED = "archived"
+    PINNED = "pinned"
+
+
+class BookshelfDashboardRequest(BaseModel):
+    """Request payload for Bookshelf dashboard summary list"""
+
+    library_id: UUID = Field(..., description="UUID of the library")
+    page: int = Field(1, ge=1, description="Page number (1-indexed)")
+    size: int = Field(20, ge=1, le=100, description="Page size")
+    sort: BookshelfDashboardSort = Field(
+        BookshelfDashboardSort.RECENT_ACTIVITY,
+        description="Sorting mode",
+    )
+    status_filter: BookshelfDashboardFilter = Field(
+        BookshelfDashboardFilter.ACTIVE,
+        description="Filter by status/health",
+    )
+

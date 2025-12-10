@@ -1,4 +1,4 @@
-"""
+﻿"""
 Search Router - HTTP Input Adapter
 
 FastAPI router adapter that:
@@ -30,7 +30,7 @@ from typing import Optional
 from uuid import UUID
 import logging
 
-from api.app.dependencies import DIContainer, get_di_container_provider
+from api.app.dependencies import DIContainer, get_di_container
 from api.app.modules.search.application.ports.input import (
     ExecuteSearchRequest,
     ExecuteSearchResponse,
@@ -39,16 +39,16 @@ from api.app.modules.search.application.ports.input import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/search", tags=["search"])
+router = APIRouter(prefix="", tags=["search"])
 
 
 # ============================================================================
 # Dependency: Get DI Container and Search Service
 # ============================================================================
 
-async def get_di_container() -> DIContainer:
-    """Get DI container for dependency injection in FastAPI handlers"""
-    return get_di_container_provider()
+
+
+# ============================================================================
 
 
 async def get_search_service(di: DIContainer = Depends(get_di_container)) -> ExecuteSearchUseCase:
@@ -62,7 +62,7 @@ async def get_search_service(di: DIContainer = Depends(get_di_container)) -> Exe
 
 @router.get(
     "",
-    response_model=dict,
+    response_model=None,
     status_code=status.HTTP_200_OK,
     summary="Global search across all entity types",
     description="""
@@ -88,7 +88,7 @@ async def search_global(
             offset=offset
         )
         response: ExecuteSearchResponse = await search_service.execute(request)
-        return response.to_dict()
+        return asdict(response)
     except ValueError as e:
         logger.warning(f"Invalid search query: {e}")
         raise HTTPException(
@@ -109,7 +109,7 @@ async def search_global(
 
 @router.get(
     "/blocks",
-    response_model=dict,
+    response_model=None,
     status_code=status.HTTP_200_OK,
     summary="Search blocks",
     description="Full text search on block content"
@@ -131,7 +131,7 @@ async def search_blocks(
             offset=offset
         )
         response: ExecuteSearchResponse = await search_service.execute(request)
-        return response.to_dict()
+        return asdict(response)
     except ValueError as e:
         logger.warning(f"Invalid search query: {e}")
         raise HTTPException(
@@ -152,7 +152,7 @@ async def search_blocks(
 
 @router.get(
     "/books",
-    response_model=dict,
+    response_model=None,
     status_code=status.HTTP_200_OK,
     summary="Search books",
     description="Search books by title and metadata"
@@ -172,7 +172,7 @@ async def search_books(
             offset=offset
         )
         response: ExecuteSearchResponse = await search_service.execute(request)
-        return response.to_dict()
+        return asdict(response)
     except ValueError as e:
         logger.warning(f"Invalid search query: {e}")
         raise HTTPException(
@@ -193,7 +193,7 @@ async def search_books(
 
 @router.get(
     "/bookshelves",
-    response_model=dict,
+    response_model=None,
     status_code=status.HTTP_200_OK,
     summary="Search bookshelves",
     description="Search bookshelves by name"
@@ -213,7 +213,7 @@ async def search_bookshelves(
             offset=offset
         )
         response: ExecuteSearchResponse = await search_service.execute(request)
-        return response.to_dict()
+        return asdict(response)
     except ValueError as e:
         logger.warning(f"Invalid search query: {e}")
         raise HTTPException(
@@ -234,7 +234,7 @@ async def search_bookshelves(
 
 @router.get(
     "/tags",
-    response_model=dict,
+    response_model=None,
     status_code=status.HTTP_200_OK,
     summary="Search tags",
     description="Search tags by name"
@@ -254,7 +254,7 @@ async def search_tags(
             offset=offset
         )
         response: ExecuteSearchResponse = await search_service.execute(request)
-        return response.to_dict()
+        return asdict(response)
     except ValueError as e:
         logger.warning(f"Invalid search query: {e}")
         raise HTTPException(
@@ -275,7 +275,7 @@ async def search_tags(
 
 @router.get(
     "/libraries",
-    response_model=dict,
+    response_model=None,
     status_code=status.HTTP_200_OK,
     summary="Search libraries",
     description="Search libraries by name"
@@ -295,7 +295,7 @@ async def search_libraries(
             offset=offset
         )
         response: ExecuteSearchResponse = await search_service.execute(request)
-        return response.to_dict()
+        return asdict(response)
     except ValueError as e:
         logger.warning(f"Invalid search query: {e}")
         raise HTTPException(
@@ -316,7 +316,7 @@ async def search_libraries(
 
 @router.get(
     "/entries",
-    response_model=dict,
+    response_model=None,
     status_code=status.HTTP_200_OK,
     summary="Search entries (Loom terms)",
     description="Search entries by term and content"
@@ -336,7 +336,7 @@ async def search_entries(
             offset=offset
         )
         response: ExecuteSearchResponse = await search_service.execute(request)
-        return response.to_dict()
+        return asdict(response)
     except ValueError as e:
         logger.warning(f"Invalid search query: {e}")
         raise HTTPException(
@@ -349,3 +349,5 @@ async def search_entries(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Search failed"
         )
+
+

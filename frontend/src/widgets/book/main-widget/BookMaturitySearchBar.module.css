@@ -1,0 +1,41 @@
+.simpleSearch {
+  width: 240px;
+}
+
+.simpleSearch input {
+  width: 100%;
+  border: 1px solid var(--color-border, rgba(148, 163, 184, 0.4));
+  border-radius: var(--radius-sm, 8px);
+  padding: 6px 10px;
+  font-size: var(--font-size-sm, 14px);
+  background: var(--color-surface, #fff);
+  color: var(--color-text-primary);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+
+
+.simpleSearch input:focus {
+  outline: none;
+  border-color: var(--color-primary, #2563eb);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 768px) {
+  .simpleSearch {
+    width: 100%;
+  }
+}

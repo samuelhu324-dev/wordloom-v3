@@ -11,6 +11,7 @@ This use case handles:
 """
 
 from typing import Optional
+from uuid import UUID
 
 from ...domain import Media, MediaMimeType
 from ...application.ports.output import MediaRepository
@@ -45,6 +46,7 @@ class UploadVideoUseCase:
         mime_type: MediaMimeType,
         file_size: int,
         storage_key: str,
+        user_id: Optional[UUID] = None,
         width: Optional[int] = None,
         height: Optional[int] = None,
         duration_ms: Optional[int] = None,
@@ -59,6 +61,7 @@ class UploadVideoUseCase:
             mime_type: Video MIME type
             file_size: File size in bytes
             storage_key: Unique identifier in storage backend
+            user_id: Owner of the media (optional for anonymous uploads)
             width: Video width (optional)
             height: Video height (optional)
             duration_ms: Video duration in milliseconds (optional)
@@ -99,6 +102,7 @@ class UploadVideoUseCase:
                 mime_type=mime_type,
                 file_size=file_size,
                 storage_key=storage_key,
+                user_id=user_id,
                 width=width,
                 height=height,
                 duration_ms=duration_ms
@@ -111,6 +115,9 @@ class UploadVideoUseCase:
         except Exception as e:
             if isinstance(e, (InvalidMimeTypeError, FileSizeTooLargeError, InvalidDurationError, StorageQuotaExceededError)):
                 raise
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception(f"[UploadVideoUseCase] Exception during save: {type(e).__name__}: {e}")
             raise MediaOperationError(f"Failed to upload video: {str(e)}")
 
     @staticmethod

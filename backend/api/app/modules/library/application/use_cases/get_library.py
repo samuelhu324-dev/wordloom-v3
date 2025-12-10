@@ -32,7 +32,7 @@ class GetLibraryUseCase(IGetLibraryUseCase):
 
     Can retrieve by:
     - library_id: Direct lookup
-    - user_id: Unique lookup (RULE-001: exactly one per user)
+    - user_id: Deprecated; use list endpoint instead
 
     Failure Cases:
     - Library not found (404)
@@ -79,8 +79,9 @@ class GetLibraryUseCase(IGetLibraryUseCase):
                 logger.debug(f"Querying by library_id: {request.library_id}")
                 library = await self.repository.get_by_id(request.library_id)
             else:
-                logger.debug(f"Querying by user_id: {request.user_id}")
-                library = await self.repository.get_by_user_id(request.user_id)
+                # Under multi-library, user_id may map to many libraries.
+                # Direct single fetch by user_id is deprecated in favor of listing.
+                raise ValueError("Query by user_id is deprecated. Use list libraries endpoint.")
         except Exception as e:
             logger.error(f"Repository query failed: {e}", exc_info=True)
             raise
@@ -98,10 +99,19 @@ class GetLibraryUseCase(IGetLibraryUseCase):
             library_id=library.id,
             user_id=library.user_id,
             name=library.name.value,
+            description=library.description,
+            cover_media_id=library.cover_media_id,
             basement_bookshelf_id=library.basement_bookshelf_id,
             created_at=library.created_at,
             updated_at=library.updated_at,
             is_deleted=library.is_deleted(),
+            pinned=library.pinned,
+            pinned_order=library.pinned_order,
+            archived_at=library.archived_at,
+            last_activity_at=library.last_activity_at,
+            views_count=library.views_count,
+            last_viewed_at=library.last_viewed_at,
+            theme_color=getattr(library, "theme_color", None),
         )
 
         logger.info(f"GetLibrary completed successfully: {library.id}")

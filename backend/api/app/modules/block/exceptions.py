@@ -266,19 +266,35 @@ class BlockOperationError(BlockException):
 
     def __init__(
         self,
-        block_id: str,
-        operation: str,
-        reason: str,
+        message: Optional[str] = None,
+        *,
+        block_id: Optional[str] = None,
+        operation: Optional[str] = None,
+        reason: Optional[str] = None,
         original_error: Optional[Exception] = None,
     ):
+        if not message:
+            if operation and reason:
+                if block_id:
+                    message = f"Failed to {operation} Block {block_id}: {reason}"
+                else:
+                    message = f"Failed to {operation}: {reason}"
+            else:
+                message = "Block operation failed"
+
+        details = {}
+        if block_id is not None:
+            details["block_id"] = block_id
+        if operation is not None:
+            details["operation"] = operation
+        if reason is not None:
+            details["reason"] = reason
+        if original_error is not None:
+            details["original_error"] = str(original_error)
+
         super().__init__(
-            message=f"Failed to {operation} Block {block_id}: {reason}",
-            details={
-                "block_id": block_id,
-                "operation": operation,
-                "reason": reason,
-                "original_error": str(original_error) if original_error else None,
-            }
+            message=message,
+            details=details or None,
         )
 
 

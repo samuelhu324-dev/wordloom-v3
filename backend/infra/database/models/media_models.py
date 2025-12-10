@@ -65,8 +65,8 @@ class MediaMimeType(PyEnum):
 
 class MediaState(PyEnum):
     """Current state of media"""
-    ACTIVE = "active"
-    TRASH = "trash"
+    ACTIVE = "ACTIVE"
+    TRASH = "TRASH"
 
 
 class EntityTypeForMedia(PyEnum):
@@ -128,14 +128,20 @@ class MediaModel(Base):
         index=True
     )
 
+    user_id = Column(
+        PostgresUUID(as_uuid=True),
+        nullable=True,
+        index=True
+    )
+
     media_type = Column(
-        SQLEnum(MediaType, values_callable=lambda x: [e.value for e in x]),
+        String(50),
         nullable=False,
         index=True
     )
 
     mime_type = Column(
-        SQLEnum(MediaMimeType, values_callable=lambda x: [e.value for e in x]),
+        String(100),
         nullable=False
     )
 
@@ -163,7 +169,7 @@ class MediaModel(Base):
 
     # State management (POLICY-010)
     state = Column(
-        SQLEnum(MediaState, values_callable=lambda x: [e.value for e in x]),
+        String(20),
         nullable=False,
         default=MediaState.ACTIVE.value,
         index=True
@@ -206,6 +212,10 @@ class MediaModel(Base):
     # Constraints
     __table_args__ = (
         Index(
+            "ix_media_user_id",
+            "user_id"
+        ),
+        Index(
             "ix_media_state",
             "state"
         ),
@@ -223,15 +233,16 @@ class MediaModel(Base):
         """Convert ORM model to dictionary"""
         return {
             "id": str(self.id),
+            "user_id": str(self.user_id) if self.user_id else None,
             "filename": self.filename,
             "storage_key": self.storage_key,
-            "media_type": self.media_type.value,
-            "mime_type": self.mime_type.value,
+            "media_type": self.media_type,  # Already a string from DB
+            "mime_type": self.mime_type,  # Already a string from DB
             "file_size": self.file_size,
             "width": self.width,
             "height": self.height,
             "duration_ms": self.duration_ms,
-            "state": self.state.value,
+            "state": self.state,  # Already a string from DB
             "trash_at": self.trash_at.isoformat() if self.trash_at else None,
             "deleted_at": self.deleted_at.isoformat() if self.deleted_at else None,
             "created_at": self.created_at.isoformat(),
@@ -245,6 +256,7 @@ class MediaModel(Base):
             id=UUID(data["id"]) if "id" in data else uuid4(),
             filename=data["filename"],
             storage_key=data["storage_key"],
+            user_id=UUID(data["user_id"]) if data.get("user_id") else None,
             media_type=MediaType[data["media_type"].upper()],
             mime_type=MediaMimeType[data["mime_type"].replace("/", "_").upper()],
             file_size=data["file_size"],

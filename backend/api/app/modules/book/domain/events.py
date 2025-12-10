@@ -31,6 +31,14 @@ class BookStatus(str, Enum):
     DELETED = "deleted"
 
 
+class BookMaturity(str, Enum):
+    """Maturity lifecycle for a Book aggregate"""
+    SEED = "seed"
+    GROWING = "growing"
+    STABLE = "stable"
+    LEGACY = "legacy"
+
+
 # ============================================================================
 # Domain Events
 # ============================================================================
@@ -67,6 +75,19 @@ class BookStatusChanged(DomainEvent):
     book_id: UUID
     old_status: BookStatus
     new_status: BookStatus
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @property
+    def aggregate_id(self) -> UUID:
+        return self.book_id
+
+
+@dataclass
+class BookMaturityChanged(DomainEvent):
+    """Emitted when Book maturity lifecycle changes"""
+    book_id: UUID
+    old_maturity: BookMaturity
+    new_maturity: BookMaturity
     occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property

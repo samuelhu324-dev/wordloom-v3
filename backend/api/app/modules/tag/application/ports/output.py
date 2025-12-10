@@ -16,7 +16,7 @@ All methods are async to support both sync and async I/O patterns.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from uuid import UUID
 
 from api.app.modules.tag.domain import Tag, TagAssociation, EntityType
@@ -121,6 +121,30 @@ class TagRepository(ABC):
         pass
 
     @abstractmethod
+    async def list_all(
+        self,
+        *,
+        include_deleted: bool = False,
+        only_top_level: bool = False,
+        limit: int = 100,
+        offset: int = 0,
+        order_by: str = "name_asc",
+    ) -> Tuple[List[Tag], int]:
+        """List tags with pagination and ordering.
+
+        Args:
+            include_deleted: Include soft-deleted tags when True.
+            only_top_level: When True, only return tags with level==0 and no parent.
+            limit: Maximum number of tags to return.
+            offset: Number of tags to skip for pagination.
+            order_by: Sort order identifier (name_asc, name_desc, usage_desc, created_desc).
+
+        Returns:
+            (tags, total_count) tuple.
+        """
+        pass
+
+    @abstractmethod
     async def get_by_parent(self, parent_tag_id: UUID) -> List[Tag]:
         """
         Get all sub-tags of a parent tag
@@ -137,13 +161,19 @@ class TagRepository(ABC):
         pass
 
     @abstractmethod
-    async def find_by_name(self, keyword: str, limit: int = 20) -> List[Tag]:
+    async def find_by_name(
+        self,
+        keyword: str,
+        limit: int = 20,
+        order_by: str = "name_asc",
+    ) -> List[Tag]:
         """
         Search tags by partial name match (case-insensitive)
 
         Args:
             keyword: Search term
             limit: Maximum results
+            order_by: Sort order identifier (name_asc, name_desc, usage_desc, created_desc)
 
         Returns:
             List of matching Tag domain objects
@@ -179,7 +209,7 @@ class TagRepository(ABC):
         Get all tags associated with a specific entity
 
         Args:
-            entity_type: Type of entity (BOOK, BOOKSHELF, BLOCK)
+            entity_type: Type of entity (LIBRARY, BOOKSHELF, BOOK, BLOCK)
             entity_id: ID of the entity
 
         Returns:
@@ -201,7 +231,7 @@ class TagRepository(ABC):
 
         Args:
             tag_id: UUID of the tag
-            entity_type: Type of entity to search (BOOK, BOOKSHELF, BLOCK)
+            entity_type: Type of entity to search (LIBRARY, BOOKSHELF, BOOK, BLOCK)
 
         Returns:
             List of entity UUIDs that have this tag
@@ -227,7 +257,7 @@ class TagRepository(ABC):
 
         Args:
             tag_id: UUID of the tag
-            entity_type: Type of entity (BOOK, BOOKSHELF, BLOCK)
+            entity_type: Type of entity (LIBRARY, BOOKSHELF, BOOK, BLOCK)
             entity_id: ID of the entity
 
         Returns:
@@ -255,7 +285,7 @@ class TagRepository(ABC):
 
         Args:
             tag_id: UUID of the tag
-            entity_type: Type of entity (BOOK, BOOKSHELF, BLOCK)
+            entity_type: Type of entity (LIBRARY, BOOKSHELF, BOOK, BLOCK)
             entity_id: ID of the entity
 
         Raises:

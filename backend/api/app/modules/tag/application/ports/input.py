@@ -84,12 +84,23 @@ class SearchTagsRequest:
     """搜索 Tag 的请求"""
     keyword: str
     limit: int = 20
+    order: str = "name_asc"
 
 
 @dataclass
 class GetMostUsedTagsRequest:
     """获取最常用 Tag 的请求"""
     limit: int = 30
+
+
+@dataclass
+class ListTagsRequest:
+    """分页列出 Tag 的请求"""
+    page: int = 1
+    size: int = 50
+    include_deleted: bool = False
+    only_top_level: bool = True
+    order_by: str = "name_asc"
 
 
 # ============================================================================
@@ -107,7 +118,8 @@ class TagResponse:
     level: int  # 0=top, 1=sub, 2=sub-sub
     parent_tag_id: Optional[UUID]
     usage_count: int
-    created_at: str
+    created_at: Optional[str]
+    updated_at: Optional[str]
     deleted_at: Optional[str]
 
     @classmethod
@@ -123,8 +135,22 @@ class TagResponse:
             parent_tag_id=tag.parent_tag_id,
             usage_count=tag.usage_count,
             created_at=tag.created_at.isoformat() if tag.created_at else None,
+            updated_at=tag.updated_at.isoformat() if tag.updated_at else None,
             deleted_at=tag.deleted_at.isoformat() if tag.deleted_at else None
         )
+
+
+@dataclass
+class ListTagsResult:
+    """分页列出 Tag 的响应"""
+    items: List[TagResponse]
+    total: int
+    page: int
+    size: int
+
+    @property
+    def has_more(self) -> bool:
+        return self.page * self.size < self.total
 
 
 # ============================================================================
@@ -209,4 +235,13 @@ class GetMostUsedTagsUseCase(ABC):
     @abstractmethod
     async def execute(self, request: GetMostUsedTagsRequest) -> List[TagResponse]:
         """执行获取最常用 Tag"""
+        pass
+
+
+class ListTagsUseCase(ABC):
+    """分页列出 Tag 的 UseCase 接口"""
+
+    @abstractmethod
+    async def execute(self, request: ListTagsRequest) -> ListTagsResult:
+        """执行分页列出 Tag"""
         pass

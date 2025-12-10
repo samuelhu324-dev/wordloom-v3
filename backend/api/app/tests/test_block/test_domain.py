@@ -16,11 +16,10 @@ Tests for Block aggregate root:
 
 import pytest
 from uuid import uuid4
-from datetime import datetime, timezone
 from decimal import Decimal
+from datetime import datetime, timezone
 
 from modules.block.domain import Block, BlockContent, BlockType
-from modules.block.exceptions import InvalidBlockTypeError, InvalidBlockContentError
 
 
 class TestBlockContent:
@@ -66,9 +65,23 @@ class TestBlockType:
         """✓ BlockType TABLE"""
         assert BlockType.TABLE.value == "table"
 
+    def test_block_type_todo_list(self):
+        """✓ BlockType TODO_LIST"""
+        assert BlockType.TODO_LIST.value == "todo_list"
+
     def test_all_supported_types(self):
         """✓ All standard block types supported"""
-        expected_types = {"text", "code", "heading", "image", "table"}
+        expected_types = {
+            "text",
+            "heading",
+            "code",
+            "image",
+            "quote",
+            "list",
+            "todo_list",
+            "table",
+            "divider",
+        }
         actual_types = {bt.value for bt in BlockType}
         assert expected_types.issubset(actual_types)
 
@@ -83,13 +96,10 @@ class TestBlockAggregateRoot:
             book_id=uuid4(),
             block_type=BlockType.TEXT,
             content=BlockContent(value="Text content"),
-            index=Decimal("1.0"),
-            is_deleted=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            order=Decimal("1.0"),
         )
 
-        assert block.block_type == BlockType.TEXT
+        assert block.type == BlockType.TEXT
         assert block.content.value == "Text content"
 
     def test_block_creation_code_type(self):
@@ -99,13 +109,10 @@ class TestBlockAggregateRoot:
             book_id=uuid4(),
             block_type=BlockType.CODE,
             content=BlockContent(value="print('hello')"),
-            index=Decimal("1.0"),
-            is_deleted=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            order=Decimal("1.0"),
         )
 
-        assert block.block_type == BlockType.CODE
+        assert block.type == BlockType.CODE
 
     def test_block_creation_heading_type(self):
         """✓ RULE-016: Block creation with HEADING type"""
@@ -114,13 +121,22 @@ class TestBlockAggregateRoot:
             book_id=uuid4(),
             block_type=BlockType.HEADING,
             content=BlockContent(value="Section Title"),
-            index=Decimal("1.0"),
-            is_deleted=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            order=Decimal("1.0"),
+            heading_level=2,
         )
 
-        assert block.block_type == BlockType.HEADING
+        assert block.type == BlockType.HEADING
+
+    def test_block_creation_heading_requires_level(self):
+        """✗ HEADING without heading_level should raise"""
+        with pytest.raises(ValueError):
+            Block(
+                block_id=uuid4(),
+                book_id=uuid4(),
+                block_type=BlockType.HEADING,
+                content=BlockContent(value="Heading"),
+                order=Decimal("1.0"),
+            )
 
 
 class TestBlockFractionalIndexing:
@@ -133,13 +149,10 @@ class TestBlockFractionalIndexing:
             book_id=uuid4(),
             block_type=BlockType.TEXT,
             content=BlockContent(value="Test"),
-            index=Decimal("1.5"),
-            is_deleted=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            order=Decimal("1.5"),
         )
 
-        assert block.index == Decimal("1.5")
+        assert block.order == Decimal("1.5")
 
     def test_block_fractional_index_between_integers(self):
         """✓ Block index can be between integers (1 < index < 2)"""
@@ -148,10 +161,7 @@ class TestBlockFractionalIndexing:
             book_id=uuid4(),
             block_type=BlockType.TEXT,
             content=BlockContent(value="First"),
-            index=Decimal("1.0"),
-            is_deleted=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            order=Decimal("1.0"),
         )
 
         block_middle = Block(
@@ -159,10 +169,7 @@ class TestBlockFractionalIndexing:
             book_id=uuid4(),
             block_type=BlockType.TEXT,
             content=BlockContent(value="Middle"),
-            index=Decimal("1.5"),
-            is_deleted=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            order=Decimal("1.5"),
         )
 
         block2 = Block(
@@ -170,14 +177,11 @@ class TestBlockFractionalIndexing:
             book_id=uuid4(),
             block_type=BlockType.TEXT,
             content=BlockContent(value="Second"),
-            index=Decimal("2.0"),
-            is_deleted=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            order=Decimal("2.0"),
         )
 
         # Verify ordering
-        assert block1.index < block_middle.index < block2.index
+        assert block1.order < block_middle.order < block2.order
 
     def test_block_fractional_index_high_precision(self):
         """✓ Block index supports high precision"""
@@ -186,13 +190,10 @@ class TestBlockFractionalIndexing:
             book_id=uuid4(),
             block_type=BlockType.TEXT,
             content=BlockContent(value="Precise"),
-            index=Decimal("1.000000001"),
-            is_deleted=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            order=Decimal("1.000000001"),
         )
 
-        assert len(str(block.index).split('.')[-1]) > 0
+        assert len(str(block.order).split('.')[-1]) > 0
 
 
 class TestBlockInvariants:
@@ -208,10 +209,7 @@ class TestBlockInvariants:
                 book_id=book_id,
                 block_type=BlockType.TEXT,
                 content=BlockContent(value=f"Block {i}"),
-                index=Decimal(str(i + 1)),
-                is_deleted=False,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                order=Decimal(str(i + 1)),
             )
             assert block.book_id == book_id
 
@@ -223,10 +221,7 @@ class TestBlockInvariants:
             book_id=book_id,
             block_type=BlockType.TEXT,
             content=BlockContent(value="Test"),
-            index=Decimal("1.0"),
-            is_deleted=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            order=Decimal("1.0"),
         )
 
         assert block.book_id == book_id
@@ -244,16 +239,13 @@ class TestBlockInvariants:
                 book_id=book_id,
                 block_type=BlockType.TEXT,
                 content=BlockContent(value="Content"),
-                index=idx,
-                is_deleted=False,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                order=idx,
             )
             blocks.append(block)
 
         # Blocks should be orderable
-        sorted_blocks = sorted(blocks, key=lambda b: b.index)
-        sorted_indices = [b.index for b in sorted_blocks]
+        sorted_blocks = sorted(blocks, key=lambda b: b.order)
+        sorted_indices = [b.order for b in sorted_blocks]
 
         assert sorted_indices == sorted(indices)
 
@@ -264,10 +256,64 @@ class TestBlockInvariants:
             book_id=uuid4(),
             block_type=BlockType.HEADING,
             content=BlockContent(value="Heading"),
-            index=Decimal("1.0"),
-            is_deleted=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            order=Decimal("1.0"),
+            heading_level=1,
         )
 
-        assert block.block_type in BlockType
+        assert block.type in BlockType
+
+
+class TestBlockBasementLifecycle:
+    """Plan173B: Verify Block soft delete + restore metadata."""
+
+    def test_mark_deleted_sets_paperballs_metadata(self):
+        """✓ mark_deleted captures prev/next ids and timestamps"""
+        book_id = uuid4()
+        block = Block(
+            block_id=uuid4(),
+            book_id=book_id,
+            block_type=BlockType.TEXT,
+            content=BlockContent(value="Basement"),
+            order=Decimal("1.0"),
+        )
+
+        prev_id = uuid4()
+        next_id = uuid4()
+        deleted_at = datetime.now(timezone.utc)
+        block.mark_deleted(
+            prev_sibling_id=prev_id,
+            next_sibling_id=next_id,
+            section_path="1.2",
+            deleted_at=deleted_at,
+        )
+
+        assert block.soft_deleted_at == deleted_at
+        assert block.deleted_prev_id == prev_id
+        assert block.deleted_next_id == next_id
+        assert block.deleted_section_path == "1.2"
+        assert block.deleted_at == deleted_at
+
+    def test_restore_from_basement_clears_metadata(self):
+        """✓ restore_from_basement resets paperballs context"""
+        deleted_at = datetime.now(timezone.utc)
+        block = Block(
+            block_id=uuid4(),
+            book_id=uuid4(),
+            block_type=BlockType.TEXT,
+            content=BlockContent(value="Deleted"),
+            order=Decimal("5.0"),
+            soft_deleted_at=deleted_at,
+            deleted_at=deleted_at,
+            deleted_prev_id=uuid4(),
+            deleted_next_id=uuid4(),
+            deleted_section_path="2.1",
+        )
+
+        block.restore_from_basement(new_order=Decimal("9.5"), recovery_level=2)
+
+        assert block.soft_deleted_at is None
+        assert block.deleted_at is None
+        assert block.deleted_prev_id is None
+        assert block.deleted_next_id is None
+        assert block.deleted_section_path is None
+        assert block.order == Decimal("9.5")

@@ -582,9 +582,9 @@ export default function BookshelvesPage() {
 
                 {/* 底部标题和统计信息 */}
                 <div>
-                  <h3 className="text-xl font-semibold text-white mb-1">{bs.name}</h3>
+                  <h3 className="text-xl font-semibold text-white mb-2">{bs.name}</h3>
                   {bs.description && (
-                    <p className="text-sm text-gray-100 line-clamp-2 mb-3">{bs.description}</p>
+                    <p className="text-sm text-gray-100 line-clamp-2 mb-4">{bs.description}</p>
                   )}
 
                   {/* 统计 */}

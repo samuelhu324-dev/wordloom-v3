@@ -70,6 +70,7 @@ class Media(AggregateRoot):
 
     Invariants (POLICY-010: Media Management & Trash):
     - id: unique UUID
+    - user_id: owner of the media asset (optional for anonymous uploads)
     - filename: non-empty string with extension
     - media_type: IMAGE or VIDEO
     - mime_type: from MediaMimeType enum (validated on creation)
@@ -91,6 +92,7 @@ class Media(AggregateRoot):
     """
 
     id: UUID
+    user_id: Optional[UUID]
     filename: str
     media_type: MediaType
     mime_type: MediaMimeType
@@ -172,12 +174,14 @@ class Media(AggregateRoot):
         mime_type: MediaMimeType,
         file_size: int,
         storage_key: str,
+        user_id: Optional[UUID] = None,
         width: Optional[int] = None,
         height: Optional[int] = None
     ) -> Media:
         """Factory: Create a new Image media"""
         media = Media(
             id=uuid4(),
+            user_id=user_id,
             filename=filename,
             media_type=MediaType.IMAGE,
             mime_type=mime_type,
@@ -204,6 +208,7 @@ class Media(AggregateRoot):
         mime_type: MediaMimeType,
         file_size: int,
         storage_key: str,
+        user_id: Optional[UUID] = None,
         width: Optional[int] = None,
         height: Optional[int] = None,
         duration_ms: Optional[int] = None
@@ -211,6 +216,7 @@ class Media(AggregateRoot):
         """Factory: Create a new Video media"""
         media = Media(
             id=uuid4(),
+            user_id=user_id,
             filename=filename,
             media_type=MediaType.VIDEO,
             mime_type=mime_type,

@@ -85,3 +85,19 @@ class BookOperationError(BusinessError):
         self.operation = operation
         detail = f"Operation '{operation}' failed: {reason}"
         super().__init__(self.message, detail)
+
+
+class InvalidBookMaturityTransitionError(BusinessError):
+    """Raised when maturity state machine is violated"""
+    status_code = 422
+    error_code = "INVALID_BOOK_MATURITY_TRANSITION"
+    message = "Invalid book maturity transition"
+
+    def __init__(self, book_id: UUID, current: str, target: str):
+        self.book_id = book_id
+        self.current = current
+        self.target = target
+        detail = (
+            f"Cannot transition book {book_id} from maturity '{current}' to '{target}'"
+        )
+        super().__init__(self.message, detail)

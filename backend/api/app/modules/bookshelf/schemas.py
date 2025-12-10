@@ -253,6 +253,144 @@ class BookshelfPaginatedResponse(BaseModel):
     )
 
 
+class BookshelfDashboardBookCounts(BaseModel):
+    """书架面板的书籍数量统计"""
+
+    total: int = Field(0, ge=0)
+    seed: int = Field(0, ge=0)
+    growing: int = Field(0, ge=0)
+    stable: int = Field(0, ge=0)
+    legacy: int = Field(0, ge=0)
+
+
+class BookshelfDashboardHealthCounts(BaseModel):
+    """书架健康度指标统计"""
+
+    active: int = Field(0, ge=0)
+    slowing: int = Field(0, ge=0)
+    cooling: int = Field(0, ge=0)
+    archived: int = Field(0, ge=0)
+
+
+class BookshelfDashboardSnapshot(BaseModel):
+    """书架面板摘要统计"""
+
+    total: int = Field(0, ge=0)
+    pinned: int = Field(0, ge=0)
+    health: BookshelfDashboardHealthCounts = Field(
+        default_factory=BookshelfDashboardHealthCounts,
+        description="按健康度划分的书架数量",
+    )
+
+
+class BookshelfTagSummary(BaseModel):
+    """书架标签简要信息"""
+
+    id: UUID
+    name: str
+    color: str = Field('#6366F1', description="标签配色（#RRGGBB）")
+    description: Optional[str] = Field(None, description="标签说明（Tooltip 使用）")
+
+
+class BookshelfDashboardItem(BaseModel):
+    """书架面板单项"""
+
+    id: UUID
+    library_id: UUID
+    name: str
+    description: Optional[str] = None
+    status: BookshelfStatus = BookshelfStatus.ACTIVE
+    is_pinned: bool = False
+    is_archived: bool = False
+    created_at: datetime
+    updated_at: datetime
+    last_activity_at: Optional[datetime] = None
+    health: str = Field(..., description="健康度标签")
+    theme_color: Optional[str] = Field(None, description="预设主题色（可选）")
+    cover_media_id: Optional[UUID] = Field(None, description="封面媒体 ID")
+    book_counts: BookshelfDashboardBookCounts
+    edits_last_7d: int = Field(0, ge=0)
+    views_last_7d: int = Field(0, ge=0)
+    tag_ids: List[UUID] = Field(default_factory=list, description="关联标签 ID（顺序与 tags 一致）")
+    tags_summary: List[str] = Field(default_factory=list, description="标签名称列表（最多 3 个可在前端展示）")
+    tags: List[BookshelfTagSummary] = Field(default_factory=list, description="标签详细信息（颜色/说明）")
+
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.isoformat() if v else None,
+        }
+    )
+
+
+class BookshelfDashboardResponse(BaseModel):
+    """书架面板响应"""
+
+    items: List[BookshelfDashboardItem]
+    total: int = Field(..., ge=0)
+    page: int = Field(..., ge=1)
+    page_size: int = Field(..., ge=1, le=100)
+    snapshot: BookshelfDashboardSnapshot = Field(
+        default_factory=BookshelfDashboardSnapshot,
+        description="当前 Library 的聚合统计",
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "total": 2,
+                "page": 1,
+                "page_size": 20,
+                "snapshot": {
+                    "total": 8,
+                    "pinned": 2,
+                    "health": {
+                        "active": 3,
+                        "slowing": 2,
+                        "cooling": 2,
+                        "archived": 1,
+                    },
+                },
+                "items": [
+                    {
+                        "id": "550e8400-e29b-41d4-a716-446655440000",
+                        "library_id": "650e8400-e29b-41d4-a716-446655440000",
+                        "name": "AAA 学习",
+                        "description": "长期知识积累",
+                        "status": "active",
+                        "is_pinned": True,
+                        "is_archived": False,
+                        "created_at": "2025-01-10T08:00:00+00:00",
+                        "updated_at": "2025-11-23T23:10:00+00:00",
+                        "last_activity_at": "2025-11-23T22:58:00+00:00",
+                        "health": "active",
+                        "theme_color": "#D9C7B2",
+                        "cover_media_id": None,
+                        "book_counts": {
+                            "total": 12,
+                            "seed": 3,
+                            "growing": 5,
+                            "stable": 3,
+                            "legacy": 1,
+                        },
+                        "edits_last_7d": 9,
+                        "views_last_7d": 21,
+                        "tag_ids": ["7c5976a5-6daa-4de3-8f8a-41066f275040"],
+                        "tags_summary": ["OBSERVATION"],
+                        "tags": [
+                            {
+                                "id": "7c5976a5-6daa-4de3-8f8a-41066f275040",
+                                "name": "OBSERVATION",
+                                "color": "#6366F1",
+                                "description": "用于标记需要观察的书架",
+                            }
+                        ],
+                    }
+                ],
+            }
+        }
+    )
+
+
 # ============================================
 # DTO (Data Transfer Object) - 内部使用
 # ============================================

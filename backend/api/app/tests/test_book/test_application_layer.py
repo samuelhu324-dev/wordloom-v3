@@ -303,7 +303,7 @@ class TestListBooks:
             )
             await mock_repository.save(book)
 
-        usecase = ListBooksUseCase(mock_repository, mock_event_bus)
+        usecase = ListBooksUseCase(mock_repository)
         request = type('Request', (), {'bookshelf_id': bookshelf_id})()
 
         books = await usecase.execute(request)
@@ -326,7 +326,7 @@ class TestListBooks:
             )
             await mock_repository.save(book)
 
-        usecase = ListBooksUseCase(mock_repository, mock_event_bus)
+        usecase = ListBooksUseCase(mock_repository)
         request = type('Request', (), {
             'bookshelf_id': bookshelf_id,
             'offset': 0,
@@ -341,7 +341,7 @@ class TestListBooks:
     @pytest.mark.asyncio
     async def test_list_books_empty_bookshelf(self, mock_repository, mock_event_bus, bookshelf_id):
         """✓ List books in empty bookshelf returns empty list"""
-        usecase = ListBooksUseCase(mock_repository, mock_event_bus)
+        usecase = ListBooksUseCase(mock_repository)
         request = type('Request', (), {'bookshelf_id': bookshelf_id})()
 
         books = await usecase.execute(request)
@@ -721,7 +721,7 @@ class TestListDeletedBooks:
         )
         await mock_repository.save(deleted)
 
-        usecase = ListDeletedBooksUseCase(mock_repository, mock_event_bus)
+        usecase = ListDeletedBooksUseCase(mock_repository)
         request = type('Request', (), {'bookshelf_id': bookshelf_id})()
 
         deleted_books = await usecase.execute(request)
@@ -733,7 +733,7 @@ class TestListDeletedBooks:
     @pytest.mark.asyncio
     async def test_list_deleted_books_empty(self, mock_repository, mock_event_bus, bookshelf_id):
         """✓ List deleted books when Basement is empty"""
-        usecase = ListDeletedBooksUseCase(mock_repository, mock_event_bus)
+        usecase = ListDeletedBooksUseCase(mock_repository)
         request = type('Request', (), {'bookshelf_id': bookshelf_id})()
 
         deleted_books = await usecase.execute(request)

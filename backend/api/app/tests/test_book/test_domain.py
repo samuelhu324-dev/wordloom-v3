@@ -18,7 +18,9 @@ import pytest
 from uuid import uuid4
 from datetime import datetime, timezone
 
-from modules.book.domain import Book, BookTitle, BookSummary, BookStatus
+from modules.book.domain import Book, BookTitle, BookSummary, BookStatus, BookMaturity
+from modules.book.domain.exceptions import InvalidBookDataError
+from api.app.modules.book.application.utils.maturity import transition_book_maturity
 
 
 class TestBookTitleValueObject:
@@ -121,6 +123,89 @@ class TestBookAggregateRootCreation:
         assert book.due_at == due_date
         assert book.status == BookStatus.DRAFT
         assert book.block_count == 5
+
+
+class TestBookCoverIcon:
+    """Cover icon validation and mutation"""
+
+    def test_cover_icon_normalization(self):
+        """✓ cover_icon stores normalized lowercase slug"""
+        book = Book(
+            book_id=uuid4(),
+            bookshelf_id=uuid4(),
+            library_id=uuid4(),
+            title=BookTitle(value="Icon Book"),
+            cover_icon="  Book-Open  ",
+        )
+
+        assert book.cover_icon == "book-open"
+
+    def test_cover_icon_invalid_value_raises(self):
+        """✗ cover_icon rejects invalid characters"""
+        with pytest.raises(InvalidBookDataError):
+            Book(
+                book_id=uuid4(),
+                bookshelf_id=uuid4(),
+                library_id=uuid4(),
+                title=BookTitle(value="Bad Icon"),
+                cover_icon="book open",  # contains space
+            )
+
+    def test_update_cover_icon_can_clear(self):
+        """✓ update_cover_icon allows clearing with None"""
+        book = Book(
+            book_id=uuid4(),
+            bookshelf_id=uuid4(),
+            library_id=uuid4(),
+            title=BookTitle(value="Mutable Icon"),
+            cover_icon="star",
+        )
+
+        book.update_cover_icon(None)
+
+        assert book.cover_icon is None
+
+
+class TestBookCoverMedia:
+    """Cover media guard rails (Stable-only, auto-revoke)."""
+
+    def _make_book(self, maturity: BookMaturity) -> Book:
+        return Book(
+            book_id=uuid4(),
+            bookshelf_id=uuid4(),
+            library_id=uuid4(),
+            title=BookTitle(value="Cover Media Book"),
+            maturity=maturity,
+        )
+
+    def test_set_cover_media_requires_stable(self):
+        """✗ Non-Stable maturity cannot assign cover media."""
+        book = self._make_book(BookMaturity.GROWING)
+
+        with pytest.raises(InvalidBookDataError):
+            book.set_cover_media(uuid4())
+
+    def test_set_cover_media_allows_clearing(self):
+        """✓ Already set cover media can be cleared safely."""
+        book = self._make_book(BookMaturity.STABLE)
+        media_id = uuid4()
+        book.set_cover_media(media_id)
+
+        assert book.cover_media_id == media_id
+
+        book.set_cover_media(None)
+        assert book.cover_media_id is None
+
+    def test_cover_media_revoked_on_regression(self):
+        """✓ Downgrading maturity auto-revokes cover media."""
+        book = self._make_book(BookMaturity.STABLE)
+        media_id = uuid4()
+        book.set_cover_media(media_id)
+        assert book.cover_media_id == media_id
+
+        book.change_maturity(BookMaturity.GROWING)
+
+        assert book.cover_media_id is None
 
 
 class TestBookSoftDeletePattern:
@@ -293,6 +378,93 @@ class TestBookBusinessRules:
 
         assert restored_book.soft_deleted_at is None
         assert restored_book.bookshelf_id == restore_shelf
+
+
+class TestBookBasementLifecycle:
+    """Plan173B: Basement metadata tracking on Book aggregate."""
+
+    def test_move_to_basement_records_previous_and_timestamp(self):
+        """✓ move_to_basement keeps previous shelf + timestamp metadata"""
+        library_id = uuid4()
+        active_shelf = uuid4()
+        basement_shelf = uuid4()
+        book = Book(
+            book_id=uuid4(),
+            bookshelf_id=active_shelf,
+            library_id=library_id,
+            title=BookTitle(value="Basement Candidate"),
+        )
+
+        book.move_to_basement(basement_shelf)
+
+        assert book.bookshelf_id == basement_shelf
+        assert book.previous_bookshelf_id == active_shelf
+        assert book.is_in_basement
+        assert book.moved_to_basement_at is not None
+
+    def test_restore_from_basement_clears_basement_metadata(self):
+        """✓ restore_from_basement puts book back and clears metadata"""
+        library_id = uuid4()
+        active_shelf = uuid4()
+        basement_shelf = uuid4()
+        book = Book(
+            book_id=uuid4(),
+            bookshelf_id=active_shelf,
+            library_id=library_id,
+            title=BookTitle(value="Basement Return"),
+        )
+        book.move_to_basement(basement_shelf)
+
+        book.restore_from_basement()
+
+        assert book.bookshelf_id == active_shelf
+        assert book.previous_bookshelf_id is None
+        assert book.moved_to_basement_at is None
+        assert not book.is_in_basement
+
+    def test_restore_without_target_raises_when_previous_missing(self):
+        """✗ Restore must know destination bookshelf"""
+        basement_shelf = uuid4()
+        book = Book(
+            book_id=uuid4(),
+            bookshelf_id=basement_shelf,
+            library_id=uuid4(),
+            title=BookTitle(value="Stranded"),
+            soft_deleted_at=datetime.now(timezone.utc),
+            previous_bookshelf_id=None,
+        )
+
+        with pytest.raises(InvalidBookDataError):
+            book.restore_from_basement()
+
+
+class TestBookMaturityTransitions:
+    """Ensure maturity lifecycle allows bidirectional adjustments."""
+
+    def _make_book(self, maturity: BookMaturity) -> Book:
+        return Book(
+            book_id=uuid4(),
+            bookshelf_id=uuid4(),
+            library_id=uuid4(),
+            title=BookTitle(value="Lifecycle"),
+            maturity=maturity,
+        )
+
+    def test_book_can_regress_from_growing_to_seed(self):
+        book = self._make_book(BookMaturity.GROWING)
+
+        book.change_maturity(BookMaturity.SEED)
+
+        assert book.maturity == BookMaturity.SEED
+
+    def test_transition_helper_handles_multi_step_regression(self):
+        book = self._make_book(BookMaturity.STABLE)
+
+        previous, target = transition_book_maturity(book, BookMaturity.SEED)
+
+        assert previous == BookMaturity.STABLE
+        assert target == BookMaturity.SEED
+        assert book.maturity == BookMaturity.SEED
 
 
 class TestBookStatusEnum:

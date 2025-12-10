@@ -5,7 +5,7 @@ Mapping Strategy (ADR-010: Book Models & Testing Layer):
 - Primary Key: id (UUID)
 - Business Keys: bookshelf_id + library_id (冗余 FK for RULE-011 权限检查)
 - Soft Delete: soft_deleted_at (per RULE-012 Basement Pattern)
-- Metadata: title, summary, is_pinned, due_at, status, block_count
+- Metadata: title, summary, is_pinned, due_at, status, maturity, block_count
 
 Invariants Enforced:
 ✅ RULE-009: 无限创建（仅验证 bookshelf_id 存在）
@@ -15,7 +15,7 @@ Invariants Enforced:
 
 Round-Trip Validation:
 Use to_dict() for ORM → dict conversion
-Use from_dict() for dict → ORM conversion (11 fields total)
+Use from_dict() for dict → ORM conversion (13 fields total)
 """
 from sqlalchemy import Column, String, DateTime, Text, Boolean, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
@@ -83,6 +83,19 @@ class BookModel(Base):
         nullable=True
     )
 
+    cover_icon = Column(
+        String(64),
+        nullable=True,
+        comment="POLICY-BOOK-COVER-ICON-LUCIDE: Optional Lucide icon name"
+    )
+
+    cover_media_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("media.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="POLICY-BOOK-COVER-MEDIA-STABLE-ONLY: Optional Media UUID for custom covers"
+    )
+
     is_pinned = Column(
         Boolean,
         default=False,
@@ -100,10 +113,65 @@ class BookModel(Base):
         nullable=False
     )
 
+    maturity = Column(
+        String(16),
+        default="seed",
+        nullable=False
+    )
+
     block_count = Column(
         Integer,
         default=0,
         nullable=False
+    )
+
+    maturity_score = Column(
+        Integer,
+        default=0,
+        nullable=False
+    )
+
+    legacy_flag = Column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
+
+    manual_maturity_override = Column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
+
+    manual_maturity_reason = Column(
+        Text,
+        nullable=True
+    )
+
+    last_visited_at = Column(
+        DateTime(timezone=True),
+        nullable=True
+    )
+
+    visit_count_90d = Column(
+        Integer,
+        default=0,
+        nullable=False
+    )
+
+    previous_bookshelf_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("bookshelves.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="Stores the last active bookshelf before moving to Basement"
+    )
+
+    moved_to_basement_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+        comment="Timestamp of latest move into Basement"
     )
 
     # Soft delete support (RULE-012: Basement Pattern)
@@ -136,7 +204,7 @@ class BookModel(Base):
 
     def to_dict(self) -> dict:
         """
-        Serialize to dictionary (11 fields total)
+        Serialize to dictionary (13 fields total)
 
         Usage:
         - REST API responses
@@ -145,7 +213,7 @@ class BookModel(Base):
 
         Returns:
         dict with keys: id, bookshelf_id, library_id, title, summary,
-                       status, is_pinned, due_at, block_count,
+                       status, maturity, is_pinned, due_at, block_count,
                        soft_deleted_at, created_at, updated_at
         """
         return {
@@ -154,7 +222,18 @@ class BookModel(Base):
             "library_id": str(self.library_id) if self.library_id else None,
             "title": self.title,
             "summary": self.summary,
+            "cover_icon": self.cover_icon,
+            "cover_media_id": str(self.cover_media_id) if self.cover_media_id else None,
             "status": self.status,
+            "maturity": self.maturity,
+            "maturity_score": self.maturity_score,
+            "legacy_flag": self.legacy_flag,
+            "manual_maturity_override": self.manual_maturity_override,
+            "manual_maturity_reason": self.manual_maturity_reason,
+            "last_visited_at": self.last_visited_at.isoformat() if self.last_visited_at else None,
+            "visit_count_90d": self.visit_count_90d,
+            "previous_bookshelf_id": str(self.previous_bookshelf_id) if self.previous_bookshelf_id else None,
+            "moved_to_basement_at": self.moved_to_basement_at.isoformat() if self.moved_to_basement_at else None,
             "is_pinned": self.is_pinned,
             "due_at": self.due_at.isoformat() if self.due_at else None,
             "block_count": self.block_count,
@@ -185,7 +264,18 @@ class BookModel(Base):
             library_id=UUID(data.get("library_id")) if data.get("library_id") else None,
             title=data.get("title"),
             summary=data.get("summary"),
+            cover_icon=data.get("cover_icon"),
+            cover_media_id=UUID(data.get("cover_media_id")) if data.get("cover_media_id") else None,
             status=data.get("status", "draft"),
+            maturity=data.get("maturity", "seed"),
+            maturity_score=data.get("maturity_score", 0),
+            legacy_flag=data.get("legacy_flag", False),
+            manual_maturity_override=data.get("manual_maturity_override", False),
+            manual_maturity_reason=data.get("manual_maturity_reason"),
+            last_visited_at=data.get("last_visited_at"),
+            visit_count_90d=data.get("visit_count_90d", 0),
+            previous_bookshelf_id=UUID(data.get("previous_bookshelf_id")) if data.get("previous_bookshelf_id") else None,
+            moved_to_basement_at=data.get("moved_to_basement_at"),
             is_pinned=data.get("is_pinned", False),
             due_at=data.get("due_at"),
             block_count=data.get("block_count", 0),

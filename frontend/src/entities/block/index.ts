@@ -1,1 +1,32 @@
-export type { BlockDto, CreateBlockRequest, UpdateBlockRequest } from './types';
+export type {
+	BlockDto,
+	BlockApiResponse,
+	BlockKind,
+	BlockTypeApi,
+	CreateBlockRequest,
+	UpdateBlockRequest,
+	ParagraphBlockContent,
+	HeadingBlockContent,
+	ListBlockContent,
+	TodoListBlockContent,
+	TodoListItemContent,
+	CodeBlockContent,
+	PanelBlockContent,
+	CalloutBlockContent,
+	QuoteBlockContent,
+	DividerBlockContent,
+	ImageBlockContent,
+	ImageGalleryBlockContent,
+	ImageGalleryItemContent,
+	CustomBlockContent,
+	BlockContent,
+} from './types';
+export {
+	mapApiTypeToKind,
+	mapKindToApiType,
+	parseBlockContent,
+	createDefaultBlockContent,
+	serializeBlockContent,
+	getParagraphText,
+	generateBlockScopedId,
+} from './types';

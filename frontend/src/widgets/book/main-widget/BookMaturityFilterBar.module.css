@@ -1,0 +1,46 @@
+.filterBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+.modeSelect {
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  min-width: 150px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast);
+}
+
+.modeSelect:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 768px) {
+  .filterBar {
+    justify-content: flex-start;
+  }
+
+  .modeSelect {
+    width: 100%;
+  }
+}

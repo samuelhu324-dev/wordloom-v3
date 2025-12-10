@@ -23,6 +23,8 @@ from .delete_book import DeleteBookUseCase
 from .restore_book import RestoreBookUseCase
 from .move_book import MoveBookUseCase
 from .list_deleted_books import ListDeletedBooksUseCase
+from .recalculate_book_maturity import RecalculateBookMaturityUseCase
+from .update_book_maturity import UpdateBookMaturityUseCase
 
 __all__ = [
     "CreateBookUseCase",
@@ -33,4 +35,6 @@ __all__ = [
     "RestoreBookUseCase",
     "MoveBookUseCase",
     "ListDeletedBooksUseCase",
+    "RecalculateBookMaturityUseCase",
+    "UpdateBookMaturityUseCase",
 ]

@@ -45,6 +45,7 @@ class UploadImageUseCase:
         mime_type: MediaMimeType,
         file_size: int,
         storage_key: str,
+        user_id: Optional[UUID] = None,
         width: Optional[int] = None,
         height: Optional[int] = None,
         storage_quota: int = DEFAULT_STORAGE_QUOTA,
@@ -58,6 +59,7 @@ class UploadImageUseCase:
             mime_type: Image MIME type
             file_size: File size in bytes
             storage_key: Unique identifier in storage backend
+            user_id: Owner of the media (optional for anonymous uploads)
             width: Image width (optional, extracted after upload)
             height: Image height (optional, extracted after upload)
             storage_quota: User's storage quota in bytes
@@ -97,6 +99,7 @@ class UploadImageUseCase:
                 mime_type=mime_type,
                 file_size=file_size,
                 storage_key=storage_key,
+                user_id=user_id,
                 width=width,
                 height=height
             )
@@ -108,7 +111,17 @@ class UploadImageUseCase:
         except Exception as e:
             if isinstance(e, (InvalidMimeTypeError, FileSizeTooLargeError, InvalidDimensionsError, StorageQuotaExceededError)):
                 raise
-            raise MediaOperationError(f"Failed to upload image: {str(e)}")
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception(f"[UploadImageUseCase] Exception during save: {type(e).__name__}: {e}")
+            # Prefer detailed reason if repository/domain exception exposes it
+            detail = getattr(e, "detail", None) or getattr(e, "details", None)
+            if isinstance(detail, dict):
+                # Some exception hierarchies store reason under 'reason'
+                reason = detail.get("reason") or detail
+            else:
+                reason = detail or str(e)
+            raise MediaOperationError(f"Failed to upload image: {reason}")
 
     @staticmethod
     def _validate_image_dimensions(width: int, height: int) -> None:

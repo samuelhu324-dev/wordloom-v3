@@ -22,7 +22,8 @@ class SearchTagsUseCase:
     async def execute(
         self,
         keyword: str,
-        limit: int = 20
+        limit: int = 20,
+        order: str = "name_asc",
     ) -> List[Tag]:
         """
         Execute search tags use case
@@ -41,6 +42,6 @@ class SearchTagsUseCase:
             return []
 
         try:
-            return await self.repository.find_by_name(keyword, limit=limit)
+            return await self.repository.find_by_name(keyword, limit=limit, order_by=order)
         except Exception as e:
             raise TagOperationError(f"Failed to search tags: {str(e)}")

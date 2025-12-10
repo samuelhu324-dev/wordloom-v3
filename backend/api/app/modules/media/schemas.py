@@ -43,8 +43,8 @@ class MediaMimeTypeSchema(str, Enum):
 
 class MediaStateSchema(str, Enum):
     """Media state enum"""
-    ACTIVE = "active"
-    TRASH = "trash"
+    ACTIVE = "ACTIVE"
+    TRASH = "TRASH"
 
 
 class EntityTypeSchema(str, Enum):

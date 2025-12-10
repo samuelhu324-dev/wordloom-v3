@@ -8,10 +8,16 @@ Dependency Injection (DI) Container
 - EventBus 实例
 
 这是应用的中枢，所有依赖从这里获取。
+
+CRITICAL FIX (Nov 19, 2025):
+- Now uses async session from infra.database.session
+- Event loop policy set once in event_loop_policy.py
+- No more creating new engine per request
 """
 
 from typing import Optional
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 
 # Infrastructure
@@ -46,6 +52,7 @@ from app.modules.tag.application.use_cases import (
     DisassociateTagUseCase,
     SearchTagsUseCase,
     GetMostUsedTagsUseCase,
+    ListTagsUseCase,
 )
 
 # Modules - Media UseCases
@@ -114,33 +121,30 @@ class DIContainer:
         response = await use_case.execute(request)
     """
 
-    def __init__(self, session_factory: Optional[sessionmaker] = None):
+    def __init__(self, session=None):
         """
         初始化 DI 容器
 
         Args:
-            session_factory: SQLAlchemy SessionLocal 工厂函数
+            session: SQLAlchemy AsyncSession 实例（可选，用于测试）
         """
-        self.session_factory = session_factory
+        self.session = session
         self.event_bus = get_event_bus()
-
-        # 缓存的单例实例（如果需要）
-        self._repositories_cache = {}
 
     # ========================================================================
     # Database Session Provider
     # ========================================================================
 
-    def get_session(self) -> Session:
+    def get_session(self):
         """
         获取数据库会话
 
         Returns:
-            SQLAlchemy Session 实例
+            SQLAlchemy AsyncSession 实例
         """
-        if self.session_factory is None:
-            raise RuntimeError("SessionLocal factory not configured")
-        return self.session_factory()
+        if self.session is None:
+            raise RuntimeError("AsyncSession not provided to DIContainer")
+        return self.session
 
     # ========================================================================
     # Repository Factories (Output Ports)
@@ -224,6 +228,11 @@ class DIContainer:
         """获取 GetMostUsedTagsUseCase"""
         repo = self.get_tag_repository()
         return GetMostUsedTagsUseCase(repo, self.event_bus)
+
+    def get_list_tags_use_case(self) -> ListTagsUseCase:
+        """获取 ListTagsUseCase"""
+        repo = self.get_tag_repository()
+        return ListTagsUseCase(repo)
 
     # ========================================================================
     # Media UseCase Factories
@@ -334,7 +343,7 @@ class DIContainer:
     def get_list_books_use_case(self) -> ListBooksUseCase:
         """获取 ListBooksUseCase"""
         repo = self.get_book_repository()
-        return ListBooksUseCase(repo, self.event_bus)
+        return ListBooksUseCase(repo, self.get_session())
 
     def get_get_book_use_case(self) -> GetBookUseCase:
         """获取 GetBookUseCase"""
@@ -359,7 +368,7 @@ class DIContainer:
     def get_list_deleted_books_use_case(self) -> ListDeletedBooksUseCase:
         """获取 ListDeletedBooksUseCase"""
         repo = self.get_book_repository()
-        return ListDeletedBooksUseCase(repo, self.event_bus)
+        return ListDeletedBooksUseCase(repo, self.get_session())
 
     # ========================================================================
     # Block UseCase Factories

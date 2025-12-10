@@ -1,74 +1,44 @@
+﻿"""
+Dependency Injection Container - Routes to UseCases
+
+完整真实模式（Complete Real Mode Nov 17, 2025）：
+- Library: 真实 SQLAlchemy async Repository ✅
+- Bookshelf: 真实 SQLAlchemy async Repository ✅
+- Book: 真实 SQLAlchemy async Repository ✅
+- Block: 真实 SQLAlchemy async Repository + Paperballs recovery ✅
+
+Architecture: Hexagonal Pattern
+- Routes (HTTP Adapter) → DI Container → UseCases → Repositories
+- Pattern: Factory Method for UseCase instantiation
+- All repositories are async and database-backed
+
+CRITICAL FIX (Nov 19, 2025):
+- Only import get_db_session (NOT AsyncSessionLocal - lazy loaded)
+- Event loop policy set in launcher before any imports
 """
-Dependency Injection Container
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from infra.database.session import get_db_session
 
-Provides centralized dependency management and factory methods for all UseCase instances.
-"""
+# Import real container and re-export it as DIContainer for backward compatibility
+from api.app.dependencies_real import DIContainerReal as DIContainer
+from api.app.dependencies_real import DIContainerReal
 
-from typing import Dict, Any, Type, TypeVar, Callable
-import logging
-
-logger = logging.getLogger(__name__)
-
-T = TypeVar('T')
+__all__ = ["DIContainerReal", "DIContainer", "get_di_container"]
 
 
-class DIContainer:
+async def get_di_container(session: AsyncSession = Depends(get_db_session)) -> DIContainerReal:
     """
-    Dependency Injection Container
+    提供真实 DI 容器给路由层 (Production Mode)
 
-    Manages lifecycle of services, repositories, and use cases.
-    Implements singleton and transient patterns.
+    返回所有真实 async Repository 的 DIContainerReal 实例
+
+    所有 22 个 UseCase 工厂方法都使用真实的 SQLAlchemy async Repository
+    - Library: AsyncSession ready
+    - Bookshelf: AsyncSession ready
+    - Book: AsyncSession ready
+    - Block: AsyncSession ready (包括 Paperballs 恢复逻辑)
+
+    数据库持久化：所有操作都直接影响 PostgreSQL
     """
-
-    def __init__(self):
-        self._services: Dict[str, Any] = {}
-        self._factories: Dict[str, Callable] = {}
-
-    def register(self, name: str, service: Any) -> None:
-        """Register a singleton service"""
-        self._services[name] = service
-
-    def register_factory(self, name: str, factory: Callable) -> None:
-        """Register a factory function"""
-        self._factories[name] = factory
-
-    def get(self, name: str) -> Any:
-        """Get a service or call factory"""
-        if name in self._services:
-            return self._services[name]
-
-        if name in self._factories:
-            return self._factories[name]()
-
-        raise KeyError(f"Service '{name}' not found in DI container")
-
-    def clear(self) -> None:
-        """Clear all services"""
-        self._services.clear()
-        self._factories.clear()
-
-
-# Global container instance
-_container: DIContainer | None = None
-
-
-def get_di_container() -> DIContainer:
-    """Get or create the global DI container"""
-    global _container
-    if _container is None:
-        _container = DIContainer()
-    return _container
-
-
-def get_di_container_provider():
-    """
-    FastAPI dependency provider for DI container
-
-    Usage in routers:
-        @router.get("/items")
-        async def get_items(
-            di: DIContainer = Depends(get_di_container_provider)
-        ):
-            ...
-    """
-    return get_di_container()
+    return DIContainerReal(session)

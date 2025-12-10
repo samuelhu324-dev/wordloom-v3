@@ -28,8 +28,8 @@ class MediaMimeType(str, Enum):
 
 class MediaState(str, Enum):
     """Current state of media (soft delete tracking)"""
-    ACTIVE = "active"
-    TRASH = "trash"
+    ACTIVE = "ACTIVE"
+    TRASH = "TRASH"
 
 
 class EntityTypeForMedia(str, Enum):

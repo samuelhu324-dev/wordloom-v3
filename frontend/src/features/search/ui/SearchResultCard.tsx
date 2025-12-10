@@ -18,10 +18,10 @@ export const SearchResultCard = React.forwardRef<HTMLDivElement, SearchResultCar
         style={{ cursor: 'pointer' }}
       >
         <h4 className={styles.title}>{result.title}</h4>
-        <p className={styles.excerpt}>{result.excerpt}</p>
+        {result.preview && <p className={styles.excerpt}>{result.preview}</p>}
         <div className={styles.meta}>
-          <span className={styles.type}>{result.type}</span>
-          <span className={styles.score}>Score: {result.score.toFixed(2)}</span>
+          <span className={styles.type}>{result.entity_type}</span>
+          <span className={styles.score}>得分: {result.score.toFixed(2)}</span>
         </div>
       </Card>
     );

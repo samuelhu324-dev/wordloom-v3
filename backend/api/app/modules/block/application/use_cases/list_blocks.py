@@ -1,16 +1,10 @@
-"""ListBlocks UseCase - List blocks in a book
+"""ListBlocks UseCase - List blocks in a book with pagination"""
 
-This use case handles:
-- Querying repository for active blocks (not soft-deleted)
-- Ordering by fractional index
-- Supporting pagination
-- Returning list of Block domain objects
-"""
-
-from typing import List, Tuple
-from uuid import UUID
-
-from ...domain import Block
+from ...application.ports.input import (
+    BlockListResponse,
+    BlockResponse,
+    ListBlocksRequest,
+)
 from ...application.ports.output import BlockRepository
 from ...exceptions import BlockOperationError
 
@@ -21,27 +15,19 @@ class ListBlocksUseCase:
     def __init__(self, repository: BlockRepository):
         self.repository = repository
 
-    async def execute(
-        self,
-        book_id: UUID,
-        skip: int = 0,
-        limit: int = 100
-    ) -> Tuple[List[Block], int]:
-        """
-        List blocks with pagination
+    async def execute(self, request: ListBlocksRequest) -> BlockListResponse:
+        """List blocks with pagination and optional soft-delete filtering"""
 
-        Args:
-            book_id: Book ID
-            skip: Pagination offset
-            limit: Pagination limit
-
-        Returns:
-            Tuple of (list of Block objects, total count)
-
-        Raises:
-            BlockOperationError: On query error
-        """
         try:
-            return await self.repository.get_by_book_id(book_id, skip, limit)
+            limit = max(1, request.limit)
+            page = max(1, (request.skip // limit) + 1)
+            blocks, total = await self.repository.list_paginated(
+                book_id=request.book_id,
+                page=page,
+                page_size=limit,
+                include_deleted=request.include_deleted,
+            )
+            items = [BlockResponse.from_domain(block) for block in blocks]
+            return BlockListResponse(items=items, total=total)
         except Exception as e:
             raise BlockOperationError(f"Failed to list blocks: {str(e)}")

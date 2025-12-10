@@ -190,7 +190,7 @@ CREATE TABLE tags (
     usage_count INT DEFAULT 0,
 
     -- Soft delete
-    soft_deleted_at TIMESTAMP DEFAULT NULL,
+    deleted_at TIMESTAMP DEFAULT NULL,
 
     -- Timestamps
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -204,7 +204,7 @@ CREATE TABLE tags (
 
 CREATE INDEX idx_tags_user_id ON tags(user_id);
 CREATE INDEX idx_tags_parent_tag_id ON tags(parent_tag_id);
-CREATE INDEX idx_tags_soft_deleted_at ON tags(soft_deleted_at);
+CREATE INDEX idx_tags_deleted_at ON tags(deleted_at);
 
 COMMENT ON TABLE tags IS 'RULE-018: Global cross-entity tags. RULE-020: Hierarchical structure.';
 

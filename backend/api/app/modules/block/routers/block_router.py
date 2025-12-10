@@ -1,4 +1,4 @@
-"""
+﻿"""
 Block Router - Hexagonal Architecture Pattern
 
 块（Block）管理的 FastAPI 路由适配器�?
@@ -26,8 +26,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from typing import List, Optional
 from uuid import UUID
 import logging
+from dataclasses import asdict
 
-from api.app.dependencies import DIContainer, get_di_container_provider
+from api.app.dependencies import DIContainer, get_di_container
 from api.app.modules.block.application.ports.input import (
     CreateBlockRequest,
     ListBlocksRequest,
@@ -49,12 +50,7 @@ from api.app.modules.block.domain.exceptions import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/blocks", tags=["blocks"])
-
-
-async def get_di_container() -> DIContainer:
-    """获取 DI 容器"""
-    return get_di_container_provider()
+router = APIRouter(prefix="", tags=["blocks"])
 
 
 # ============================================================================
@@ -63,7 +59,7 @@ async def get_di_container() -> DIContainer:
 
 @router.post(
     "",
-    response_model=dict,
+    response_model=None,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new block",
     description="Create a new block with type-specific factory (RULE-013-REVISED: TEXT|HEADING|CODE|IMAGE|TABLE|QUOTE|LIST|DIVIDER)"
@@ -95,7 +91,7 @@ async def create_block(
         use_case = di.get_create_block_use_case()
         response: BlockResponse = await use_case.execute(request)
         logger.info(f"Block created successfully: block_id={response.id}, type={response.block_type}")
-        return response.to_dict()
+        return asdict(response)
     except BlockInvalidTypeError as e:
         logger.warning(f"Block creation failed - invalid type: {e}")
         raise HTTPException(
@@ -122,7 +118,7 @@ async def create_block(
 
 @router.get(
     "",
-    response_model=dict,
+    response_model=None,
     summary="List blocks",
     description="List blocks ordered by sort_key with soft-delete filtering (RULE-015-REVISED, POLICY-008)"
 )
@@ -159,7 +155,7 @@ async def list_blocks(
         use_case = di.get_list_blocks_use_case()
         response: BlockListResponse = await use_case.execute(request)
         logger.debug(f"Listed {len(response.items)} blocks from book {book_id}")
-        return response.to_dict()
+        return asdict(response)
     except DomainException as e:
         logger.warning(f"List blocks failed: {e}")
         raise HTTPException(
@@ -180,7 +176,7 @@ async def list_blocks(
 
 @router.get(
     "/{block_id}",
-    response_model=dict,
+    response_model=None,
     summary="Get block by ID",
     description="Retrieve detailed information about a specific block"
 )
@@ -205,7 +201,7 @@ async def get_block(
         use_case = di.get_get_block_use_case()
         response: BlockResponse = await use_case.execute(request)
         logger.debug(f"Retrieved block: {response.id}")
-        return response.to_dict()
+        return asdict(response)
     except BlockNotFoundError as e:
         logger.warning(f"Block not found: {e}")
         raise HTTPException(
@@ -232,7 +228,7 @@ async def get_block(
 
 @router.patch(
     "/{block_id}",
-    response_model=dict,
+    response_model=None,
     summary="Update a block",
     description="Update block properties (content, heading_level) - RULE-014"
 )
@@ -262,7 +258,7 @@ async def update_block(
         use_case = di.get_update_block_use_case()
         response: BlockResponse = await use_case.execute(request)
         logger.info(f"Block updated successfully: block_id={block_id}")
-        return response.to_dict()
+        return asdict(response)
     except BlockNotFoundError as e:
         logger.warning(f"Block not found: {e}")
         raise HTTPException(
@@ -289,7 +285,7 @@ async def update_block(
 
 @router.post(
     "/reorder",
-    response_model=dict,
+    response_model=None,
     summary="Reorder blocks (batch fractional index)",
     description="Batch reorder blocks with fractional index for O(1) drag/drop (RULE-015-REVISED)"
 )
@@ -316,7 +312,7 @@ async def reorder_blocks(
         use_case = di.get_reorder_blocks_use_case()
         response: BlockResponse = await use_case.execute(request)
         logger.info(f"Block reordered successfully: block_id={request.block_id}")
-        return response.to_dict()
+        return asdict(response)
     except BlockNotFoundError as e:
         logger.warning(f"Block not found: {e}")
         raise HTTPException(
@@ -395,7 +391,7 @@ async def delete_block(
 
 @router.post(
     "/{block_id}/restore",
-    response_model=dict,
+    response_model=None,
     status_code=status.HTTP_200_OK,
     summary="Restore a deleted block from Paperballs",
     description="Restore block from soft-delete with 3-level positioning fallback (RULE-013-REVISED)"
@@ -423,7 +419,7 @@ async def restore_block(
         use_case = di.get_restore_block_use_case()
         response: BlockResponse = await use_case.execute(request)
         logger.info(f"Block restored successfully: block_id={block_id}")
-        return response.to_dict()
+        return asdict(response)
     except BlockNotFoundError as e:
         logger.warning(f"Block not found or not in Paperballs: {e}")
         raise HTTPException(
@@ -450,7 +446,7 @@ async def restore_block(
 
 @router.get(
     "/deleted",
-    response_model=dict,
+    response_model=None,
     summary="List deleted blocks (Paperballs view)",
     description="List soft-deleted blocks with recovery metadata (RULE-012, Paperballs)"
 )
@@ -486,7 +482,7 @@ async def list_deleted_blocks(
         use_case = di.get_list_deleted_blocks_use_case()
         response: BlockListResponse = await use_case.execute(request)
         logger.debug(f"Listed {len(response.items)} deleted blocks from book {book_id}")
-        return response.to_dict()
+        return asdict(response)
     except DomainException as e:
         logger.warning(f"List deleted blocks failed: {e}")
         raise HTTPException(
@@ -502,4 +498,6 @@ async def list_deleted_blocks(
 
 
 __all__ = ["router"]
+
+
 

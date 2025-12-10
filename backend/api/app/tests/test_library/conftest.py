@@ -170,6 +170,19 @@ class MockLibraryRepository(ILibraryRepository):
         return library_id in self._libraries
 
 
+class MockBookshelfRepository:
+    """In-memory bookshelf repository used to satisfy CreateLibrary dependencies."""
+
+    def __init__(self):
+        self._bookshelves = {}
+
+    async def save(self, bookshelf):
+        self._bookshelves[bookshelf.id] = bookshelf
+
+    async def exists(self, bookshelf_id):
+        return bookshelf_id in self._bookshelves
+
+
 # ============================================================================
 # Repository Fixture
 # ============================================================================
@@ -178,6 +191,12 @@ class MockLibraryRepository(ILibraryRepository):
 def repository() -> MockLibraryRepository:
     """MockRepository instance for test isolation"""
     return MockLibraryRepository()
+
+
+@pytest.fixture
+def bookshelf_repository() -> MockBookshelfRepository:
+    """Mock bookshelf repository for basement creation"""
+    return MockBookshelfRepository()
 
 
 @pytest.fixture
@@ -191,9 +210,17 @@ def event_bus() -> MockEventBus:
 # ============================================================================
 
 @pytest.fixture
-def create_use_case(repository: MockLibraryRepository, event_bus: MockEventBus) -> CreateLibraryUseCase:
+def create_use_case(
+    repository: MockLibraryRepository,
+    bookshelf_repository: MockBookshelfRepository,
+    event_bus: MockEventBus,
+) -> CreateLibraryUseCase:
     """CreateLibraryUseCase with MockRepository and MockEventBus"""
-    return CreateLibraryUseCase(repository=repository, event_bus=event_bus)
+    return CreateLibraryUseCase(
+        repository=repository,
+        bookshelf_repository=bookshelf_repository,
+        event_bus=event_bus,
+    )
 
 
 @pytest.fixture

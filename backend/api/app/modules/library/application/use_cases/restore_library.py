@@ -31,7 +31,7 @@ from api.app.modules.library.application.ports.input import (
     RestoreLibraryResponse,
 )
 from api.app.modules.library.application.ports.output import ILibraryRepository
-from api.app.shared.event_bus import EventBus
+from api.app.shared.events import EventBus
 from api.app.shared.exceptions import ResourceNotFoundError, IllegalStateError
 
 

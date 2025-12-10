@@ -18,11 +18,13 @@ from .create_bookshelf import CreateBookshelfUseCase
 from .get_bookshelf import GetBookshelfUseCase
 from .delete_bookshelf import DeleteBookshelfUseCase
 from .rename_bookshelf import RenameBookshelfUseCase
+from .update_bookshelf import UpdateBookshelfUseCase
 
 __all__ = [
     "CreateBookshelfUseCase",
     "GetBookshelfUseCase",
     "DeleteBookshelfUseCase",
     "RenameBookshelfUseCase",
+    "UpdateBookshelfUseCase",
 ]
 

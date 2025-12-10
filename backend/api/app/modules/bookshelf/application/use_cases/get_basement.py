@@ -11,7 +11,7 @@ RULE-010: Every library has exactly one Basement bookshelf
 from uuid import UUID
 
 from ...domain import Bookshelf
-from ...application.ports.output import BookshelfRepository
+from ...application.ports.output import IBookshelfRepository
 from ...exceptions import (
     BookshelfNotFoundError,
     BookshelfOperationError,
@@ -21,7 +21,7 @@ from ...exceptions import (
 class GetBasementUseCase:
     """Get the Basement bookshelf (creates if needed)"""
 
-    def __init__(self, repository: BookshelfRepository):
+    def __init__(self, repository: IBookshelfRepository):
         self.repository = repository
 
     async def execute(self, library_id: UUID) -> Bookshelf:

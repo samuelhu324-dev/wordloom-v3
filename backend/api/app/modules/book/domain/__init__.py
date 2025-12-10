@@ -9,9 +9,11 @@ from .book_title import BookTitle
 from .book_summary import BookSummary
 from .events import (
     BookStatus,
+    BookMaturity,
     BookCreated,
     BookRenamed,
     BookStatusChanged,
+    BookMaturityChanged,
     BookDeleted,
     BlocksUpdated,
     BookMovedToBookshelf,
@@ -27,10 +29,12 @@ __all__ = [
     "BookSummary",
     # Enums
     "BookStatus",
+    "BookMaturity",
     # Events
     "BookCreated",
     "BookRenamed",
     "BookStatusChanged",
+    "BookMaturityChanged",
     "BookDeleted",
     "BlocksUpdated",
     "BookMovedToBookshelf",

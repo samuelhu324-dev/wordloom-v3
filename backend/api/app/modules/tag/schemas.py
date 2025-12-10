@@ -28,6 +28,7 @@ from enum import Enum
 
 class EntityTypeEnum(str, Enum):
     """Entity types that can be tagged"""
+    LIBRARY = "library"
     BOOKSHELF = "bookshelf"
     BOOK = "book"
     BLOCK = "block"

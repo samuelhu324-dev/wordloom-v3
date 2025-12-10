@@ -5,7 +5,8 @@ Responsibilities:
 - Check name uniqueness per library (RULE-006)
 - Create Bookshelf aggregate using factory method
 - Persist to repository
-- Return response with created bookshelf data
+- Associate initial tags when provided
+- Return DTO including tag summary
 - Publish BookshelfCreatedEvent
 
 RULE-006: Bookshelf names must be unique per Library (1-255 chars)
@@ -17,16 +18,22 @@ Design Pattern: UseCase (Application Layer)
 - Manages transactions implicitly via repository
 """
 
+from typing import List, Optional, Tuple
+from uuid import UUID
+
 from api.app.modules.bookshelf.application.ports.input import (
     CreateBookshelfRequest,
     CreateBookshelfResponse,
-    ICreateBookshelfUseCase,
 )
 from api.app.modules.bookshelf.application.ports.output import IBookshelfRepository
-from api.app.modules.bookshelf.domain import Bookshelf, BookshelfName, BookshelfDescription
+from api.app.modules.bookshelf.domain import Bookshelf
+from api.app.modules.bookshelf.exceptions import BookshelfTagSyncError
+from api.app.modules.tag.application.ports.output import TagRepository
+from api.app.modules.tag.domain import EntityType
+from api.app.modules.tag.exceptions import TagNotFoundError, TagOperationError
 
 
-class CreateBookshelfUseCase(ICreateBookshelfUseCase):
+class CreateBookshelfUseCase:
     """Implementation of CreateBookshelf UseCase
 
     Orchestrates:
@@ -34,11 +41,16 @@ class CreateBookshelfUseCase(ICreateBookshelfUseCase):
     2. Business rule check (name uniqueness per library)
     3. Factory pattern (Bookshelf.create)
     4. Persistence (repository.save)
-    5. Event publication (implicit in domain events)
-    6. Response building (DTO serialization)
+    5. Initial tag association (optional)
+    6. Event publication (implicit in domain events)
+    7. Returns response DTO for transport layer
     """
 
-    def __init__(self, repository: IBookshelfRepository):
+    def __init__(
+        self,
+        repository: IBookshelfRepository,
+        tag_repository: Optional[TagRepository] = None,
+    ):
         """
         Initialize CreateBookshelfUseCase
 
@@ -46,6 +58,7 @@ class CreateBookshelfUseCase(ICreateBookshelfUseCase):
             repository: IBookshelfRepository implementation for persistence
         """
         self.repository = repository
+        self.tag_repository = tag_repository
 
     async def execute(self, request: CreateBookshelfRequest) -> CreateBookshelfResponse:
         """
@@ -55,7 +68,7 @@ class CreateBookshelfUseCase(ICreateBookshelfUseCase):
             request: CreateBookshelfRequest with library_id, name, optional description
 
         Returns:
-            CreateBookshelfResponse with created bookshelf data
+            CreateBookshelfResponse DTO with bookshelf and tag data
 
         Raises:
             ValueError: If name is empty, too long, or already exists in library
@@ -72,25 +85,66 @@ class CreateBookshelfUseCase(ICreateBookshelfUseCase):
                 f"Bookshelf name '{request.name}' already exists in library {request.library_id}"
             )
 
-        # Step 2: Create BookshelfName ValueObject (validates 1-255 chars)
-        bookshelf_name = BookshelfName(request.name)
-
-        # Step 3: Create BookshelfDescription ValueObject if provided
-        bookshelf_description = None
-        if request.description:
-            bookshelf_description = BookshelfDescription(request.description)
-
-        # Step 4: Create Bookshelf aggregate via factory method
+        # Step 2: Create Bookshelf aggregate via factory method
         # Factory handles: ID generation, timestamp, status initialization, events
+        # Factory will also create BookshelfName and BookshelfDescription ValueObjects
         bookshelf = Bookshelf.create(
             library_id=request.library_id,
-            name=str(bookshelf_name),
-            description=str(bookshelf_description) if bookshelf_description else None,
+            name=request.name,  # Pass raw string; factory will create ValueObject
+            description=request.description,  # Pass raw string or None; factory will handle
         )
 
-        # Step 5: Persist aggregate to repository
+        # Step 3: Persist aggregate to repository
         # Repository adapter converts domain object to ORM model, handles IntegrityError
         await self.repository.save(bookshelf)
 
-        # Step 6: Return response DTO
-        return CreateBookshelfResponse.from_domain(bookshelf)
+        # Step 4: Associate initial tags when provided
+        tag_ids, tag_names = await self._apply_initial_tags(bookshelf, request.tag_ids)
+
+        # Step 5: Return response DTO for transport layer
+        return CreateBookshelfResponse.from_domain(
+            bookshelf,
+            tag_ids=tag_ids,
+            tags_summary=tag_names,
+        )
+
+    async def _apply_initial_tags(
+        self,
+        bookshelf: Bookshelf,
+        incoming_tag_ids: Optional[List[UUID]],
+    ) -> Tuple[List[UUID], List[str]]:
+        """Associate provided tag IDs with the newly created bookshelf"""
+
+        if not incoming_tag_ids or not self.tag_repository:
+            return [], []
+
+        ordered_unique: List[UUID] = []
+        seen: set[UUID] = set()
+        for tag_id in incoming_tag_ids:
+            if tag_id in seen:
+                continue
+            ordered_unique.append(tag_id)
+            seen.add(tag_id)
+
+        try:
+            for tag_id in ordered_unique:
+                await self.tag_repository.associate_tag_with_entity(
+                    tag_id,
+                    EntityType.BOOKSHELF,
+                    bookshelf.id,
+                )
+        except (TagNotFoundError, TagOperationError) as exc:
+            raise BookshelfTagSyncError(
+                bookshelf_id=str(bookshelf.id),
+                reason=str(exc),
+            ) from exc
+
+        final_tags = await self.tag_repository.find_by_entity(
+            EntityType.BOOKSHELF,
+            bookshelf.id,
+        )
+        lookup = {tag.id: tag.name for tag in final_tags}
+        final_ids = [tag_id for tag_id in ordered_unique if tag_id in lookup]
+        final_names = [lookup[tag_id] for tag_id in final_ids]
+        return final_ids, final_names
+

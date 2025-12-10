@@ -215,9 +215,9 @@ export async function uploadImage(file: File, noteId: string): Promise<{ url: st
   // 所以需要转换为完整的 URL（不加 ORBIT_BASE 前缀）
   if (response.url) {
     if (!response.url.startsWith('http')) {
-      // 直接使用这个相对路径，浏览器会访问 http://localhost:8000/uploads/{noteId}/{filename}
+      // 直接使用这个相对路径，浏览器会访问 http://localhost:18080/uploads/{noteId}/{filename}
       // 确保添加服务器地址前缀，使其成为绝对 URL
-      const origin = window.location.origin.replace(':3000', ':8000'); // 从前端地址改为后端地址
+      const origin = window.location.origin.replace(':3000', ':18080'); // 从前端地址改为后端地址
       response.url = `${origin}${response.url}`;
     }
   }
@@ -397,7 +397,7 @@ export async function uploadTempImage(file: File): Promise<{ url: string; temp_i
   // 转换临时 URL 为完整 URL
   if (response.url) {
     if (!response.url.startsWith('http')) {
-      const origin = window.location.origin.replace(':3000', ':8000');
+      const origin = window.location.origin.replace(':3000', ':18080');
       response.url = `${origin}${response.url}`;
     }
   }
@@ -431,14 +431,14 @@ export async function finalizeTemporaryImages(
     for (const [tempUrl, finalUrl] of Object.entries(response.finalized)) {
       let finalUrlAbs = finalUrl;
       if (!finalUrl.startsWith('http')) {
-        const origin = window.location.origin.replace(':3000', ':8000');
+        const origin = window.location.origin.replace(':3000', ':18080');
         finalUrlAbs = `${origin}${finalUrl}`;
       }
 
       // 恢复原始 tempUrl 的完整形式
       let tempUrlAbs = tempUrl;
       if (!tempUrl.startsWith('http')) {
-        const origin = window.location.origin.replace(':3000', ':8000');
+        const origin = window.location.origin.replace(':3000', ':18080');
         tempUrlAbs = `${origin}${tempUrl}`;
       }
 

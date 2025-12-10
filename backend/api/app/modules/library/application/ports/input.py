@@ -19,9 +19,9 @@ Cross-Reference:
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict, List
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -45,6 +45,8 @@ class CreateLibraryRequest:
     """
     user_id: UUID
     name: str
+    description: Optional[str] = None
+    theme_color: Optional[str] = None
 
 
 @dataclass
@@ -65,8 +67,16 @@ class CreateLibraryResponse:
     library_id: UUID
     user_id: UUID
     name: str
+    description: Optional[str]
+    theme_color: Optional[str]
     basement_bookshelf_id: UUID
     created_at: datetime
+    last_activity_at: datetime
+    pinned: bool
+    pinned_order: Optional[int]
+    archived_at: Optional[datetime]
+    views_count: int
+    last_viewed_at: Optional[datetime]
 
 
 class ICreateLibraryUseCase(ABC):
@@ -136,6 +146,8 @@ class GetLibraryResponse:
     - library_id: UUID of the library
     - user_id: UUID of the owner
     - name: Name of the library
+    - description: Optional description string
+    - cover_media_id: Optional primary cover Media UUID
     - basement_bookshelf_id: UUID of auto-created basement
     - created_at: Creation timestamp
     - updated_at: Last update timestamp
@@ -144,10 +156,19 @@ class GetLibraryResponse:
     library_id: UUID
     user_id: UUID
     name: str
+    description: Optional[str]
+    cover_media_id: Optional[UUID]
     basement_bookshelf_id: Optional[UUID]
     created_at: datetime
     updated_at: datetime
     is_deleted: bool
+    pinned: bool
+    pinned_order: Optional[int]
+    archived_at: Optional[datetime]
+    last_activity_at: datetime
+    views_count: int
+    last_viewed_at: Optional[datetime]
+    theme_color: Optional[str]
 
 
 class IGetLibraryUseCase(ABC):
@@ -183,6 +204,47 @@ class IGetLibraryUseCase(ABC):
             ResourceNotFoundError: If library not found
             ValueError: If request parameters are invalid
         """
+        pass
+
+
+# ============================================================================
+# Input Port: RecordLibraryViewUseCase (NEW)
+# ============================================================================
+
+
+@dataclass
+class RecordLibraryViewRequest:
+    """Record a library view (increments counter + last viewed timestamp)."""
+
+    library_id: UUID
+
+
+@dataclass
+class RecordLibraryViewResponse:
+    """Response payload after recording a view."""
+
+    library_id: UUID
+    user_id: UUID
+    name: str
+    description: Optional[str]
+    cover_media_id: Optional[UUID]
+    basement_bookshelf_id: Optional[UUID]
+    created_at: datetime
+    updated_at: datetime
+    pinned: bool
+    pinned_order: Optional[int]
+    archived_at: Optional[datetime]
+    last_activity_at: datetime
+    views_count: int
+    last_viewed_at: Optional[datetime]
+    theme_color: Optional[str]
+
+
+class IRecordLibraryViewUseCase(ABC):
+    """Input Port: increment library view counter."""
+
+    @abstractmethod
+    async def execute(self, request: RecordLibraryViewRequest) -> RecordLibraryViewResponse:
         pass
 
 
@@ -527,6 +589,55 @@ class IListBasementBooksUseCase(ABC):
         pass
 
 
+
+# ============================================================================
+# Input Port: Library Tag operations (Plan_31)
+# ============================================================================
+
+
+@dataclass
+class LibraryTagChipDTO:
+    """Lightweight tag info shared across layers."""
+
+    id: UUID
+    name: str
+    color: str
+    description: Optional[str] = None
+
+
+@dataclass
+class ListLibraryTagsRequest:
+    library_ids: List[UUID]
+    limit_per_library: int = 3
+    include_tag_ids: bool = False
+
+
+@dataclass
+class ListLibraryTagsResponse:
+    tag_map: Dict[UUID, List[LibraryTagChipDTO]] = field(default_factory=dict)
+    tag_totals: Dict[UUID, int] = field(default_factory=dict)
+    tag_id_map: Dict[UUID, List[UUID]] = field(default_factory=dict)
+
+
+class IListLibraryTagsUseCase(ABC):
+    @abstractmethod
+    async def execute(self, request: ListLibraryTagsRequest) -> ListLibraryTagsResponse:
+        pass
+
+
+@dataclass
+class ReplaceLibraryTagsRequest:
+    library_id: UUID
+    tag_ids: List[UUID] = field(default_factory=list)
+    actor_id: Optional[UUID] = None
+
+
+class IReplaceLibraryTagsUseCase(ABC):
+    @abstractmethod
+    async def execute(self, request: ReplaceLibraryTagsRequest) -> None:
+        pass
+
+
 # ============================================================================
 # Module Exports
 # ============================================================================
@@ -540,6 +651,10 @@ __all__ = [
     "GetLibraryRequest",
     "GetLibraryResponse",
     "IGetLibraryUseCase",
+    # RecordLibraryView
+    "RecordLibraryViewRequest",
+    "RecordLibraryViewResponse",
+    "IRecordLibraryViewUseCase",
     # DeleteLibrary
     "DeleteLibraryRequest",
     "IDeleteLibraryUseCase",
@@ -557,4 +672,11 @@ __all__ = [
     "ListBasementBooksRequest",
     "ListBasementBooksResponse",
     "IListBasementBooksUseCase",
+    # Library Tags
+    "LibraryTagChipDTO",
+    "ListLibraryTagsRequest",
+    "ListLibraryTagsResponse",
+    "IListLibraryTagsUseCase",
+    "ReplaceLibraryTagsRequest",
+    "IReplaceLibraryTagsUseCase",
 ]

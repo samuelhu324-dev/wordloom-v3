@@ -1,1 +1,0 @@
-export { BlockMainWidget } from './BlockMainWidget';

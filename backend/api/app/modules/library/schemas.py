@@ -31,6 +31,53 @@ class LibraryStatus(str, Enum):
     DELETED = "deleted"
 
 
+class LibraryTagSummary(BaseModel):
+    """Lightweight tag payload for Library cards (Plan_31 Option A chips)."""
+
+    id: UUID = Field(..., description="Tag ID")
+    name: str = Field(..., description="Tag label shown on chip")
+    color: str = Field(
+        "#F3F4F6",
+        description="Hex color; Option A uses low-saturation greys by default",
+    )
+    description: Optional[str] = Field(
+        None,
+        description="Tooltip/message sourced from Tag 管理里的“描述”字段",
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "550e8400-e29b-41d4-a716-446655440000",
+                "name": "翻译实验室",
+                "color": "#F3F4F6",
+                "description": "Specific for software development.",
+            }
+        }
+    )
+
+
+class LibraryTagsUpdate(BaseModel):
+    """Request payload for replacing Library tags via API."""
+
+    tag_ids: List[UUID] = Field(
+        default_factory=list,
+        description="完整的标签 ID 列表；若为空表示清空所有标签",
+    )
+
+
+class LibraryTagsResponse(BaseModel):
+    """Response payload describing a Library's tags."""
+
+    library_id: UUID = Field(..., description="Library ID")
+    tag_ids: List[UUID] = Field(default_factory=list, description="全部标签 ID")
+    tags: List[LibraryTagSummary] = Field(
+        default_factory=list,
+        description="Option A 限制下展示的标签 chips",
+    )
+    tag_total_count: int = Field(0, ge=0, description="总标签数量")
+
+
 # ============================================
 # Request Schemas (API Input)
 # ============================================
@@ -48,6 +95,15 @@ class LibraryCreate(BaseModel):
         description="Library name (uniqueness enforced per user)",
         examples=["My Personal Knowledge Base", "工作笔记库"],
     )
+    description: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Optional library description (≤500 chars)",
+    )
+    theme_color: Optional[str] = Field(
+        None,
+        description="Explicit theme color hex value (e.g. #1a9bd7)",
+    )
 
     @field_validator("name", mode="before")
     @classmethod
@@ -58,6 +114,11 @@ class LibraryCreate(BaseModel):
             if not v:
                 raise ValueError("Library name cannot be empty or whitespace only")
         return v
+
+    @field_validator("theme_color", mode="before")
+    @classmethod
+    def normalize_theme_color(cls, v: Optional[str]) -> Optional[str]:
+        return _normalize_theme_color(v)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -79,6 +140,32 @@ class LibraryUpdate(BaseModel):
         max_length=255,
         description="New Library name (optional)",
     )
+    description: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Updated description (send empty string to clear)",
+    )
+    cover_media_id: Optional[UUID] = Field(
+        None,
+        description="Associated cover media ID (optional)",
+    )
+    pinned: Optional[bool] = Field(
+        None,
+        description="Whether the library is pinned to the top segment",
+    )
+    pinned_order: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Ordering index inside pinned segment (lower = higher)",
+    )
+    archived: Optional[bool] = Field(
+        None,
+        description="Archive toggle. True → archive, False → restore.",
+    )
+    theme_color: Optional[str] = Field(
+        None,
+        description="Explicit theme color hex value; send null to clear",
+    )
 
     @field_validator("name", mode="before")
     @classmethod
@@ -89,6 +176,11 @@ class LibraryUpdate(BaseModel):
             if not v:
                 raise ValueError("Library name cannot be empty or whitespace only")
         return v
+
+    @field_validator("theme_color", mode="before")
+    @classmethod
+    def normalize_theme_color(cls, v: Optional[str]) -> Optional[str]:
+        return _normalize_theme_color(v)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -111,6 +203,28 @@ class LibraryResponse(BaseModel):
     id: UUID = Field(..., description="Library global unique ID")
     user_id: UUID = Field(..., description="Owner User ID (1:1 relationship per RULE-001)")
     name: str = Field(..., description="Library name")
+    description: Optional[str] = Field(None, description="Library description (optional)")
+    cover_media_id: Optional[UUID] = Field(None, description="Cover media UUID (if set)")
+    theme_color: Optional[str] = Field(None, description="Explicit theme color hex value (#rrggbb)")
+    pinned: bool = Field(False, description="Pinned to top segment")
+    pinned_order: Optional[int] = Field(None, description="Pinned ordering index")
+    archived_at: Optional[datetime] = Field(None, description="Timestamp when archived")
+    last_activity_at: datetime = Field(..., description="Last activity timestamp driving default sort")
+    views_count: int = Field(0, description="Total library views")
+    last_viewed_at: Optional[datetime] = Field(None, description="Most recent view timestamp")
+    tags: List[LibraryTagSummary] = Field(
+        default_factory=list,
+        description="Plan_31 Option A tag chips (最多展示 3 个；超出由客户端 +N 显示)",
+    )
+    tag_total_count: int = Field(
+        0,
+        ge=0,
+        description="Total tags linked to this library (Option A +N tooltip)",
+    )
+    basement_bookshelf_id: Optional[UUID] = Field(
+        None,
+        description="Basement Bookshelf ID (RULE-010 recycle bin)",
+    )
     created_at: datetime = Field(..., description="Creation time (ISO 8601)")
     updated_at: datetime = Field(..., description="Last modification time (ISO 8601)")
 
@@ -124,6 +238,7 @@ class LibraryResponse(BaseModel):
                 "id": "550e8400-e29b-41d4-a716-446655440000",
                 "user_id": "650e8400-e29b-41d4-a716-446655440000",
                 "name": "My Personal Library",
+                "basement_bookshelf_id": "750e8400-e29b-41d4-a716-446655440000",
                 "created_at": "2025-01-15T10:30:00+00:00",
                 "updated_at": "2025-01-15T10:30:00+00:00",
             }
@@ -132,31 +247,19 @@ class LibraryResponse(BaseModel):
 
 
 class LibraryDetailResponse(LibraryResponse):
-    """Detailed Library response (includes metadata and statistics)
-
-    RULE-010: Includes basement_bookshelf_id (special Bookshelf for deleted items)
-    """
+    """Detailed Library response (includes metadata and statistics)"""
     # Statistics (calculated from Service layer)
     bookshelf_count: int = Field(
         0,
         description="Count of direct Bookshelves (excluding Basement per RULE-010)",
         ge=0,
     )
-    basement_bookshelf_id: Optional[UUID] = Field(
-        None,
-        description="Basement Bookshelf ID (RULE-010: soft-deleted items container)",
-    )
-
     # Extended info
     status: LibraryStatus = Field(
         LibraryStatus.ACTIVE,
         description="Library status",
     )
-    description: Optional[str] = Field(
-        None,
-        max_length=500,
-        description="Library description (optional)",
-    )
+    # description & cover_media_id inherited from LibraryResponse
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -256,6 +359,33 @@ class LibraryDTO(BaseModel):
         data = self.model_dump()
         data["bookshelf_count"] = bookshelf_count
         return LibraryDetailResponse(**data)
+
+
+def _normalize_theme_color(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError("Theme color must be a string")
+    trimmed = value.strip()
+    if not trimmed:
+        return None
+    if not trimmed.startswith('#'):
+        trimmed = f'#' + trimmed
+    hex_part = trimmed[1:]
+    if len(hex_part) == 3:
+        if not _is_hex(hex_part):
+            raise ValueError("Theme color must be hex digits (e.g. #abc or #aabbcc)")
+        hex_part = ''.join(ch * 2 for ch in hex_part)
+    elif len(hex_part) == 6:
+        if not _is_hex(hex_part):
+            raise ValueError("Theme color must be hex digits (e.g. #abc or #aabbcc)")
+    else:
+        raise ValueError("Theme color must be 3 or 6 hex digits")
+    return f"#{hex_part.lower()}"
+
+
+def _is_hex(value: str) -> bool:
+    return all(ch in "0123456789abcdefABCDEF" for ch in value)
 
 
 # ============================================

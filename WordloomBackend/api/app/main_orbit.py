@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -18,14 +19,23 @@ from app.routers.orbit import media as orbit_media
 app = FastAPI(title="Wordloom Orbit API")
 api = APIRouter(prefix="/api")
 
+DEFAULT_CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:30001",
+    "http://127.0.0.1:30001",
+    "http://localhost:30002",
+    "http://127.0.0.1:30002",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
+cors_origins_env = os.getenv("CORS_ORIGINS")
+allow_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()] if cors_origins_env else DEFAULT_CORS_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-    ],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

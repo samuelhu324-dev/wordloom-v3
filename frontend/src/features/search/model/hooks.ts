@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { search, getSearchResult } from './api';
+import { searchGlobal, searchBlocks, search, getSearchResult, searchBooks } from './api';
 import { SearchRequest } from '@/entities/search';
 
 const QUERY_KEY = {
@@ -28,5 +28,44 @@ export const useSearchResult = (libraryId: string, resultId: string) => {
 export const usePerformSearch = (libraryId: string) => {
   return useMutation({
     mutationFn: (request: SearchRequest) => search(libraryId, request),
+  });
+};
+
+// Global search (multi-entity scope)
+export const useGlobalSearch = (q: string, limit = 20, offset = 0) => {
+  return useQuery({
+    queryKey: ['search','global',{ q, limit, offset }],
+    queryFn: () => searchGlobal(q, limit, offset),
+    enabled: q.length > 0,
+    placeholderData: (previous) => previous,
+  });
+};
+
+// Block-level (book scoped) search
+export const useBlockSearch = (q: string, bookId?: string, limit = 20, offset = 0) => {
+  return useQuery({
+    queryKey: ['search','blocks',{ q, bookId, limit, offset }],
+    queryFn: () => searchBlocks(q, bookId, limit, offset),
+    enabled: q.length > 0,
+    placeholderData: (previous) => previous,
+  });
+};
+
+export const useBookSearch = (
+  params: {
+    text: string;
+    bookshelfId?: string;
+    limit?: number;
+    offset?: number;
+    enabled?: boolean;
+  },
+) => {
+  const { text, enabled = true, ...rest } = params;
+  return useQuery({
+    queryKey: ['search','books',{ text, ...rest }],
+    queryFn: () => searchBooks({ text, ...rest }),
+    enabled: enabled && text.trim().length >= 3,
+    staleTime: 1000 * 30,
+    placeholderData: (previous) => previous,
   });
 };

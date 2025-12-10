@@ -5,9 +5,12 @@ Book Input Ports - UseCase Interfaces
 """
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import List, Optional, Tuple
 from uuid import UUID
 from dataclasses import dataclass
+
+from ..models.maturity import BookMaturityMutationResult
 
 
 # ============================================================================
@@ -21,6 +24,7 @@ class CreateBookRequest:
     library_id: UUID
     title: str
     summary: Optional[str] = None
+    cover_icon: Optional[str] = None
 
 
 @dataclass
@@ -45,9 +49,15 @@ class UpdateBookRequest:
     book_id: Optional[UUID] = None
     title: Optional[str] = None
     summary: Optional[str] = None
+    maturity: Optional[str] = None
     status: Optional[str] = None
     is_pinned: Optional[bool] = None
     due_at: Optional[str] = None
+    tag_ids: Optional[List[UUID]] = None
+    cover_icon: Optional[str] = None
+    cover_icon_provided: bool = False
+    cover_media_id: Optional[UUID] = None
+    cover_media_id_provided: bool = False
 
 
 @dataclass
@@ -91,67 +101,57 @@ class MoveBookRequest:
     reason: Optional[str] = None
 
 
-# ============================================================================
-# Output DTOs (Response Models)
-# ============================================================================
-
 @dataclass
-class BookResponse:
-    """Book 的响应 DTO"""
-    id: UUID
-    bookshelf_id: UUID
-    library_id: UUID
-    title: str
-    summary: Optional[str]
-    status: str
-    block_count: int
-    is_pinned: bool
-    due_at: Optional[str]
-    created_at: str
-    updated_at: str
-    soft_deleted_at: Optional[str]
+class RecalculateBookMaturityRequest:
+    """自动触发成熟度重算的请求"""
 
-    @classmethod
-    def from_domain(cls, book) -> "BookResponse":
-        """从域对象转换"""
-        return cls(
-            id=book.id,
-            bookshelf_id=book.bookshelf_id,
-            library_id=book.library_id,
-            title=book.title.value if hasattr(book.title, 'value') else book.title,
-            summary=book.summary.value if hasattr(book.summary, 'value') else book.summary,
-            status=book.status.value if hasattr(book.status, 'value') else book.status,
-            block_count=book.block_count or 0,
-            is_pinned=book.is_pinned,
-            due_at=book.due_at.isoformat() if book.due_at else None,
-            created_at=book.created_at.isoformat() if book.created_at else None,
-            updated_at=book.updated_at.isoformat() if book.updated_at else None,
-            soft_deleted_at=book.soft_deleted_at.isoformat() if book.soft_deleted_at else None
-        )
-
-    def to_dict(self):
-        """转换为字典"""
-        return {
-            "id": str(self.id),
-            "bookshelf_id": str(self.bookshelf_id),
-            "library_id": str(self.library_id),
-            "title": self.title,
-            "summary": self.summary,
-            "status": self.status,
-            "block_count": self.block_count,
-            "is_pinned": self.is_pinned,
-            "due_at": self.due_at,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at,
-            "soft_deleted_at": self.soft_deleted_at,
-        }
+    book_id: UUID
+    tag_count: Optional[int] = None
+    block_type_count: Optional[int] = None
+    block_count: Optional[int] = None
+    open_todo_count: Optional[int] = None
+    operations_bonus: Optional[int] = None
+    cover_icon: Optional[str] = None
+    trigger: str = "recalculate"
+    actor_id: Optional[UUID] = None
 
 
 @dataclass
-class BookListResponse:
-    """Book 列表响应 DTO"""
-    items: List[BookResponse]
-    total: int
+class UpdateBookMaturityRequest:
+    """手动调整 Book 成熟度的请求"""
+
+    book_id: UUID
+    target_maturity: str
+    override_reason: Optional[str] = None
+    force: bool = False
+    trigger: str = "manual_override"
+    actor_id: Optional[UUID] = None
+    open_todo_count: Optional[int] = None
+    maturity_score: Optional[int] = None
+    tag_count: Optional[int] = None
+    block_type_count: Optional[int] = None
+    block_count: Optional[int] = None
+    operations_bonus: Optional[int] = None
+    cover_icon: Optional[str] = None
+    visit_count_90d: Optional[int] = None
+    last_content_edit_at: Optional[datetime] = None
+    last_visited_at: Optional[datetime] = None
+    is_pinned: Optional[bool] = None
+
+
+# ============================================================================
+# Output DTOs (Response Models) - Unified to Pydantic schemas
+# ============================================================================
+
+# 统一：使用 schemas.py 中的 Pydantic 模型，避免 dataclass 与 Pydantic 双轨造成的序列化分裂。
+# ListBooks 用例采用 BookPaginatedResponse；单 Book 用例采用 BookDetailResponse。
+
+from api.app.modules.book.schemas import (
+    BookDetailResponse as BookResponse,
+    BookPaginatedResponse as BookListPaginatedResponse,
+    # Backward compatibility alias: legacy name BookListResponse still imported by other modules
+    BookPaginatedResponse as BookListResponse,
+)
 
 
 # ============================================================================
@@ -168,11 +168,11 @@ class CreateBookUseCase(ABC):
 
 
 class ListBooksUseCase(ABC):
-    """列出 Book 的 UseCase 接口"""
+    """列出 Book 的 UseCase 接口 (统一返回分页 Pydantic 模型)"""
 
     @abstractmethod
-    async def execute(self, request: ListBooksRequest) -> BookListResponse:
-        """执行列出 Book"""
+    async def execute(self, request: ListBooksRequest) -> BookListPaginatedResponse:
+        """执行列出 Book (返回 BookPaginatedResponse)"""
         pass
 
 
@@ -227,4 +227,22 @@ class MoveBookUseCase(ABC):
     @abstractmethod
     async def execute(self, request: MoveBookRequest) -> BookResponse:
         """执行转移 Book 到另一个 Bookshelf"""
+        pass
+
+
+class RecalculateBookMaturityUseCase(ABC):
+    """自动重算成熟度的 UseCase 接口"""
+
+    @abstractmethod
+    async def execute(self, request: RecalculateBookMaturityRequest) -> BookMaturityMutationResult:
+        """执行成熟度得分重算"""
+        pass
+
+
+class UpdateBookMaturityUseCase(ABC):
+    """手动覆盖成熟度的 UseCase 接口"""
+
+    @abstractmethod
+    async def execute(self, request: UpdateBookMaturityRequest) -> BookMaturityMutationResult:
+        """执行成熟度覆盖或 Legacy 切换"""
         pass
