@@ -1,0 +1,133 @@
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.regular {
+  --chip-font-size: 0.78rem;
+  --chip-padding-y: 2px;
+  --chip-padding-x: 10px;
+}
+
+.compact {
+  --chip-font-size: 0.7rem;
+  --chip-padding-y: 1px;
+  --chip-padding-x: 8px;
+  width: fit-content;
+  max-width: 220px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--chip-padding-y, 2px) var(--chip-padding-x, 10px);
+  border-radius: 999px;
+  border: 1px solid #dfe2e8;
+  background: #f5f6f8;
+  color: #6b7280;
+  font-size: var(--chip-font-size, 0.78rem);
+  line-height: 1.3;
+  font-weight: 500;
+  position: relative;
+}
+
+.swatch {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d1d5db;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.75);
+  display: none;
+}
+
+.label {
+  white-space: nowrap;
+}
+
+.placeholder {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #9ca3af);
+}
+
+.extraChip {
+  border-style: dashed;
+  font-weight: 600;
+  color: #374151;
+  background: #fff;
+}
+
+.chip[data-tooltip]::after,
+.chip[data-tooltip]::before {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, 6px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.chip[data-tooltip]::after {
+  content: attr(data-tooltip);
+  bottom: calc(100% + 10px);
+  background: rgba(17, 24, 39, 0.92);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  display: inline-block;
+  min-width: 0;
+  max-width: 360px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+  z-index: 5;
+}
+
+.chip[data-tooltip]::before {
+  content: '';
+  bottom: calc(100% + 4px);
+  border-width: 6px;
+  border-style: solid;
+  border-color: rgba(17, 24, 39, 0.92) transparent transparent transparent;
+  z-index: 5;
+}
+
+.chip[data-tooltip]:hover::after,
+.chip[data-tooltip]:hover::before,
+.chip[data-tooltip]:focus-visible::after,
+.chip[data-tooltip]:focus-visible::before {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--color-primary, #2e5e92);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip[data-tooltip]::after,
+  .chip[data-tooltip]::before {
+    transition: none;
+  }
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

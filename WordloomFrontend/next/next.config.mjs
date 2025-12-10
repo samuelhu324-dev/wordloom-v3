@@ -1,30 +1,48 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  images: { unoptimized: true },
-
-  // ✅ 新写法：通过 eslint/next ignorePatterns 忽略系统目录
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
+  images: {
+    remotePatterns: [
+      { protocol: 'http', hostname: 'localhost', port: '18080', pathname: '/uploads/**' },
+      { protocol: 'http', hostname: 'localhost', port: '18080', pathname: '/media/**' },
+    ],
   },
 
-  // ✅ 通知 Next 不要递归监听整个盘符，只看项目目录
+  async rewrites() {
+    return {
+      beforeFiles: [
+        // Orbit 图片 - 直接转发到后端的 /uploads
+        {
+          source: "/uploads/:path*",
+          destination: "http://localhost:18080/uploads/:path*",
+        },
+        // Orbit API
+        {
+          source: "/api/orbit/:path*",
+          destination: "http://localhost:18080/api/orbit/:path*",
+        },
+        // Loom API
+        {
+          source: "/api/loom/:path*",
+          destination: "http://localhost:8013/api/common/:path*",
+        },
+      ],
+    };
+  },
+
   experimental: {
-    turbo: {
-      rules: {
-        "*.ts": { loaders: ["ts-loader"], as: "*.js" },
-      },
-    },
+    esmExternals: true,
   },
 
-  // ✅ 额外安全：别扫描这些路径（Windows 保护目录）
-  onDemandEntries: {
-    // 这个钩子 Next 官方支持
-    maxInactiveAge: 1000 * 60 * 60,
-    pagesBufferLength: 2,
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+      };
+    }
+    return config;
   },
 };
 

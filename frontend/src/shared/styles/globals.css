@@ -1,0 +1,22 @@
+/* ============ Global Imports ============ */
+@import './tokens.css';
+@import './button.css';
+@import './card.css';
+@import './input.css';
+@import './spinner.css';
+@import './modal.css';
+
+/* ============ Page Defaults ============ */
+html {
+  scrollbar-gutter: stable both-edges;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
+main {
+  min-height: 100vh;
+  padding: var(--spacing-lg);
+}

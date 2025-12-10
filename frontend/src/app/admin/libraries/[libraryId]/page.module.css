@@ -1,0 +1,135 @@
+.page {
+  min-height: 100vh;
+  background: var(--color-bg-app);
+  padding: var(--spacing-2xl) 0 var(--spacing-3xl);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-2xl);
+}
+
+.header {
+  margin-top: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--spacing-2xl);
+}
+
+.titleBlock {
+  flex: 1;
+  min-width: 0;
+}
+
+.header h1 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--color-text-primary);
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.description {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.description[data-empty='true'] {
+  color: var(--color-text-tertiary);
+}
+
+.loadingHint {
+  display: inline-flex;
+  align-items: center;
+  margin-top: var(--spacing-sm);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-bg-muted);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.errorBanner {
+  margin-bottom: var(--spacing-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: 8px;
+  background: rgba(220, 38, 38, 0.1);
+  color: var(--color-danger-strong, #991b1b);
+}
+
+.summarySection {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.summaryCard,
+.summaryBadge {
+  border-radius: 12px;
+  padding: var(--spacing-lg);
+  background: var(--color-bg-secondary);
+  box-shadow: 0 12px 40px rgba(3, 7, 18, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summaryValue {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.summaryLabel,
+.badgeLabel {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.badgeValue {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.progressNotice {
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 149, 0, 0.18), rgba(255, 71, 26, 0.18));
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.progressTrack {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+  overflow: hidden;
+}
+
+.progressValue {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f59e0b 0%, #dc2626 100%);
+}
+
+.progressLabel {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}

@@ -1,0 +1,80 @@
+.panel {
+	border: 1px solid #e5e7eb;
+	padding: var(--wl-blocklist-panel-padding, calc(var(--wl-space-4, 12px) + var(--wl-space-3, 8px)));
+	border-radius: 8px;
+	background: #fdfdfd;
+	margin-top: var(--wl-space-5, 16px);
+
+	/* local Plan152 ladder (fallback when parent scope lacks tokens) */
+	--wl-space-0: 0px;
+	--wl-space-1: 2px;
+	--wl-space-2: 4px;
+	--wl-space-3: 8px;
+	--wl-space-4: 12px;
+	--wl-space-5: 16px;
+	--wl-space-6: 20px;
+	--wl-space-2-5: calc(var(--wl-space-2) + var(--wl-space-1));
+	--wl-space-3-5: calc(var(--wl-space-3) + var(--wl-space-1));
+}
+
+.title {
+	margin: 0 0 var(--wl-space-3, 8px);
+	font-size: 14px;
+}
+
+.empty {
+	font-size: 12px;
+	color: #6b7280;
+}
+
+.list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--wl-space-2, 4px);
+}
+
+.item {
+	background: #fff;
+	border: 1px solid #e5e7eb;
+	border-radius: 4px;
+	padding: var(--wl-space-2-5, 6px) var(--wl-space-3, 8px);
+}
+
+.row {
+	display: flex;
+	align-items: center;
+	gap: var(--wl-space-3, 8px);
+}
+
+.type {
+	font-size: 11px;
+	padding: var(--wl-blocklist-pill-padding-y, var(--wl-space-1, 2px))
+		var(--wl-blocklist-pill-padding-x, var(--wl-space-2-5, 6px));
+	background: #eef2ff;
+	border-radius: 4px;
+	color: #4338ca;
+}
+
+.preview {
+	flex: 1;
+	font-size: 12px;
+	color: #374151;
+}
+
+.restoreBtn {
+	font-size: 12px;
+	padding: var(--wl-space-2, 4px) var(--wl-space-3, 8px);
+	background: #10b981;
+	color: #fff;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.restoreBtn:disabled {
+	background: #6ee7b7;
+	cursor: not-allowed;
+}

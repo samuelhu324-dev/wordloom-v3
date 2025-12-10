@@ -1,99 +1,71 @@
-# app/main.py (assets mount v2 - SAFE TWEAKS ONLY)
-from pathlib import Path
+﻿from __future__ import annotations
 import os
-import logging
-
-from dotenv import load_dotenv
-load_dotenv(dotenv_path=Path(__file__).resolve().parents[1] / ".env")
-
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.openapi.utils import get_openapi
-from fastapi.staticfiles import StaticFiles
+from urllib.parse import urlparse
+from sqlalchemy import text
 
-from .database import engine
-from .models import Base
-from .routers import auth, entries, sources
+from app.database import SessionLocal
 
-Base.metadata.create_all(bind=engine)
+app = FastAPI(title="Wordloom Loom API")
 
-def read_version():
-    here = Path(__file__).resolve()
-    backend_ver = here.parents[1] / "VERSION"
-    root_ver    = here.parents[3] / "VERSION"   # 仓库根（.../Wordloom）
-    vf = backend_ver if backend_ver.exists() else root_ver
-    try:
-        return vf.read_text(encoding="utf-8").strip()
-    except Exception:
-        return "unknown"
+DEFAULT_CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:30001",
+    "http://127.0.0.1:30001",
+    "http://localhost:30002",
+    "http://127.0.0.1:30002",
+]
 
-app = FastAPI(title="Wordloom API", version=read_version())
-
-# ---------- CORS：默认允许本地前端，支持环境变量覆盖（无破坏） ----------
-_default_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
-_env_origins = os.getenv("CORS_ORIGINS", "").strip()
-if _env_origins:
-    allow_origins = [o.strip() for o in _env_origins.split(",") if o.strip()]
-else:
-    allow_origins = _default_origins
-
+origins_env = os.getenv("CORS_ORIGINS")
+origins = [o.strip() for o in origins_env.split(",") if o.strip()] if origins_env else DEFAULT_CORS_ORIGINS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allow_origins,
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-logging.getLogger("uvicorn.error").info(f"[CORS] allow_origins = {allow_origins}")
+# ✅ 统一挂载到 /api/common 前缀下
+api = APIRouter(prefix="/api/common")
 
-# 路由保持不变
-app.include_router(auth.router)
-app.include_router(entries.router)
-app.include_router(sources.router)
+from app.routers.loom import entries as loom_entries, sources as loom_sources, auth as loom_auth
 
-# ---------- 静态挂载：/assets -> <repo root>/assets（无破坏） ----------
-ROOT_DIR = Path(__file__).resolve().parents[3]
-ASSETS_DIR = ROOT_DIR / "assets"
-if ASSETS_DIR.exists():
-    app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR), html=False), name="assets")
-    logging.getLogger(__name__).info(f"[STATIC] /assets -> {ASSETS_DIR}")
-else:
-    logging.getLogger(__name__).warning(f"[STATIC] assets directory not found: {ASSETS_DIR}")
+# ✅ 挂载子路由（它们自己已有 /entries、/sources 前缀）
+api.include_router(loom_entries.router, tags=["Loom-Entries"])
+api.include_router(loom_sources.router, tags=["Loom-Sources"])
+api.include_router(loom_auth.router, tags=["Loom-Auth"])
 
-@app.get("/healthz")
-def healthz():
-    return {"ok": True}
+# ✅ 调试路由（保留）
+@app.get("/debug/routes")
+def debug_routes():
+    return [{"path": r.path, "name": r.name, "methods": sorted(getattr(r, "methods", []))} for r in app.routes]
 
-@app.get("/version")
-def get_version():
-    return {"backend": read_version()}
+@app.get("/debug/dbinfo")
+def dbinfo():
+    info = {}
+    try:
+        with SessionLocal() as s:
+            db = s.execute(text("SELECT current_database()")).scalar()
+            sp = s.execute(text("SHOW search_path")).scalar()
+            exists = s.execute(text("SELECT to_regclass('public.entries') IS NOT NULL")).scalar()
+            info["current_database"] = db
+            info["search_path"] = sp
+            info["has_public_entries"] = bool(exists)
+    except Exception as e:
+        info["error"] = str(e)
+    eff = os.getenv("DATABASE_URL", "")
+    try:
+        u = urlparse(eff)
+        if u.scheme:
+            masked = f"{u.scheme}://{u.username or ''}:****@{u.hostname or ''}:{u.port or ''}{u.path or ''}"
+        else:
+            masked = eff
+    except Exception:
+        masked = eff
+    info["effective_DATABASE_URL"] = masked
+    return info
 
-def custom_openapi():
-    if app.openapi_schema:
-        return app.openapi_schema
-    openapi_schema = get_openapi(
-        title="Wordloom API",
-        version=read_version(),
-        description="Wordloom 后端接口文档",
-        routes=app.routes,
-    )
-    openapi_schema.setdefault("components", {}).setdefault("securitySchemes", {})["BearerAuth"] = {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-    }
-    for path in openapi_schema.get("paths", {}).values():
-        for method in path.values():
-            method.setdefault("security", [{"BearerAuth": []}])
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
-
-app.openapi = custom_openapi
-
-# 维持你原有的 repo 绑定（无破坏）
-from . import repo as _repo_module
-
-@app.on_event("startup")
-async def _bind_repo_to_state():
-    app.state.repo = _repo_module
+app.include_router(api)

@@ -1,0 +1,229 @@
+.bookshelfSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 24px;
+  --strip-bg-top: rgba(255, 255, 255, 0.98);
+  --strip-bg-mid: rgba(243, 244, 246, 0.95);
+  --strip-bg-bottom: rgba(229, 231, 235, 0.92);
+  --strip-outline: rgba(148, 163, 184, 0.35);
+  --strip-shadow: rgba(15, 23, 42, 0.12);
+  --board-top: #cbd5e1;
+  --board-bottom: #94a3b8;
+  --header-eyebrow: var(--color-text-tertiary);
+  --header-title: var(--color-text-primary);
+  --header-subtitle: var(--color-text-secondary);
+}
+
+.bookshelfHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.headerText {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.headerIcon {
+  font-size: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.04);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--header-eyebrow);
+}
+
+.headerCopy h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--header-title);
+}
+
+.headerCopy p {
+  margin: 4px 0 0 0;
+  font-size: 14px;
+  color: var(--header-subtitle);
+  max-width: 520px;
+}
+
+.headerEyebrow {
+  margin: 0 0 4px 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.45px;
+  color: var(--header-eyebrow);
+}
+
+.shelfStrip {
+  position: relative;
+  padding: 16px 18px 20px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+  overflow: visible;
+  border: none;
+}
+
+.shelfBoard {
+  display: none;
+}
+
+.shelfBooks {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  min-height: 150px;
+  padding-bottom: 10px;
+  justify-content: flex-start;
+  scroll-snap-type: x proximity;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  scroll-behavior: smooth;
+}
+
+.shelfBooks::-webkit-scrollbar {
+  height: 10px;
+}
+
+.shelfBooks::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+  border-radius: 999px;
+}
+
+.bookSlot {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.bookSlot[data-clickable="false"] {
+  cursor: default;
+}
+
+.bookSlot:focus-visible {
+  outline: 2px solid var(--color-accent-primary, #6366f1);
+  outline-offset: 8px;
+}
+
+.bookSlot:active {
+  transform: translateY(2px);
+}
+
+.bookSlot:nth-child(2n) :global(.bookTilted) {
+  transform: perspective(900px) rotateY(-16deg) rotateZ(0deg) translateY(-4px) scale(0.96);
+}
+
+.bookSlot:nth-child(3n) :global(.bookTilted) {
+  transform: perspective(900px) rotateY(-20deg) rotateZ(1deg) translateY(-2px) scale(0.96);
+}
+
+.bookSlot:nth-child(4n) :global(.bookTilted) {
+  transform: perspective(900px) rotateY(-14deg) rotateZ(-2deg) translateY(-3px) scale(0.96);
+}
+/* shelf note removed per Plan66 */
+
+
+.loadingState,
+.emptyState {
+  position: relative;
+  z-index: 1;
+  min-height: 180px;
+  border-radius: 18px;
+  border: 1px dashed rgba(148, 163, 184, 0.6);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  font-size: 14px;
+}
+
+.shelfStrip[data-empty="true"] {
+  background:
+    radial-gradient(circle at top, rgba(249, 250, 251, 0.95) 0%, rgba(241, 245, 249, 0.95) 45%, rgba(226, 232, 240, 0.9) 100%);
+}
+
+.shelfStrip[data-empty="true"] .shelfBoard {
+  opacity: 0.35;
+}
+
+.bookshelfSection[data-tone="seed"] {
+  --strip-outline: rgba(148, 163, 184, 0.35);
+  --strip-shadow: rgba(59, 130, 246, 0.1);
+  --header-eyebrow: rgba(59, 130, 246, 0.75);
+}
+
+.bookshelfSection[data-tone="growing"] {
+  --strip-bg-mid: rgba(236, 254, 255, 0.9);
+  --strip-bg-bottom: rgba(219, 243, 255, 0.92);
+  --strip-outline: rgba(59, 130, 246, 0.35);
+  --strip-shadow: rgba(59, 130, 246, 0.18);
+  --header-eyebrow: rgba(37, 99, 235, 0.8);
+}
+
+.bookshelfSection[data-tone="stable"] {
+  --strip-bg-mid: rgba(236, 253, 245, 0.92);
+  --strip-bg-bottom: rgba(209, 250, 229, 0.95);
+  --strip-outline: rgba(34, 197, 94, 0.35);
+  --strip-shadow: rgba(34, 197, 94, 0.18);
+  --board-top: #a7f3d0;
+  --board-bottom: #34d399;
+  --header-eyebrow: rgba(16, 185, 129, 0.85);
+}
+
+.bookshelfSection[data-tone="legacy"] {
+  --strip-bg-mid: rgba(243, 244, 246, 0.9);
+  --strip-bg-bottom: rgba(229, 231, 235, 0.92);
+  --strip-outline: rgba(107, 114, 128, 0.4);
+  --strip-shadow: rgba(71, 85, 105, 0.18);
+  --board-top: #e5e7eb;
+  --board-bottom: #9ca3af;
+  --header-eyebrow: rgba(107, 114, 128, 0.9);
+  --header-title: rgba(55, 65, 81, 0.85);
+  --header-subtitle: rgba(107, 114, 128, 0.85);
+}
+
+.bookshelfSection[data-tone="legacy"] .bookSlot {
+  opacity: 0.92;
+}
+
+@media (max-width: 1024px) {
+  .shelfStrip {
+    padding: 24px 20px 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .bookshelfSection {
+    margin-top: 16px;
+  }
+
+  .shelfStrip {
+    padding: 22px 18px 36px;
+    border-radius: 22px;
+  }
+
+  .shelfBoard {
+    left: 18px;
+    right: 18px;
+  }
+
+  .shelfBooks {
+    gap: 18px;
+  }
+}

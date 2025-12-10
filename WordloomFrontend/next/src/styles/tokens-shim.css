@@ -1,0 +1,77 @@
+.surface-sticky {
+  /* mimic Tailwind's bg-white/80 + backdrop blur */
+  background: color-mix(in oklab, var(--card) 80%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+.bg-card { background: var(--card) !important; }
+.text-foreground { color: var(--foreground) !important; }
+.text-muted { color: var(--muted) !important; }
+.border-card { border-color: color-mix(in oklab, var(--foreground) 12%, transparent) !important; }
+
+/* small utilities mapping to tokens (extend as needed) */
+.bg-primary { background: var(--primary) !important; color: var(--primary-fg) !important; }
+.bg-bm { background: var(--bm-color) !important; }
+
+/* Tab / Nav token-mapped utilities */
+.tab-active {
+  border-bottom-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+.tab-inactive {
+  border-bottom-color: transparent !important;
+  color: var(--muted) !important;
+}
+.tab-inactive:hover { color: var(--fg) !important; }
+
+
+/* tokens-shim.css
+ * Zero-disruption bridge layer:
+ * Map common Tailwind "hard colors" to Design Tokens via CSS overrides.
+ * This lets your existing pages keep their classNames while themes take effect.
+ * Drop this file at: src/styles/tokens-shim.css
+ * Then ensure it's imported *after* globals.css (or at the very end of it).
+ */
+
+/* ---------- Backgrounds → --surface ---------- */
+.bg-white{background-color:var(--surface) !important;}
+.bg-gray-50{background-color:var(--surface) !important;}
+.bg-gray-100{background-color:var(--surface) !important;}
+.bg-white\/80{background-color:color-mix(in srgb, var(--surface), transparent 20%) !important;}
+.hover\:bg-gray-50:hover{background-color:color-mix(in srgb, var(--surface), #000 3%) !important;}
+.hover\:bg-gray-100:hover{background-color:color-mix(in srgb, var(--surface), #000 5%) !important;}
+
+/* Zebra rows or subtle stripes often use even:bg-gray-50 */
+.even\:bg-gray-50:nth-child(even){background-color:color-mix(in srgb, var(--surface), #000 3%) !important;}
+.odd\:bg-gray-50:nth-child(odd){background-color:color-mix(in srgb, var(--surface), #000 3%) !important;}
+
+/* ---------- Text colors ---------- */
+.text-gray-900{color:var(--fg) !important;}
+.text-gray-800,.text-gray-700,.text-gray-600,.text-gray-500{color:var(--muted) !important;}
+
+/* Hover text grays */
+.hover\:text-gray-700:hover,.hover\:text-gray-600:hover,.hover\:text-gray-500:hover{color:var(--fg) !important;}
+
+/* Accent (rose*) → --accent */
+.text-rose-600,.text-rose-500,.text-rose-400{color:var(--accent) !important;}
+.bg-rose-600,.bg-rose-500,.bg-rose-400{background-color:var(--accent) !important;}
+.hover\:bg-rose-700:hover,.hover\:bg-rose-600:hover{background-color:color-mix(in srgb, var(--accent), #000 8%) !important;}
+
+/* ---------- Borders → --border ---------- */
+.border-gray-200,.border-gray-300{border-color:var(--border) !important;}
+.divide-gray-200{--tw-divide-opacity:1; border-color:var(--border) !important;}
+
+/* ---------- Ring (focus) → --ring ---------- */
+.ring-rose-500,.ring-rose-400{--tw-ring-color:var(--ring) !important;}
+.focus\:ring-rose-500:focus,.focus\:ring-rose-400:focus{--tw-ring-color:var(--ring) !important;}
+
+/* ---------- Misc ---------- */
+.shadow-sm,.shadow{ /* keep shadows but ensure surface reads correctly */
+    background-clip: padding-box;
+}
+
+/* NOTE:
+ * This shim intentionally targets the most common classes we saw across Sidebar,
+ * EditDialog, Pagination, LatestList, SkeletonList, and the pages.
+ * You can safely extend with more mappings if you spot outliers.
+ */

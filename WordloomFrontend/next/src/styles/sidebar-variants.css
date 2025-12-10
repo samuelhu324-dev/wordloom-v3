@@ -1,0 +1,67 @@
+/* Modern Sidebar Variants */
+
+/* 1. Floating Sidebar - 悬浮式侧边栏 */
+.app-sidebar[data-variant="floating"] {
+  margin: 16px;
+  height: calc(100vh - 32px);
+  border-radius: 12px;
+  border: none;
+  background: color-mix(in oklab, var(--sidebar-bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+}
+
+/* 2. Minimal Sidebar - 极简侧边栏 */
+.app-sidebar[data-variant="minimal"] {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.app-sidebar[data-variant="minimal"] .nav-item {
+  margin: 4px 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+.app-sidebar[data-variant="minimal"] .nav-item:hover {
+  background: color-mix(in oklab, var(--accent) 8%, transparent);
+}
+
+/* 3. Hover Expand - 悬停展开 */
+.app-sidebar[data-variant="hover"] {
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: var(--sidebar-collapsed-width);
+}
+.app-sidebar[data-variant="hover"]:hover {
+  width: var(--sidebar-expanded-width);
+}
+.app-sidebar[data-variant="hover"]:hover .nav .label {
+  display: block;
+  opacity: 1;
+}
+.app-sidebar[data-variant="hover"] .nav .label {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* 4. Glass Morphism - 毛玻璃效果 */
+.app-sidebar[data-variant="glass"] {
+  background: color-mix(in oklab, var(--sidebar-bg) 85%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+}
+
+/* 5. Accent Line - 强调线条风格 */
+.app-sidebar[data-variant="accent-line"] {
+  border-right: none;
+  box-shadow: none;
+}
+.app-sidebar[data-variant="accent-line"] .nav-item {
+  border-right: 3px solid transparent;
+  transition: border-color 0.2s ease;
+}
+.app-sidebar[data-variant="accent-line"] .nav-item:hover,
+.app-sidebar[data-variant="accent-line"] .nav-item[aria-current="page"] {
+  border-right-color: var(--accent);
+}

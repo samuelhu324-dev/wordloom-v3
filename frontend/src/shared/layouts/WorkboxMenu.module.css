@@ -1,0 +1,125 @@
+.container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.trigger {
+  background: transparent;
+  border: none;
+  font-family: var(--font-family-sans);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  padding: 6px 12px;
+  cursor: pointer;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.trigger:hover,
+.trigger:focus {
+  color: var(--color-primary);
+  background: var(--color-surface-hover);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.caret {
+  font-size: 12px;
+  margin-left: 2px;
+  transition: transform 0.2s ease;
+}
+
+.trigger[aria-expanded="true"] .caret {
+  transform: rotate(180deg);
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 240px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 4px 0 8px;
+  animation: fadeIn 0.15s ease;
+  z-index: 200;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.activeBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.list li {
+  margin: 0;
+  padding: 0;
+}
+
+.menuItem {
+  display: block;
+  padding: 10px 16px;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-xs);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.menuItem:hover,
+.menuItem:focus {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.active .menuItem {
+  color: var(--color-primary);
+  font-weight: 500;
+  background: var(--color-surface-hover);
+}
+
+@media (max-width: 640px) {
+  .panel {
+    right: 4px;
+    width: 200px;
+  }
+}

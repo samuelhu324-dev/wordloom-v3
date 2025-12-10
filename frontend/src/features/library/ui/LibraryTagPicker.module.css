@@ -1,0 +1,148 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.labelRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.status {
+  font-weight: 400;
+  color: var(--color-text-tertiary);
+}
+
+.pillInput {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  min-height: 44px;
+}
+
+.pillInput:focus-within {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-base);
+}
+
+.full {
+  background: var(--color-surface-base);
+}
+
+.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pillInput.full {
+  background: var(--color-surface-base);
+}
+
+.pillInput.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.inputField {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.inputField:disabled {
+  cursor: not-allowed;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border-subtle);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-primary);
+}
+
+.swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d1d5db;
+}
+
+.removeButton {
+  border: none;
+  background: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.removeButton:hover {
+  color: var(--color-text-primary);
+}
+
+.helperText {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.suggestionsBox {
+  margin-top: 2px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-elevated);
+  overflow: hidden;
+}
+
+.suggestionItem {
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.suggestionItem:hover {
+  background: var(--color-surface-alt);
+}
+
+.suggestionMeta {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.emptyState {
+  padding: 6px 10px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.limitNote {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}

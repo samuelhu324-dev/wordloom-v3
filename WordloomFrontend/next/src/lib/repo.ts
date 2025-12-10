@@ -1,73 +1,97 @@
-// 仅微调：新增一个安全的分页获取函数，兼容两种返回格式
-export type Entry = {
-  id: number;
-  source_id?: number;
-  en?: string;
-  zh?: string;
-  created_at?: string;
-  // ...保持你现有字段不动
-};
-
-export type PageResult<T> = {
-  items: T[];
-  total: number;
-};
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ??
-  // 保底：与你后端 run_backend.bat 默认一致（如 http://127.0.0.1:8000）
-  "http://127.0.0.1:8000";
-
-function parseTotalFromHeaders(h: Headers) {
-  const raw = h.get("X-Total-Count") ?? h.get("x-total-count");
-  return raw ? Number(raw) : NaN;
-}
 
 /**
- * 统一分页获取：
- * - 传入 1-based page 与 pageSize
- * - 兼容 {items,total} 或 [array] + X-Total-Count
- * - 越界页返回 {items:[], total:上一页的total或0}
+ * src/lib/repo.ts  — Minimal, non-destructive adapter for your backend.
+ * - Uses GET for search (backend exposes GET /entries/search)
+ * - Uses GET for sources at /sources/
+ * - Cleans payloads (omits empty strings, 'all', '(Any)') to avoid accidental strict filtering
+ * - Does not change any page/component logic; only centralizes API calls.
  */
-export async function fetchEntriesPage(
-  page: number,
-  pageSize: number
-): Promise<PageResult<Entry>> {
-  const safePage = Math.max(1, Math.floor(page || 1));
-  const size = Math.max(1, Math.floor(pageSize || 20));
 
-  const url = new URL(`${API_BASE}/entries`);
-  url.searchParams.set("page", String(safePage));
-  url.searchParams.set("page_size", String(size));
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE as string) || "/api";
+const SOURCES_ENDPOINT = (process.env.NEXT_PUBLIC_SOURCES_ENDPOINT as string) || "/sources/";
+const SEARCH_ENDPOINT = (process.env.NEXT_PUBLIC_SEARCH_ENDPOINT as string) || "/entries/search";
 
-  const res = await fetch(url.toString(), {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-    // 允许跨域的情况下，后端 CORS 你已“已完成”
-    // credentials: "include", // 如未来有鉴权可打开
+function joinPath(path: string) {
+  const base = API_BASE.replace(/\/+$/, "");
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return (base + p).replace(/\/+$/, "") + (p.endsWith("/") ? "/" : "");
+}
+
+export function buildUrl(path: string, query?: Record<string, any>) {
+  const base = API_BASE.replace(/\/+$/, "");
+  const p = path.startsWith("/") ? path : `/${path}`;
+  const u = new URL(base + p, "http://dummy.local");
+  if (query) {
+    Object.entries(query).forEach(([k, v]) => {
+      if (v === undefined || v === null) return;
+      if (typeof v === "string" && v.trim() === "") return;
+      u.searchParams.set(k, String(v));
+    });
+  }
+  // return path + search (strip dummy origin)
+  return u.pathname + (u.search ? u.search : "");
+}
+
+/** Normalize and remove empty-ish values before sending as query params */
+function cleanParams(obj?: Record<string, any>) {
+  const out: Record<string, any> = {};
+  if (!obj) return out;
+  for (const [k, v] of Object.entries(obj)) {
+    if (v === undefined || v === null) continue;
+    if (typeof v === "string") {
+      const t = v.trim();
+      if (t === "" || t.toLowerCase() === "all" || t === "(any)") continue;
+      out[k] = t;
+    } else if (typeof v === "number" && !Number.isNaN(v)) {
+      out[k] = v;
+    } else if (typeof v === "boolean") {
+      out[k] = v;
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
+/** GET sources list (q optional) */
+export async function listSources(params?: { q?: string; limit?: number }) {
+  // Use the canonical backend route /sources/
+  const url = buildUrl(SOURCES_ENDPOINT, {
+    q: params?.q ?? undefined,
+    limit: params?.limit ?? 200,
+  });
+  const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) {
+    // fallback to /sources (no trailing slash)
+    const fallback = buildUrl("/sources", {
+      q: params?.q ?? undefined,
+      limit: params?.limit ?? 200,
+    });
+    const r2 = await fetch(fallback, { cache: "no-store" });
+    if (!r2.ok) throw new Error(`Sources fetch failed: ${r.status}`);
+    return r2.json();
+  }
+  return r.json();
+}
+
+/** GET entries search with flexible params (backend expects GET) */
+export async function searchEntries(raw: Record<string, any> = {}) {
+  const params = cleanParams({
+    q: raw.q ?? raw.keyword ?? raw.keyword?.toString?.() ?? undefined,
+    source_name: raw.source_name ?? raw.source ?? raw.sourceName ?? undefined,
+    limit: typeof raw.limit === "string" ? parseInt(raw.limit) : raw.limit ?? undefined,
+    offset: typeof raw.offset === "string" ? parseInt(raw.offset) : raw.offset ?? undefined,
+    sort: raw.sort ?? undefined,
   });
 
-  if (!res.ok) {
-    // 非 2xx 也不要炸；返回空数组，交给 UI 兜底
-    return { items: [], total: 0 };
+  const url = buildUrl(SEARCH_ENDPOINT, params);
+  const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) {
+    // Try legacy fallback path
+    const fallback = buildUrl("/entries/search", params);
+    const r2 = await fetch(fallback, { cache: "no-store" });
+    if (!r2.ok) throw new Error(`Search failed: ${r.status}`);
+    return r2.json();
   }
-
-  // 可能是 {items,total}
-  try {
-    const data = await res.json();
-    // 结构1：显式 items/total
-    if (data && Array.isArray(data.items) && typeof data.total === "number") {
-      return { items: data.items as Entry[], total: data.total as number };
-    }
-    // 结构2：纯数组 + 头部 total
-    if (Array.isArray(data)) {
-      const hdrTotal = parseTotalFromHeaders(res.headers);
-      return { items: data as Entry[], total: Number.isFinite(hdrTotal) ? hdrTotal : data.length };
-    }
-    // 其它非常规结构：尽量兜底
-    return { items: [], total: 0 };
-  } catch {
-    // JSON 解析失败也兜底
-    return { items: [], total: 0 };
-  }
+  return r.json();
 }

@@ -1,11 +1,15 @@
-# app/repo.py
-from sqlalchemy import select, or_, delete, update, func
+# ---- app/repo.py (legacy-compatible, cleaned)
 from typing import List, Optional, Tuple
 from datetime import datetime, timedelta
 import re
 
-from .database import SessionLocal
-from .models import Entry, Source, EntrySource, Article
+from sqlalchemy import select, or_, delete, update, func
+
+from app.database import SessionLocal
+from app.models.loom.entries import Entry
+from app.models.loom.sources import Source
+from app.models.loom.entry_sources import EntrySource
+from app.models.loom.articles import Article
 
 # ---------- helpers ----------
 def _ensure_source(session, source_name: Optional[str], source_url: Optional[str] = None):
@@ -37,11 +41,8 @@ def add_entry(src: str, tgt: str, ls="zh", lt="en",
         raise ValueError("src/tgt required")
     with SessionLocal() as s:
         if created_at:
-            try:
-                ts = datetime.fromisoformat(created_at)
-            except Exception:
-                raise ValueError("created_at must be ISO format string")
-            e = Entry(src_text=src, tgt_text=tgt, lang_src=ls, lang_tgt=lt, created_at=ts)
+            e = Entry(src_text=src, tgt_text=tgt, lang_src=ls, lang_tgt=lt,
+                      created_at=datetime.fromisoformat(created_at))
         else:
             e = Entry(src_text=src, tgt_text=tgt, lang_src=ls, lang_tgt=lt)
         s.add(e); s.flush()
@@ -62,11 +63,7 @@ def update_entry(entry_id: int, *, src: Optional[str] = None, tgt: Optional[str]
         if tgt is not None: e.tgt_text = tgt.strip()
         if ls  is not None: e.lang_src = ls
         if lt  is not None: e.lang_tgt = lt
-        if created_at:
-            try:
-                e.created_at = datetime.fromisoformat(created_at)
-            except Exception:
-                raise ValueError("created_at must be ISO format string")
+        if created_at: e.created_at = datetime.fromisoformat(created_at)
         if source_name is not None:
             src_obj = _ensure_source(s, source_name, source_url)
             _link_source(s, e.id, src_obj)
@@ -159,9 +156,9 @@ def find_matches(keyword: str,
     if not key:
         return []
     with SessionLocal() as s:
-        stmt = select(Entry.id, Entry.src_text, Entry.tgt_text, Source.name.label("source_name"), Entry.created_at)\
-               .join(EntrySource, EntrySource.entry_id == Entry.id, isouter=True)\
-               .join(Source, Source.id == EntrySource.source_id, isouter=True)
+        stmt = (select(Entry.id, Entry.src_text, Entry.tgt_text, Source.name.label("source_name"), Entry.created_at)
+                .join(EntrySource, EntrySource.entry_id == Entry.id, isouter=True)
+                .join(Source, Source.id == EntrySource.source_id, isouter=True))
         if source_name:
             stmt = stmt.where(Source.name == source_name)
         if date_from:
@@ -230,9 +227,9 @@ def search(q: str, ls=None, lt=None,
            date_to: Optional[str] = None
            ) -> List[Tuple[int, str, str, Optional[str], datetime]]:
     with SessionLocal() as s:
-        stmt = select(Entry.id, Entry.src_text, Entry.tgt_text, Source.name.label("source_name"), Entry.created_at)\
-               .join(EntrySource, EntrySource.entry_id == Entry.id, isouter=True)\
-               .join(Source, Source.id == EntrySource.source_id, isouter=True)
+        stmt = (select(Entry.id, Entry.src_text, Entry.tgt_text, Source.name.label("source_name"), Entry.created_at)
+                .join(EntrySource, EntrySource.entry_id == Entry.id, isouter=True)
+                .join(Source, Source.id == EntrySource.source_id, isouter=True))
         if q:
             like = f"%{q.strip()}%"
             stmt = stmt.where(or_(Entry.src_text.like(like), Entry.tgt_text.like(like)))

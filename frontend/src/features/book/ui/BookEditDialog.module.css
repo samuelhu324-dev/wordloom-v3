@@ -1,0 +1,178 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.descriptionField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.descriptionLabel {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.descriptionTextarea {
+  resize: vertical;
+  min-height: 80px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.descriptionTextarea:focus {
+  border-color: var(--color-border-strong);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px var(--color-border-strong);
+}
+
+.labelRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.limitNote {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.tagInput {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  padding: 8px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  min-height: 46px;
+  background: var(--color-surface-alt);
+}
+
+.tagInputFull {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+}
+
+.tagChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: var(--font-size-xs);
+  line-height: 1;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  color: var(--color-text-primary);
+}
+
+.tagRemoveButton {
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.tagRemoveButton:hover {
+  color: var(--color-text-primary);
+}
+
+.tagInputField {
+  flex: 1;
+  min-width: 140px;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: var(--color-text-primary);
+  padding: 4px;
+  outline: none;
+}
+
+.tagInputField:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.helperText {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.coverIconField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.suggestionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-soft);
+  background: var(--color-surface-alt);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.suggestionButton:hover {
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+}
+
+.suggestionMeta {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.emptySuggestions {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xs);
+}
+
+.errorText {
+  font-size: var(--font-size-xs);
+  color: var(--color-danger, #dc2626);
+}

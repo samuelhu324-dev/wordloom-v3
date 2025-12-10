@@ -1,0 +1,164 @@
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  border-radius: var(--card-radius);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  box-shadow: var(--elevation-subtle);
+  overflow: hidden;
+}
+
+.cover {
+  width: 100%;
+  height: 160px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #f6f7fb 0%, #e3e7f2 45%, #cfd4df 70%, #b9bfcb 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.line {
+  height: 12px;
+  border-radius: 999px;
+  background: #e2e6f0;
+  position: relative;
+  overflow: hidden;
+}
+
+.lineTall {
+  height: 18px;
+}
+
+.lineWide {
+  width: 80%;
+}
+
+.lineMedium {
+  width: 60%;
+}
+
+.lineShort {
+  width: 40%;
+}
+
+.tagRow {
+  display: flex;
+  gap: 8px;
+}
+
+.tag {
+  flex: 1;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: #dde1ea;
+  position: relative;
+  overflow: hidden;
+}
+
+.metrics {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.metricDot {
+  width: 48px;
+  height: 10px;
+  border-radius: 999px;
+  background: #d9dfea;
+  position: relative;
+  overflow: hidden;
+}
+
+.listRow {
+  display: grid;
+  grid-template-columns: 120px 180px minmax(260px, 1fr) 220px 160px;
+  gap: var(--spacing-md);
+  align-items: center;
+  padding: 18px 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.listCover {
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #f6f7fb 0%, #e3e7f2 45%, #cfd4df 70%, #b9bfcb 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.listTitle,
+.listDescription,
+.listMetrics,
+.listDates {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.listMetrics {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.listMetricDot {
+  width: 60px;
+  height: 10px;
+  border-radius: 999px;
+  background: #d9dfea;
+  position: relative;
+  overflow: hidden;
+}
+
+.pill {
+  width: 60px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: #dfe4ef;
+  position: relative;
+  overflow: hidden;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.actionDot {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: #e7eaf2;
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.6) 50%, transparent 100%);
+  transform: translateX(-100%);
+  animation: skeletonShimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes skeletonShimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}

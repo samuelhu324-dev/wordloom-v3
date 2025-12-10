@@ -1,0 +1,5 @@
+/* 局部主题：只影响 .loom-theme 容器内部 */
+.loom-theme {
+  --wl-accent: #5B8CFF;
+  --wl-accent-2: #5E60CE;
+}

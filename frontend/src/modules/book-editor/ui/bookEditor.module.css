@@ -1,0 +1,1013 @@
+.editorRoot {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-5);
+  padding-block: var(--wl-editor-padding-y);
+
+  /*
+    Token naming guardrails (Plan154):
+    - Primitive ladder: --wl-space-0..6 & half-steps; never use directly in components.
+    - Rhythm tokens:   --wl-space-block-* describe inter-block cadence only.
+    - Shell tokens:    --wl-*-shell-* control padding/gap inside individual shells.
+    - Legacy aliases:  Anything outside above namespaces (eg --wl-block-padding-y) is transitional.
+  */
+
+  /* Primitive ladder (Plan152) */
+  --wl-space-0: 0px;
+  --wl-space-1: 2px;
+  --wl-space-2: 4px;
+  --wl-space-3: 8px;
+  --wl-space-4: 12px;
+  --wl-space-5: 16px;
+  --wl-space-6: 20px;
+
+  /* Half-step helpers to ease legacy migrations */
+  --wl-space-2-5: calc(var(--wl-space-2) + var(--wl-space-1)); /* 6px */
+  --wl-space-3-5: calc(var(--wl-space-3) + var(--wl-space-1)); /* 10px */
+  --wl-space-4-5: calc(var(--wl-space-4) + var(--wl-space-1)); /* 14px */
+
+  /* Line heights (Plan154 reference: 1.5~1.6 for body text) */
+  --wl-line-height-body: 1.6;
+  --wl-line-height-tight: 1.35;
+  --wl-line-height-list: var(--wl-line-height-tight); /* Plan155A: list/todo display & edit share this */
+
+  /* Rhythm tokens (block cadence only) */
+  --wl-space-block-tight: var(--wl-space-2-5); /* baseline row-gap = 6px */
+  /* Plan155A/156A jitter guard: row-gap + list-before/after MUST stay >= 0 */
+  --wl-space-block-list-before-safe-min: calc(-1 * var(--wl-space-block-tight));
+  --wl-space-block-section: var(--wl-space-3); /* section breaks = 8px */
+  --wl-space-block-list-before: var(--wl-space-0); /* default 0px bridge (sum == row-gap) */
+  --wl-space-block-list-after: var(--wl-space-2); /* after = 4px (aligns with normal block cadence) */
+  --wl-space-block-todo-before: var(--wl-space-0); /* before = 0px */
+  --wl-space-block-todo-after: var(--wl-space-1); /* after = 2px */
+  --wl-space-block-quote-before: var(--wl-space-2);
+  --wl-space-block-quote-after: var(--wl-space-2);
+  --wl-list-item-gap: var(--wl-space-2); /* li + li gap = 4px; adjust only via Plan156A tokens */
+  --wl-todo-item-gap: var(--wl-list-item-gap); /* todo rows now lock to list rhythm */
+
+  /* Block shells + editor chrome (Plan153) */
+  --wl-editor-padding-y: var(--wl-space-4);
+  --wl-block-shell-paragraph-padding-y: 0px;
+  --wl-block-shell-heading-padding-top: 0px;
+  --wl-block-shell-heading-padding-bottom: 0px;
+  --wl-list-shell-padding-y: var(--wl-space-1);
+  --wl-list-shell-padding-inline: var(--wl-list-indent);
+  --wl-todo-shell-padding-y: var(--wl-space-1);
+  --wl-quote-shell-padding-y: var(--wl-space-2);
+  --wl-inline-insert-shell-padding-x: var(--wl-space-3);
+  --wl-inline-insert-shell-padding-y: var(--wl-space-2);
+  --wl-inline-list-shell-gap-y: var(--wl-space-1);
+  --wl-inline-row-shell-padding-top: var(--wl-space-0);
+  --wl-inline-row-shell-padding-bottom: var(--wl-space-0);
+  --wl-block-padding-y: var(--wl-block-shell-paragraph-padding-y);
+  --wl-block-padding-y-dense: var(--wl-list-shell-padding-y);
+  --wl-block-padding-left: calc(var(--wl-space-5) + var(--wl-space-3) + var(--wl-space-2));
+
+  /* Legacy aliases (temporary) */
+  --wl-space-section: var(--wl-space-block-section);
+  --wl-space-tight: var(--wl-space-block-tight);
+  --wl-space-inline: var(--wl-space-1);
+  --wl-space-text-list: var(--wl-space-block-list-before);
+  --wl-space-text-todo: var(--wl-space-block-todo-before);
+  --wl-space-list-before: var(--wl-space-block-list-before);
+  --wl-space-list-after: var(--wl-space-block-list-after);
+  --wl-space-todo-before: var(--wl-space-block-todo-before);
+  --wl-space-todo-after: var(--wl-space-block-todo-after);
+  --wl-space-quote-before: var(--wl-space-block-quote-before);
+  --wl-space-quote-after: var(--wl-space-block-quote-after);
+}
+
+.bookEditorShell,
+.blockList {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--wl-space-block-tight);
+  padding-block: 0;
+  /*
+    Structure contract:
+    - bookEditorShell applies outer padding via --wl-editor-padding-y.
+    - blockList is the vertical rhythm owner; direct children must not add margins.
+  */
+}
+
+.bookEditorShell {
+  position: relative;
+}
+
+:is(.bookEditorShell, .blockList) > .blockItem {
+  margin-block: 0;
+  padding-block: 0;
+}
+
+
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="paragraph"]
+  + .blockItem[data-kind="quote"],
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="heading"]
+  + .blockItem[data-kind="quote"] {
+  margin-top: var(--wl-space-block-quote-before);
+}
+
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="quote"]
+  + .blockItem[data-kind="paragraph"],
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="quote"]
+  + .blockItem[data-kind="heading"] {
+  margin-top: var(--wl-space-block-quote-after);
+}
+
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="paragraph"]
+  + .blockItem[data-kind="bulleted_list"],
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="paragraph"]
+  + .blockItem[data-kind="numbered_list"],
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="heading"]
+  + .blockItem[data-kind="bulleted_list"],
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="heading"]
+  + .blockItem[data-kind="numbered_list"] {
+  /* Plan155A: list bridge never exceeds -row-gap to avoid jitter */
+  margin-top: var(--wl-space-block-list-before);
+}
+
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="bulleted_list"]
+  + .blockItem[data-kind="paragraph"],
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="numbered_list"]
+  + .blockItem[data-kind="paragraph"],
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="bulleted_list"]
+  + .blockItem[data-kind="heading"],
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="numbered_list"]
+  + .blockItem[data-kind="heading"] {
+  margin-top: var(--wl-space-block-list-after);
+}
+
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="paragraph"]
+  + .blockItem[data-kind="todo_list"],
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="heading"]
+  + .blockItem[data-kind="todo_list"] {
+  margin-top: var(--wl-space-block-todo-before);
+}
+
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="todo_list"]
+  + .blockItem[data-kind="paragraph"],
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="todo_list"]
+  + .blockItem[data-kind="heading"],
+:is(.bookEditorShell, .blockList)
+  > .blockItem[data-kind="todo_list"]
+  + .blockItem[data-kind="todo_list"] {
+  margin-top: var(--wl-space-block-todo-after);
+}
+
+.blockAddButton {
+  position: absolute;
+  left: 0;
+  top: var(--wl-space-4);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+
+.blockItem:not(:hover) .blockAddButton {
+  display: none;
+}
+
+.blockAddButton:hover {
+  opacity: 0.9;
+  border-color: #d1d5db;
+  background: #f9fafb;
+}
+
+.blockItemMain {
+  padding-top: var(--wl-block-shell-paragraph-padding-y);
+  padding-bottom: var(--wl-block-shell-paragraph-padding-y);
+  padding-right: calc(var(--wl-space-6) + var(--wl-space-5) + var(--wl-space-4) + var(--wl-space-3));
+  min-height: calc(var(--wl-line-height-body) * 1em + var(--wl-space-2) + var(--wl-space-1));
+}
+
+.blockItem[data-kind="heading"] .blockItemMain {
+  padding-top: var(--wl-block-shell-heading-padding-top);
+  padding-bottom: var(--wl-block-shell-heading-padding-bottom);
+}
+
+.blockItem[data-kind="bulleted_list"] .blockItemMain,
+.blockItem[data-kind="numbered_list"] .blockItemMain {
+  padding-top: var(--wl-list-shell-padding-y);
+  padding-bottom: var(--wl-list-shell-padding-y);
+}
+
+.blockItem[data-kind="todo_list"] .blockItemMain {
+  padding-top: var(--wl-todo-shell-padding-y);
+  padding-bottom: var(--wl-todo-shell-padding-y);
+}
+
+.blockItem[data-kind="quote"] .blockItemMain {
+  padding-top: var(--wl-quote-shell-padding-y);
+  padding-bottom: var(--wl-quote-shell-padding-y);
+}
+
+.blockItem[data-editing="true"] .blockItemMain {
+  background: transparent;
+}
+
+.blockItemActions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: var(--wl-space-2-5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.blockItem[data-show-actions="true"] .blockItemActions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.textBlockShell {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.textBlockContent {
+  flex: 1;
+  display: block;
+  min-height: 1.4em;
+  padding: 0;
+  position: relative;
+  font-size: 16px;
+  line-height: var(--wl-line-height-body);
+  color: #111827;
+  outline: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  cursor: text;
+  width: 100%;
+  white-space: pre-wrap;
+}
+
+.textBlockContent br {
+  display: inline;
+  margin: 0;
+  padding: 0;
+}
+
+.readonlyShell {
+  cursor: text;
+}
+
+.textBlockContent[data-readonly="true"] {
+  caret-color: transparent;
+}
+
+.textBlockContent[data-empty="true"]::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  inset: 0;
+  color: rgba(156, 163, 175, 0.6);
+  font-weight: 350;
+  pointer-events: none;
+  user-select: none;
+  white-space: pre-wrap;
+}
+
+.blockItem[data-editing="true"] .textBlockContent,
+.textBlockContent:focus {
+  border-bottom-color: rgba(17, 24, 39, 0.2);
+}
+
+.heading-1 {
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.heading-2 {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.heading-3 {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+
+.toolbar {
+  display: inline-flex;
+  gap: var(--wl-space-2);
+  align-items: center;
+}
+
+.toolbarButton {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #9ca3af;
+  opacity: 0.65;
+  transition: background-color 120ms ease, opacity 120ms ease, border-color 120ms ease;
+}
+
+.toolbarButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.toolbarButton:not(:disabled):hover {
+  opacity: 1;
+  background-color: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+.toolbarButtonDanger {
+  color: #dc2626;
+}
+
+.statusBadge {
+  position: absolute;
+  bottom: -6px;
+  right: 0;
+  font-size: 12px;
+  color: #8f8f8f;
+}
+
+.inlineBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: var(--wl-inline-insert-shell-padding-y) var(--wl-inline-insert-shell-padding-x);
+  color: #9ca3af;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  cursor: text;
+}
+
+.inlineBar:hover {
+  border-color: #9ca3af;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-2-5);
+  padding: var(--wl-space-5) 0;
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.emptyState p {
+  margin: 0;
+  color: inherit;
+  font-weight: inherit;
+}
+
+.emptyHint {
+  font-size: 14px;
+}
+
+.placeholder {
+  color: #9ca3af;
+}
+
+.inlineRow {
+  display: flex;
+  align-items: center;
+  gap: var(--wl-todo-checkbox-gap);
+  padding-top: var(--wl-inline-row-shell-padding-top);
+  padding-bottom: var(--wl-inline-row-shell-padding-bottom);
+  padding-inline: 0;
+  width: 100%;
+}
+
+.inlineMarker {
+  width: 18px;
+  text-align: center;
+  color: #9ca3af;
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.inlineMarkerBullet {
+  font-size: 18px;
+}
+
+.inlineMarkerOrdered {
+  font-variant-numeric: tabular-nums;
+}
+
+.inlineEditorText {
+  flex: 1;
+  min-width: 0;
+  display: block;
+}
+
+.inlineEditorText .textBlockContent {
+  width: 100%;
+  line-height: var(--wl-line-height-list); /* keep edit/display parity to avoid jitter */
+}
+
+.todoList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-todo-item-gap);
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.listBlock {
+  gap: var(--wl-list-item-gap);
+}
+
+.todoRow {
+  width: 100%;
+}
+
+.todoListItem {
+  font-size: 16px;
+  line-height: var(--wl-line-height-list);
+  color: #111827;
+}
+
+.todoText {
+  flex: 1;
+  line-height: var(--wl-line-height-list);
+  white-space: pre-wrap;
+}
+.blockDisplay {
+  margin: 0;
+  line-height: var(--wl-line-height-body);
+  white-space: pre-wrap;
+}
+
+.todoTextChecked {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+.todoBadge {
+  font-size: 12px;
+  padding: 0 var(--wl-space-2-5);
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  align-self: center;
+}
+
+.todoEditor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-todo-item-gap);
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.todoEditorRow {
+  width: 100%;
+}
+
+
+.todoEditorInput {
+  width: 100%;
+  padding: var(--wl-space-inline) 0;
+  border: none;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  font-size: 16px;
+  line-height: var(--wl-line-height-list);
+  outline: none;
+  font-family: inherit;
+}
+
+.todoEditorInput:focus-visible {
+  border-bottom-color: rgba(17, 24, 39, 0.3);
+}
+
+.todoEditorInput::placeholder {
+  color: #9ca3af;
+}
+
+.todoCheckbox {
+  width: 16px;
+  height: 16px;
+  margin: 0 var(--wl-todo-checkbox-gap) 0 0;
+  flex-shrink: 0;
+  transform: translateY(1px);
+}
+
+.secondaryButton,
+.primaryButton,
+.dangerButton {
+  border-radius: 6px;
+  padding: var(--wl-space-2-5) var(--wl-space-4);
+  font-size: 13px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.primaryButton {
+  background: #111827;
+  color: #fff;
+  border-color: #111827;
+}
+
+.secondaryButton {
+  background: #f3f4f6;
+  color: #111827;
+  border-color: #d1d5db;
+}
+
+.dangerButton {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.todoEditorActions,
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--wl-space-3);
+  margin-top: var(--wl-space-3);
+}
+
+.callout {
+  width: 100%;
+  border-radius: 10px;
+  padding: var(--wl-space-4) var(--wl-space-4-5);
+  border: 1px solid transparent;
+  text-align: left;
+}
+
+.callout-info {
+  background: #e0f2fe;
+  border-color: #bae6fd;
+}
+
+.callout-warning {
+  background: #fef3c7;
+  border-color: #fde68a;
+}
+
+.callout-danger {
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
+.callout-success {
+  background: #dcfce7;
+  border-color: #bbf7d0;
+}
+
+.calloutLabel {
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.calloutEditor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-3-5);
+}
+
+.calloutVariantList {
+  display: flex;
+  gap: var(--wl-space-3);
+}
+
+.calloutVariantActive {
+  background: #111827;
+  color: #fff;
+  border-color: #111827;
+}
+
+.calloutTextarea,
+.quoteTextarea,
+.codeTextarea {
+  width: 100%;
+  min-height: 96px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  padding: var(--wl-space-3);
+}
+
+.quoteBlock {
+  border-left: 4px solid #d1d5db;
+  padding: var(--wl-quote-padding-y) 0 var(--wl-quote-padding-y) var(--wl-quote-border-gap);
+  color: #4b5563;
+}
+
+.quoteEditor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-3-5);
+}
+
+.quoteSourceInput,
+.imageField input,
+.galleryRow input,
+.galleryRow input[type="url"],
+.galleryRow input[type="text"] {
+  width: 100%;
+  padding: var(--wl-space-2-5) var(--wl-space-3);
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+}
+
+.dividerBlock {
+  padding: var(--wl-space-4) 0;
+}
+
+.dividerBlock span {
+  display: block;
+  border-bottom: 1px solid #d1d5db;
+}
+
+.dividerBlock[data-variant='dashed'] span {
+  border-style: dashed;
+}
+
+.dividerEditor {
+  display: flex;
+  gap: var(--wl-space-4);
+  align-items: center;
+}
+
+.imageBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-3);
+}
+
+.imageButton,
+.imagePlaceholder {
+  border: none;
+  padding: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f3f4f6;
+  min-height: 120px;
+}
+
+.imageButton img {
+  width: 100%;
+  display: block;
+}
+
+.imageCaption {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.imageEditor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-3-5);
+}
+
+.imageField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-2);
+  font-size: 14px;
+}
+
+.imageGallery {
+  display: grid;
+  gap: var(--wl-space-3);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: var(--wl-space-4);
+}
+
+.imageGalleryStrip {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.imageGalleryGrid {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.galleryItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-2);
+}
+
+.galleryItem img {
+  width: 100%;
+  border-radius: 8px;
+}
+
+.galleryEditor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-3-5);
+}
+
+.galleryLayoutOptions {
+  display: flex;
+  gap: var(--wl-space-3);
+  align-items: center;
+}
+
+.galleryLayoutActive {
+  background: #111827;
+  color: #fff;
+  border-color: #111827;
+}
+
+.galleryRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) auto;
+  gap: var(--wl-space-3);
+  align-items: center;
+}
+
+.galleryActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--wl-space-3);
+}
+
+.codeBlock {
+  background: #111827;
+  color: #e5e7eb;
+  border-radius: 8px;
+  padding: var(--wl-space-4);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  overflow-x: auto;
+}
+
+.codeEditor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-3-5);
+}
+
+.customBlock {
+  border: 1px dashed #d1d5db;
+  border-radius: 12px;
+  padding: var(--wl-space-4);
+}
+
+.customBlock header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.customBlock pre {
+  max-height: 200px;
+  overflow: auto;
+  background: #f9fafb;
+  padding: var(--wl-space-3);
+  border-radius: 8px;
+}
+
+.customBlockEditor textarea {
+  width: 100%;
+  min-height: 160px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  padding: var(--wl-space-3);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.panelBlock {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: var(--wl-space-4);
+  background: #f9fafb;
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: var(--wl-space-4);
+  text-align: left;
+  cursor: pointer;
+}
+
+.panelBlock[data-layout='two-column'] {
+  grid-template-columns: 160px 1fr;
+}
+
+.panelImage,
+.panelImagePlaceholder {
+  width: 100%;
+  border-radius: 12px;
+  min-height: 96px;
+  background-size: cover;
+  background-position: center;
+  background-color: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.panelContentArea {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-2-5);
+}
+
+.panelTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: #111827;
+}
+
+.panelBody {
+  font-size: 14px;
+  color: #4b5563;
+  margin: 0;
+}
+
+.panelEditor {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: var(--wl-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-4);
+}
+
+.panelEditorRow {
+  display: flex;
+  gap: var(--wl-space-4);
+  flex-wrap: wrap;
+}
+
+.panelEditorLabel {
+  flex: 1;
+  font-size: 13px;
+  color: #374151;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-2);
+}
+
+.panelEditorInput,
+.panelEditorSelect,
+.panelEditorTextarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: var(--wl-space-2-5) var(--wl-space-3);
+  font-size: 14px;
+}
+
+.panelEditorTextarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.quickMenu {
+  position: fixed;
+  min-width: 240px;
+  max-width: 320px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+  padding: var(--wl-space-2-5);
+  z-index: 999;
+  backdrop-filter: blur(6px);
+}
+
+.slashMenu {
+  position: absolute;
+  min-width: 240px;
+  max-width: 320px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+  padding: var(--wl-space-2-5);
+  z-index: 100;
+  backdrop-filter: blur(6px);
+}
+
+.quickMenuGroups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-1);
+}
+
+.quickMenuGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-2);
+}
+
+.quickMenuGroupTitle {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  padding: 0 var(--wl-space-1);
+}
+
+.quickMenuList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-1);
+}
+
+.quickMenuItem {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: var(--wl-space-3) var(--wl-space-4);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--wl-space-4);
+  cursor: pointer;
+  font-size: 14px;
+  color: #111827;
+  border-radius: 10px;
+  align-items: center;
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.quickMenuItem:hover,
+.quickMenuItem[data-active='true'] {
+  background: #f3f4f6;
+}
+
+.quickMenuItemContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wl-space-1);
+}
+
+.quickMenuItemLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.quickMenuHint {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.quickMenuItemMeta {
+  font-size: 12px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.quickMenuDivider {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(209, 213, 219, 0), rgba(209, 213, 219, 0.8), rgba(209, 213, 219, 0));
+}

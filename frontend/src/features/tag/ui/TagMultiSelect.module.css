@@ -1,0 +1,128 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.labelRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.limitNote {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.statusText {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.inputShell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  padding: 8px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  min-height: 46px;
+  background: var(--color-surface-alt);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.inputShellFull {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+}
+
+.inputShellDisabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  border: 1px solid var(--color-border-soft);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+.chipRemoveButton {
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.chipRemoveButton:hover {
+  color: var(--color-text-primary);
+}
+
+.inputField {
+  flex: 1;
+  min-width: 140px;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: var(--color-text-primary);
+  padding: 4px;
+  outline: none;
+}
+
+.helperText {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.suggestionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-soft);
+  background: var(--color-surface-alt);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.suggestionButton:hover {
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+}
+
+.suggestionMeta {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.emptySuggestions,
+.loadingText {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
