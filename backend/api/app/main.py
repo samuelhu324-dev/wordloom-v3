@@ -228,6 +228,8 @@ app.add_middleware(
         "http://172.31.150.143:30001",  # Windows browser accessing backend via WSL2 IP
         "http://localhost:30002",        # Frontend served on 30002
         "http://127.0.0.1:30002",       # Frontend served on 30002 (IPv4)
+        "http://localhost:31002",      # 新增
+        "http://127.0.0.1:31002",      # 建议也加
     ],
     allow_credentials=True,
     allow_methods=["*"],
