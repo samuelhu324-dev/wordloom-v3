@@ -127,8 +127,10 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
   const [coverUrl, setCoverUrl] = useState<string | null>(library.coverUrl ?? null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const relativeFormatter = useMemo(() => createRelativeTimeFormatter(lang), [lang]);
 
   const gradient = DEFAULT_LIBRARY_SILVER_GRADIENT;
@@ -199,6 +201,8 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
         return;
       }
 
+      setSelectedFileName(file.name);
+
       const previousCover = coverUrl;
       let previewUrl: string | null = null;
       let shouldCloseDialog = false;
@@ -223,6 +227,7 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
         }
         if (shouldCloseDialog) {
           setUploadOpen(false);
+          setSelectedFileName(null);
         }
       }
     },
@@ -278,6 +283,7 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
           data-tooltip={t('libraries.card.actions.changeCover')}
           onClick={(e) => {
             e.stopPropagation();
+            setSelectedFileName(null);
             setUploadOpen(true);
           }}
         >
@@ -363,12 +369,44 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
           >
             <h4 style={{ margin: 0, fontSize: 'var(--font-size-md)' }}>{t('libraries.card.dialog.title')}</h4>
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               disabled={isUploading}
               aria-busy={isUploading}
               onChange={handleCoverFileChange}
+              style={{ display: 'none' }}
             />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
+                disabled={isUploading}
+                style={{
+                  background: 'var(--color-brand-soft)',
+                  border: '1px solid var(--color-border-soft)',
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                  fontSize: 'var(--font-size-sm)',
+                  fontWeight: 500,
+                  color: 'var(--color-text-primary)',
+                }}
+              >
+                {t('libraries.card.dialog.chooseFile')}
+              </button>
+              <span
+                style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}
+                aria-live="polite"
+              >
+                {selectedFileName
+                  ? t('libraries.card.dialog.selectedFile', { name: selectedFileName })
+                  : t('libraries.card.dialog.noFile')}
+              </span>
+            </div>
             {isUploading && (
               <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
                 {t('libraries.card.dialog.uploading')}
@@ -380,6 +418,7 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
                 onClick={(e) => {
                   e.stopPropagation();
                   setUploadOpen(false);
+                  setSelectedFileName(null);
                 }}
                 style={{
                   background: 'var(--color-surface)',

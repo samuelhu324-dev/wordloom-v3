@@ -1,5 +1,6 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
+# filepath: backend/entrypoint.sh
+set -e
 
 cd /app
 

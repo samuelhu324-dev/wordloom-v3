@@ -7,6 +7,7 @@ import { Breadcrumb, Button, Spinner } from '@/shared/ui';
 import type { BreadcrumbItem } from '@/shared/ui/Breadcrumb';
 import { BookshelfDashboardBoard } from '@/features/bookshelf';
 import { useLibrary } from '@/features/library';
+import { useI18n } from '@/i18n/useI18n';
 import type {
   BookshelfDashboardFilter,
   BookshelfDashboardSort,
@@ -64,6 +65,7 @@ export default function BookshelvesPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const libraryId = searchParams.get('library_id') || undefined;
+  const { t } = useI18n();
 
   const sortParam = searchParams.get('sort');
   const statusParam = searchParams.get('status');
@@ -80,13 +82,13 @@ export default function BookshelvesPage() {
   }, [library?.name, library?.id, libraryId]);
 
   const breadcrumbItems = useMemo<BreadcrumbItem[]>(() => {
-    const base: BreadcrumbItem[] = [{ label: '书库列表', href: '/admin/libraries' }];
+    const base: BreadcrumbItem[] = [{ label: t('bookshelves.library.breadcrumb.list'), href: '/admin/libraries' }];
     if (library && libraryId) {
       base.push({ label: library.name, href: `/admin/libraries/${libraryId}` });
     }
     base.push({ label: '书架运营面板', active: true });
     return base;
-  }, [library, libraryId]);
+  }, [library, libraryId, t]);
 
   const updateQueryParam = useCallback(
     (key: string, value: string | undefined, defaultValue?: string) => {

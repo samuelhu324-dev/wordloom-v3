@@ -14,8 +14,8 @@ import os
 class Settings(BaseSettings):
     """Application configuration from environment variables"""
 
-    # Database - connect to WSL2 PostgreSQL via IP address
-    database_url: str = "postgresql://postgres:pgpass@172.31.150.143:5432/wordloom"
+    # Database - default to local PostgreSQL on port 5432
+    database_url: str = "postgresql://postgres:pgpass@localhost:5432/wordloom"
 
     # API
     api_title: str = "Wordloom API"
