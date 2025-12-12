@@ -163,10 +163,12 @@
 
 .actionsHeader {
   width: 140px;
+  text-align: left;
 }
 
 .actionsCell {
   white-space: nowrap;
+  text-align: left;
 }
 
 .nameCell {
@@ -247,7 +249,7 @@
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .iconActionButton {
@@ -403,6 +405,30 @@
   gap: 8px;
   font-size: 13px;
   color: var(--color-text-secondary);
+}
+
+.selectLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.dialogSelect {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+.dialogSelect:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(45, 85, 255, 0.1);
 }
 
 .textarea {

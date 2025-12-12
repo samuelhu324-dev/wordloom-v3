@@ -167,6 +167,7 @@ class Tag(AggregateRoot):
         name: str,
         color: str,
         icon: Optional[str] = None,
+        description: Optional[str] = None,
         parent_level: int = 0
     ) -> Tag:
         """Factory: Create a hierarchical sub-Tag"""
@@ -175,6 +176,7 @@ class Tag(AggregateRoot):
             name=name,
             color=color,
             icon=icon,
+            description=description,
             parent_tag_id=parent_tag_id,
             level=parent_level + 1,
             created_at=datetime.now(timezone.utc),
@@ -187,6 +189,21 @@ class Tag(AggregateRoot):
             is_toplevel=False
         ))
         return tag
+
+    # ====================================================================
+    # Hierarchy helpers
+    # ====================================================================
+
+    def change_parent(self, parent_tag_id: Optional[UUID], level: int) -> None:
+        """Update parent reference and level."""
+        object.__setattr__(self, "parent_tag_id", parent_tag_id)
+        object.__setattr__(self, "level", level)
+        object.__setattr__(self, "updated_at", datetime.now(timezone.utc))
+
+    def set_level(self, level: int) -> None:
+        """Set level (used when moving the subtree)."""
+        object.__setattr__(self, "level", level)
+        object.__setattr__(self, "updated_at", datetime.now(timezone.utc))
 
     # ========================================================================
     # Commands (State Modification)

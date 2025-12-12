@@ -19,6 +19,7 @@ from ...exceptions import (
     TagInvalidNameError,
     TagInvalidColorError,
     TagAlreadyExistsError,
+    TagInvalidHierarchyError,
     TagOperationError,
 )
 
@@ -35,7 +36,9 @@ class UpdateTagUseCase:
         name: Optional[str] = None,
         color: Optional[str] = None,
         icon: Optional[str] = None,
-        description: Optional[str] = None
+        description: Optional[str] = None,
+        parent_tag_id: Optional[UUID] = None,
+        parent_tag_provided: bool = False,
     ) -> Tag:
         """
         Execute update tag use case
@@ -65,6 +68,52 @@ class UpdateTagUseCase:
         if tag.is_deleted():
             raise TagAlreadyDeletedError(tag_id)
 
+        # Prepare hierarchy move if needed
+        hierarchy_requested = parent_tag_provided
+        new_parent_id = parent_tag_id if hierarchy_requested else tag.parent_tag_id
+        is_move_requested = hierarchy_requested and parent_tag_id != tag.parent_tag_id
+
+        parent_tag: Optional[Tag] = None
+        if is_move_requested:
+            if parent_tag_id == tag.id:
+                raise TagInvalidHierarchyError("A tag cannot be its own parent", parent_tag_id)
+
+            if parent_tag_id:
+                parent_tag = await self.repository.get_by_id(parent_tag_id)
+                if not parent_tag:
+                    raise TagInvalidHierarchyError("Parent tag not found", parent_tag_id)
+                if parent_tag.is_deleted():
+                    raise TagInvalidHierarchyError("Parent tag is deleted", parent_tag_id)
+                if parent_tag.level >= 2:
+                    raise TagInvalidHierarchyError(
+                        "Maximum hierarchy depth is 3 levels",
+                        parent_tag_id,
+                    )
+
+            # Gather descendants to prevent cycles and enforce depth
+            descendants: list[tuple[Tag, int]] = []  # (tag, depth_from_current)
+
+            async def _collect_descendants(current_id: UUID, depth: int = 1):
+                children = await self.repository.get_by_parent(current_id)
+                for child in children:
+                    descendants.append((child, depth))
+                    await _collect_descendants(child.id, depth + 1)
+
+            await _collect_descendants(tag.id)
+
+            descendant_ids = {child.id for child, _ in descendants}
+            if parent_tag_id and parent_tag_id in descendant_ids:
+                raise TagInvalidHierarchyError("Cannot set a descendant as parent", parent_tag_id)
+
+            # Compute new level for the tag and ensure depth limit for descendants
+            new_level = 0 if parent_tag is None else parent_tag.level + 1
+            if new_level > 2:
+                raise TagInvalidHierarchyError("Maximum hierarchy depth is 3 levels", parent_tag_id)
+
+            for _, depth in descendants:
+                if new_level + depth > 2:
+                    raise TagInvalidHierarchyError("Moving this tag would exceed max depth", parent_tag_id)
+
         # Apply updates
         try:
             if name is not None and name != tag.name:
@@ -88,6 +137,16 @@ class UpdateTagUseCase:
 
             if description is not None:
                 tag.update_description(description)
+
+            if is_move_requested:
+                new_level = 0 if parent_tag is None else parent_tag.level + 1
+                tag.change_parent(new_parent_id if parent_tag_id else None, new_level)
+
+                # Adjust descendants' levels if any were collected
+                if 'descendants' in locals():
+                    for descendant, depth in descendants:
+                        descendant.set_level(new_level + depth)
+                        await self.repository.save(descendant)
 
             # Persist
             updated_tag = await self.repository.save(tag)

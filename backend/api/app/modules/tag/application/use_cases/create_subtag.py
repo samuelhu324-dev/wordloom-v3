@@ -35,7 +35,8 @@ class CreateSubtagUseCase:
         parent_tag_id: UUID,
         name: str,
         color: str,
-        icon: Optional[str] = None
+        icon: Optional[str] = None,
+        description: Optional[str] = None
     ) -> Tag:
         """
         Execute create subtag use case
@@ -93,6 +94,7 @@ class CreateSubtagUseCase:
                 name=name,
                 color=color,
                 icon=icon,
+                description=description,
                 parent_level=parent.level
             )
 

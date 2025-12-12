@@ -79,6 +79,7 @@ class CreateSubtagAdapter(CreateSubtagInputPort):
             name=request.name,
             color=request.color,
             icon=request.icon,
+            description=request.description,
         )
         return TagResponse.from_domain(tag)
 
@@ -96,6 +97,8 @@ class UpdateTagAdapter(UpdateTagInputPort):
             color=request.color,
             icon=request.icon,
             description=request.description,
+            parent_tag_id=request.parent_tag_id,
+            parent_tag_provided=request.parent_tag_provided,
         )
         return TagResponse.from_domain(tag)
 

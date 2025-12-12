@@ -93,9 +93,8 @@ async def create_tag(
         use_case = di.get_create_tag_use_case()
         dto = CreateTagInput(
             name=request.name,
-            color=request.color,
-            icon=request.icon,
             description=request.description,
+            icon=request.icon,
         )
         response: TagResponse = await use_case.execute(dto)
         return asdict(response)
@@ -130,6 +129,7 @@ async def create_subtag(
             name=request.name,
             color=request.color,
             icon=request.icon,
+            description=request.description,
         )
         response: TagResponse = await use_case.execute(dto)
         return asdict(response)
@@ -164,6 +164,8 @@ async def update_tag(
             color=request.color,
             icon=request.icon,
             description=request.description,
+            parent_tag_id=request.parent_tag_id,
+            parent_tag_provided='parent_tag_id' in request.model_fields_set,
         )
         response: TagResponse = await use_case.execute(dto)
         return asdict(response)
