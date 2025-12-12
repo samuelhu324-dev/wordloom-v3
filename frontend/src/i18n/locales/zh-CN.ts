@@ -68,6 +68,15 @@ export const zhCN = {
   'tags.catalog.title': '标签目录',
   'tags.catalog.summary': '已加载 {loaded} / {total} 个标签',
   'tags.catalog.deleted': '含 {count} 个已删除',
+
+  // Home / landing
+  'home.title': '欢迎使用 Wordloom',
+  'home.subtitle': '您的知识管理系统',
+  'home.cta.admin': '进入后台 - 知识库',
+  'home.cta.test': '路由测试页面',
+  'home.cta.login': '登录',
+  'home.notice.admin404': '如果 /admin/libraries 返回 404，但 /test 可以访问，说明问题在 (admin) 路由组',
+  'home.footer.version': 'v1.0 - UI 卡片系统就绪',
   'tags.state.loading': '正在加载标签数据…',
   'tags.state.errorTitle': '加载失败',
   'tags.state.retry': '重试',
