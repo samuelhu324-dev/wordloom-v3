@@ -68,6 +68,15 @@ export const enUS = {
   'tags.catalog.title': 'Tag catalog',
   'tags.catalog.summary': 'Loaded {loaded} / {total} tags',
   'tags.catalog.deleted': '{count} deleted included',
+
+  // Home / landing
+  'home.title': 'Welcome to Wordloom',
+  'home.subtitle': 'Your knowledge management system',
+  'home.cta.admin': 'Go to Admin - Libraries',
+  'home.cta.test': 'Route Test Page',
+  'home.cta.login': 'Login',
+  'home.notice.admin404': 'If /admin/libraries returns 404 but /test works, the issue is in the (admin) route group',
+  'home.footer.version': 'v1.0 - UI Card System Ready',
   'tags.state.loading': 'Loading tags…',
   'tags.state.errorTitle': 'Failed to load',
   'tags.state.retry': 'Retry',
