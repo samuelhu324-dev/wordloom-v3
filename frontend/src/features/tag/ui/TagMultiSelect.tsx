@@ -1,5 +1,8 @@
+'use client';
+
 import React from 'react';
 import type { TagDto } from '@/entities/tag';
+import { useI18n } from '@/i18n/useI18n';
 import styles from './TagMultiSelect.module.css';
 
 export interface TagMultiSelectProps<Chip extends { id?: string; name: string }> {
@@ -25,7 +28,7 @@ export interface TagMultiSelectProps<Chip extends { id?: string; name: string }>
 
 export function TagMultiSelect<Chip extends { id?: string; name: string }>(
   {
-    label = '标签',
+    label,
     limitNote,
     maxTags,
     helperText,
@@ -45,13 +48,19 @@ export function TagMultiSelect<Chip extends { id?: string; name: string }>(
     onSelectSuggestion,
   }: TagMultiSelectProps<Chip>,
 ) {
+  const { t } = useI18n();
   const inputDisabled = disabled || !canAddMore;
-  const resolvedPlaceholder = placeholder ?? (canAddMore ? '输入标签并回车…' : '已达到上限');
+  const resolvedLabel = label ?? t('tags.multiSelect.label');
+  const resolvedPlaceholder = placeholder
+    ?? (canAddMore ? t('tags.multiSelect.placeholder') : t('tags.multiSelect.placeholderLimit'));
+  const selectedSummary = typeof maxTags === 'number'
+    ? t('tags.multiSelect.selectedWithMax', { count: selections.length, max: maxTags })
+    : t('tags.multiSelect.selected', { count: selections.length });
 
   return (
     <div className={styles.container}>
       <div className={styles.labelRow}>
-        <span>{label}</span>
+        <span>{resolvedLabel}</span>
         {limitNote && <span className={styles.limitNote}>{limitNote}</span>}
         {statusText && <span className={styles.statusText}>{statusText}</span>}
       </div>
@@ -69,7 +78,7 @@ export function TagMultiSelect<Chip extends { id?: string; name: string }>(
               type="button"
               className={styles.chipRemoveButton}
               onClick={() => onRemoveTag(index)}
-              aria-label={`移除标签 ${tag.name}`}
+              aria-label={t('tags.multiSelect.removeAria', { name: tag.name })}
             >
               ×
             </button>
@@ -88,7 +97,7 @@ export function TagMultiSelect<Chip extends { id?: string; name: string }>(
       {helperText && <p className={styles.helperText}>{helperText}</p>}
       {canAddMore ? (
         suggestionsLoading ? (
-          <p className={styles.loadingText}>加载标签…</p>
+          <p className={styles.loadingText}>{t('tags.multiSelect.loading')}</p>
         ) : suggestions.length === 0 ? (
           suggestionEmptyMessage ? (
             <p className={styles.emptySuggestions}>{suggestionEmptyMessage}</p>
@@ -109,10 +118,7 @@ export function TagMultiSelect<Chip extends { id?: string; name: string }>(
           </div>
         )
       ) : (
-        <p className={styles.helperText}>
-          已选择 {selections.length}
-          {typeof maxTags === 'number' ? `/${maxTags}` : ''} 个标签
-        </p>
+        <p className={styles.helperText}>{selectedSummary}</p>
       )}
     </div>
   );

@@ -8,6 +8,8 @@ import { showToast } from '@/shared/ui/toast';
 import { useMostUsedTags, useTagSearch, useCreateTag } from '@/features/tag/model/hooks';
 import { searchTags } from '@/features/tag/model/api';
 import type { TagDto } from '@/entities/tag';
+import { TagMultiSelect } from '@/features/tag/ui';
+import { useI18n } from '@/i18n/useI18n';
 import styles from './BookshelfTagEditDialog.module.css';
 
 interface BookshelfTagEditDialogProps {
@@ -31,6 +33,7 @@ export const BookshelfTagEditDialog = ({
   onClose,
   onSaved,
 }: BookshelfTagEditDialogProps) => {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [tagSelections, setTagSelections] = useState<TagSelection[]>([]);
@@ -90,7 +93,9 @@ export const BookshelfTagEditDialog = ({
       .slice(0, SUGGESTION_LIMIT);
   }, [baseSuggestions, selectedIdKeys, selectedNameKeys]);
 
-  const statusLabel = isSearching ? '匹配' : '常用';
+  const statusLabel = isSearching
+    ? t('bookshelves.tags.dialog.status.matching')
+    : t('bookshelves.tags.dialog.status.popular');
 
   const handleAddExistingTag = useCallback(
     (tag: TagDto) => {
@@ -183,7 +188,7 @@ export const BookshelfTagEditDialog = ({
     const trimmedName = name.trim();
     const trimmedDescription = description.trim();
     if (!trimmedName) {
-      setFormError('名称不能为空');
+      setFormError(t('bookshelves.tags.dialog.errorRequired'));
       return;
     }
     try {
@@ -200,7 +205,7 @@ export const BookshelfTagEditDialog = ({
         },
       });
 
-      showToast('书橱标签已更新');
+      showToast(t('bookshelves.tags.dialog.toastSuccess'));
       onSaved?.({
         bookshelfId: bookshelf.id,
         name: trimmedName,
@@ -209,7 +214,8 @@ export const BookshelfTagEditDialog = ({
       });
       onClose();
     } catch (error) {
-      const message = (error as Error)?.message || '保存失败';
+      const fallbackMessage = t('bookshelves.tags.dialog.errorGeneric');
+      const message = (error as Error)?.message || fallbackMessage;
       showToast(message);
       setFormError(message);
     }
@@ -223,8 +229,8 @@ export const BookshelfTagEditDialog = ({
   return (
     <Modal
       isOpen={isOpen}
-      title="编辑书橱"
-      subtitle="修改书橱名称与标签以便更快识别。"
+      title={t('bookshelves.tags.dialog.title')}
+      subtitle={t('bookshelves.tags.dialog.subtitle')}
       onClose={handleClose}
       closeOnBackdrop={false}
       showCloseButton
@@ -233,10 +239,10 @@ export const BookshelfTagEditDialog = ({
     >
       <form className={styles.form} onSubmit={handleSubmit}>
         <Input
-          label="书橱名称"
+          label={t('bookshelves.tags.dialog.nameLabel')}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="输入书橱名称"
+          placeholder={t('bookshelves.tags.dialog.namePlaceholder')}
           required
           autoFocus
         />
@@ -244,74 +250,43 @@ export const BookshelfTagEditDialog = ({
 
         <div className={styles.descriptionField}>
           <label className={styles.descriptionLabel} htmlFor="bookshelf-description">
-            简介（可选）
+            {t('bookshelves.tags.dialog.descriptionLabel')}
           </label>
           <textarea
             id="bookshelf-description"
             className={styles.descriptionTextarea}
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="例如：记录日常学习的札记…"
+            placeholder={t('bookshelves.tags.dialog.descriptionPlaceholder')}
             rows={3}
           />
-          <span className={styles.helperText}>简介将展示在书橱卡片上，帮助运营团队快速了解用途。</span>
+          <span className={styles.helperText}>{t('bookshelves.tags.dialog.descriptionHelper')}</span>
         </div>
-
-        <div className={styles.fieldGroup}>
-          <div className={styles.labelRow}>
-            <span>标签</span>
-            <span className={styles.limitNote}>最多 {MAX_TAGS} 个</span>
-            {(searchLoading || popularLoading) && <span className={styles.limitNote}>加载中…</span>}
-          </div>
-          <div className={`${styles.tagInput} ${!canAddMore ? styles.tagInputFull : ''}`}>
-            {tagSelections.map((tag, index) => (
-              <span key={`${tag.id ?? tag.name}-${index}`} className={styles.tagChip}>
-                {tag.name}
-                <button
-                  type="button"
-                  className={styles.tagRemoveButton}
-                  onClick={() => handleRemoveTag(index)}
-                  aria-label={`移除标签 ${tag.name}`}
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-            <input
-              className={styles.tagInputField}
-              type="text"
-              placeholder={canAddMore ? '输入标签并回车…' : '已达到上限'}
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={handleInputKeyDown}
-              disabled={!canAddMore || isSaving}
-            />
-          </div>
-          <p className={styles.helperText}>标签会展示在书橱卡片上，帮助运营团队快速筛选。</p>
-          {canAddMore && filteredSuggestions.length > 0 && (
-            <div className={styles.suggestions}>
-              {filteredSuggestions.map((tag) => (
-                <button
-                  type="button"
-                  key={tag.id ?? tag.name}
-                  className={styles.suggestionButton}
-                  onClick={() => handleAddExistingTag(tag)}
-                >
-                  <span>{tag.name}</span>
-                  <span className={styles.suggestionMeta}>{statusLabel}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          {canAddMore && filteredSuggestions.length === 0 && (debouncedQuery || !isSearching) && (
-            <p className={styles.emptySuggestions}>没有更多可用的标签，输入后按回车即可新建。</p>
-          )}
-          {!canAddMore && <p className={styles.helperText}>已选择 {MAX_TAGS} 个标签。</p>}
-        </div>
+        <TagMultiSelect
+          label={t('bookshelves.tags.dialog.fieldLabel')}
+          limitNote={t('bookshelves.tags.dialog.limitNote', { max: MAX_TAGS })}
+          helperText={t('bookshelves.tags.dialog.helper')}
+          maxTags={MAX_TAGS}
+          canAddMore={canAddMore}
+          selections={tagSelections}
+          inputValue={tagInput}
+          disabled={isSaving}
+          statusText={(searchLoading || popularLoading) ? t('bookshelves.tags.dialog.loading') : undefined}
+          suggestions={filteredSuggestions}
+          suggestionsLabel={statusLabel}
+          suggestionsLoading={searchLoading || popularLoading}
+          suggestionEmptyMessage={canAddMore && (debouncedQuery || !isSearching)
+            ? t('bookshelves.tags.dialog.emptySuggestions')
+            : undefined}
+          onInputChange={(value) => setTagInput(value)}
+          onInputKeyDown={handleInputKeyDown}
+          onRemoveTag={handleRemoveTag}
+          onSelectSuggestion={handleAddExistingTag}
+        />
 
         <div className={styles.footer}>
           <Button type="submit" variant="primary" loading={isSaving} disabled={!bookshelf}>
-            保存
+            {t('button.save')}
           </Button>
         </div>
       </form>

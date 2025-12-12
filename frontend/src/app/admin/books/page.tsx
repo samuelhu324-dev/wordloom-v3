@@ -14,6 +14,7 @@ import {
   mergeTagDescriptionMaps,
 } from '@/features/tag/lib/tagCatalog';
 import { BookMaturityView, buildBookMaturitySnapshot } from '@/widgets/book/BookMainWidget';
+import { useI18n } from '@/i18n/useI18n';
 import styles from './page.module.css';
 
 type LibraryTagCatalogEntry = {
@@ -35,6 +36,7 @@ export default function BooksPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookshelfId = searchParams.get('bookshelf_id') || undefined;
+  const { t } = useI18n();
 
   const {
     data: bookList,
@@ -177,7 +179,7 @@ export default function BooksPage() {
       <div className={styles.inner}>
         <Breadcrumb
           items={[
-            { label: '书库列表', href: '/admin/libraries' },
+            { label: t('bookshelves.library.breadcrumb.list'), href: '/admin/libraries' },
             bookshelfId && bookshelf ? { label: bookshelf.name, href: `/admin/bookshelves/${bookshelf.id}` } : null,
             { label: '书籍概览', active: true },
           ].filter(Boolean) as any}

@@ -11,7 +11,7 @@ Idempotent: skips columns already timestamptz.
 
 Usage (PowerShell):
   cd backend
-  $env:DATABASE_URL="postgresql://postgres:pgpass@172.31.150.143:5432/wordloom"
+    $env:DATABASE_URL="postgresql://postgres:pgpass@172.31.150.143:5434/wordloom"
   ..\.venv\Scripts\python.exe scripts\fix_books_timestamps.py
 """
 

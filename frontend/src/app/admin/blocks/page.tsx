@@ -11,6 +11,7 @@ import { ChronicleTimelineList, useChronicleTimeline } from '@/features/chronicl
 import { BookDto, BookMaturity } from '@/entities/book';
 import { ChronicleTimelinePage } from '@/entities/chronicle';
 import { BookEditorRoot } from '@/modules/book-editor';
+import { useI18n } from '@/i18n/useI18n';
 import styles from './page.module.css';
 
 const MATURITY_META: Record<BookMaturity, { label: string }> = {
@@ -70,6 +71,7 @@ const BlocksWorkspacePage: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookId = searchParams.get('book_id') || '';
+  const { t } = useI18n();
 
   const { data: book, isLoading: isBookLoading, error: bookError } = useBook(bookId);
   const { data: bookshelf } = useBookshelf(book?.bookshelf_id || '');
@@ -192,7 +194,7 @@ const BlocksWorkspacePage: React.FC = () => {
       <div className={styles.inner}>
         <Breadcrumb
           items={[
-            { label: '书库列表', href: '/admin/libraries' },
+            { label: t('bookshelves.library.breadcrumb.list'), href: '/admin/libraries' },
             library ? { label: library.name, href: `/admin/libraries/${library.id}` } : null,
             bookshelf ? { label: bookshelf.name, href: `/admin/bookshelves/${bookshelf.id}` } : null,
             book ? { label: book.title, href: `/admin/books/${book.id}` } : null,

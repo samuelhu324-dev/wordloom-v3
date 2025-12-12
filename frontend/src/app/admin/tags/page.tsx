@@ -48,15 +48,15 @@ const EMPTY_FORM: TagFormState = {
   icon: '',
 };
 
-const formatDate = (iso?: string | null): string => {
+const formatDate = (iso: string | null | undefined, locale: string): string => {
   if (!iso) return '—';
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleString(undefined, {
+  return new Intl.DateTimeFormat(locale, {
     year: 'numeric',
-    month: 'short',
+    month: 'long',
     day: 'numeric',
-  });
+  }).format(date);
 };
 
 const formatLevelLabel = (tag: TagDto, t: (key: MessageKey, params?: Record<string, unknown>) => string): string => {
@@ -107,7 +107,7 @@ export default function TagCatalogPage() {
   const [order, setOrder] = useState<OrderOption>('name_asc');
   const [onlyTopLevel, setOnlyTopLevel] = useState(true);
   const [showDeleted, setShowDeleted] = useState(false);
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
 
   const [dialogMode, setDialogMode] = useState<DialogMode>('create');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -397,8 +397,8 @@ export default function TagCatalogPage() {
                           </td>
                           <td title={tag.parent_tag_id || undefined}>{shortenId(tag.parent_tag_id)}</td>
                           <td className={styles.usageCell}>{tag.usage_count}</td>
-                          <td className={styles.timestamp}>{formatDate(tag.created_at)}</td>
-                          <td className={styles.timestamp}>{formatDate(tag.updated_at)}</td>
+                          <td className={styles.timestamp}>{formatDate(tag.created_at, lang)}</td>
+                          <td className={styles.timestamp}>{formatDate(tag.updated_at, lang)}</td>
                           <td>
                             <span
                               className={`${styles.statusBadge} ${tag.deleted_at ? styles.statusBadgeDeleted : styles.statusBadgeActive}`}

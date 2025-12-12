@@ -33,6 +33,6 @@
     "eslint-plugin-wordloom-custom": "file:eslint-rules",
     "jsdom": "^24.1.3",
     "typescript": "^5.0.0",
-    "vitest": "^1.6.1"
+    "vitest": "^4.0.15"
   }
 }

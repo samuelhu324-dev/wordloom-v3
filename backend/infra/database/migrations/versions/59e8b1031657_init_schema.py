@@ -175,6 +175,31 @@ def upgrade() -> None:
     op.create_index(op.f('ix_books_moved_to_basement_at'), 'books', ['moved_to_basement_at'], unique=False)
     op.create_index(op.f('ix_books_previous_bookshelf_id'), 'books', ['previous_bookshelf_id'], unique=False)
     op.create_index(op.f('ix_books_soft_deleted_at'), 'books', ['soft_deleted_at'], unique=False)
+
+    op.create_table('basement_entries',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('book_id', sa.UUID(), nullable=False),
+    sa.Column('library_id', sa.UUID(), nullable=False),
+    sa.Column('bookshelf_id', sa.UUID(), nullable=True),
+    sa.Column('previous_bookshelf_id', sa.UUID(), nullable=True, comment='Last active bookshelf before entering Basement'),
+    sa.Column('title_snapshot', sa.String(length=255), nullable=False),
+    sa.Column('summary_snapshot', sa.Text(), nullable=True),
+    sa.Column('status_snapshot', sa.String(length=50), nullable=False),
+    sa.Column('block_count_snapshot', sa.Integer(), server_default=sa.text('0'), nullable=False),
+    sa.Column('moved_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['book_id'], ['books.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['library_id'], ['libraries.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['bookshelf_id'], ['bookshelves.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('book_id', name='uq_basement_entries_book_id')
+    )
+    op.create_index('idx_basement_entries_book_id', 'basement_entries', ['book_id'], unique=False)
+    op.create_index('idx_basement_entries_library_id', 'basement_entries', ['library_id'], unique=False)
+    op.create_index('idx_basement_entries_moved_at', 'basement_entries', ['moved_at'], unique=False)
+    op.execute("COMMENT ON TABLE basement_entries IS 'Snapshot records of books currently in Basement recycle area'")
+    op.execute("COMMENT ON COLUMN basement_entries.book_id IS 'FK to books table (CASCADE on delete)'")
+    op.execute("COMMENT ON COLUMN basement_entries.moved_at IS 'Timestamp when book entered Basement'")
     op.create_table('media_associations',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('media_id', sa.UUID(), nullable=False),
@@ -295,6 +320,11 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_media_associations_entity_id'), table_name='media_associations')
     op.drop_index('ix_media_associations_entity', table_name='media_associations')
     op.drop_table('media_associations')
+
+    op.drop_index('idx_basement_entries_moved_at', table_name='basement_entries')
+    op.drop_index('idx_basement_entries_library_id', table_name='basement_entries')
+    op.drop_index('idx_basement_entries_book_id', table_name='basement_entries')
+    op.drop_table('basement_entries')
     op.drop_index(op.f('ix_books_soft_deleted_at'), table_name='books')
     op.drop_index(op.f('ix_books_previous_bookshelf_id'), table_name='books')
     op.drop_index(op.f('ix_books_moved_to_basement_at'), table_name='books')

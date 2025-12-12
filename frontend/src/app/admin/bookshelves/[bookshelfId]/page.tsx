@@ -6,6 +6,7 @@ import { Breadcrumb } from '@/shared/ui';
 import { BookMainWidget, type BookViewMode } from '@/widgets/book/BookMainWidget';
 import { useBookshelf } from '@/features/bookshelf';
 import { useLibrary } from '@/features/library';
+import { useI18n } from '@/i18n/useI18n';
 import styles from './page.module.css';
 
 /**
@@ -22,6 +23,7 @@ export default function BookshelfDetailPage() {
   const params = useParams();
   const router = useRouter();
   const bookshelfId = (params.bookshelfId as string) || '';
+  const { t } = useI18n();
 
   // Fetch bookshelf
   const {
@@ -80,7 +82,7 @@ export default function BookshelfDetailPage() {
       <div className={styles.container}>
         <Breadcrumb
           items={[
-            { label: '书库列表', href: '/admin/libraries' },
+            { label: t('bookshelves.library.breadcrumb.list'), href: '/admin/libraries' },
             library ? { label: library.name, href: `/admin/libraries/${library.id}` } : null,
             { label: bookshelf.name, active: true },
           ].filter(Boolean) as any}
