@@ -39,6 +39,7 @@ class CreateSubtagRequest:
     name: str
     color: str
     icon: Optional[str] = None
+    description: Optional[str] = None
 
 
 @dataclass
@@ -49,6 +50,8 @@ class UpdateTagRequest:
     color: Optional[str] = None
     icon: Optional[str] = None
     description: Optional[str] = None
+    parent_tag_id: Optional[UUID] = None
+    parent_tag_provided: bool = False
 
 
 @dataclass

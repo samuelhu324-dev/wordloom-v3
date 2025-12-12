@@ -116,6 +116,8 @@ export const zhCN = {
   'tags.dialog.fields.icon': 'Icon（可选）',
   'tags.dialog.fields.iconPlaceholder': 'lucide 名称，如：bookmark',
   'tags.dialog.fields.iconHelper': '可选：后台展示时的图标标识',
+  'tags.dialog.fields.parent': '父标签（可选）',
+  'tags.dialog.fields.parentNone': '顶级（无父标签）',
   'tags.suggestions.matchLabel': '匹配',
   'tags.suggestions.commonLabel': '常用',
   'tags.dialog.noteDeleted': '该标签当前处于已删除状态，可通过“恢复”按钮启用。',

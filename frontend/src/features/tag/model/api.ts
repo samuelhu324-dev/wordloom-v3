@@ -99,6 +99,18 @@ export const createTag = async (request: CreateTagRequest): Promise<TagDto> => {
   return response.data;
 };
 
+export interface CreateSubtagRequest {
+  name: string;
+  color: string;
+  icon?: string | null;
+  description?: string | null;
+}
+
+export const createSubtag = async (parentTagId: string, request: CreateSubtagRequest): Promise<TagDto> => {
+  const response = await apiClient.post<TagDto>(`${BASE_URL}/${parentTagId}/subtags`, request);
+  return response.data;
+};
+
 export const updateTag = async (tagId: string, request: UpdateTagRequest): Promise<TagDto> => {
   const response = await apiClient.patch<TagDto>(`${BASE_URL}/${tagId}`, request);
   return response.data;

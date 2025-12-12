@@ -116,6 +116,8 @@ export const enUS = {
   'tags.dialog.fields.icon': 'Icon (optional)',
   'tags.dialog.fields.iconPlaceholder': 'Lucide icon name, e.g. bookmark',
   'tags.dialog.fields.iconHelper': 'Optional indicator when showing tags in admin',
+  'tags.dialog.fields.parent': 'Parent tag (optional)',
+  'tags.dialog.fields.parentNone': 'Top-level (no parent)',
   'tags.suggestions.matchLabel': 'Matches',
   'tags.suggestions.commonLabel': 'Popular',
   'tags.dialog.noteDeleted': 'This tag is currently deleted. Use “Restore” to activate it.',

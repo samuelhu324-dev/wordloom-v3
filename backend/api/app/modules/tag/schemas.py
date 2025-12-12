@@ -77,9 +77,9 @@ class CreateTagRequest(BaseModel):
 class CreateSubtagRequest(BaseModel):
     """Request to create a hierarchical sub-tag"""
 
-    parent_tag_id: UUID = Field(
-        ...,
-        description="Parent tag ID (for hierarchical structure)"
+    parent_tag_id: Optional[UUID] = Field(
+        None,
+        description="(Deprecated) Parent tag ID. The API uses the path parameter as the source of truth."
     )
     name: str = Field(
         ...,
@@ -98,13 +98,20 @@ class CreateSubtagRequest(BaseModel):
         description="Lucide icon name (optional)"
     )
 
+    description: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Optional description"
+    )
+
     class Config:
         json_schema_extra = {
             "example": {
                 "parent_tag_id": "550e8400-e29b-41d4-a716-446655440000",
                 "name": "Django",
                 "color": "#092E20",
-                "icon": "framework"
+                "icon": "framework",
+                "description": "Web framework under Python"
             }
         }
 
@@ -132,6 +139,10 @@ class UpdateTagRequest(BaseModel):
         None,
         max_length=500,
         description="New description"
+    )
+    parent_tag_id: Optional[UUID] = Field(
+        None,
+        description="New parent tag id (use null to move to top-level)"
     )
 
     class Config:

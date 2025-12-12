@@ -7,6 +7,7 @@ import { showToast } from '@/shared/ui/toast';
 import {
   useTagCatalog,
   useCreateTag,
+  useCreateSubtag,
   useUpdateTag,
   useDeleteTag,
   useRestoreTag,
@@ -39,6 +40,7 @@ interface TagFormState {
   color: string;
   description: string;
   icon: string;
+  parentId: string;
 }
 
 const EMPTY_FORM: TagFormState = {
@@ -46,6 +48,7 @@ const EMPTY_FORM: TagFormState = {
   color: DEFAULT_TAG_COLOR,
   description: '',
   icon: '',
+  parentId: '',
 };
 
 const formatDate = (iso: string | null | undefined, locale: string): string => {
@@ -126,6 +129,7 @@ export default function TagCatalogPage() {
   const { data, isLoading, isFetching, isError, error, refetch } = tagCatalog;
 
   const createTagMutation = useCreateTag();
+  const createSubtagMutation = useCreateSubtag();
   const updateTagMutation = useUpdateTag();
   const deleteTagMutation = useDeleteTag();
   const restoreTagMutation = useRestoreTag();
@@ -133,6 +137,36 @@ export default function TagCatalogPage() {
   const isSaving = dialogMode === 'create' ? createTagMutation.isPending : updateTagMutation.isPending;
 
   const items = data?.items ?? [];
+
+  const tagNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    items.forEach((tag) => {
+      if (tag.id && tag.name) map.set(tag.id, tag.name);
+    });
+    return map;
+  }, [items]);
+
+  const descendantIds = useMemo(() => {
+    if (!activeTag) return new Set<string>();
+    const set = new Set<string>();
+    const walk = (rootId: string) => {
+      items.forEach((tag) => {
+        if (tag.parent_tag_id === rootId) {
+          set.add(tag.id);
+          walk(tag.id);
+        }
+      });
+    };
+    walk(activeTag.id);
+    return set;
+  }, [activeTag, items]);
+
+  const parentCandidates = useMemo(() => {
+    return items
+      .filter((tag) => !tag.deleted_at)
+      .filter((tag) => tag.level <= 1)
+      .filter((tag) => (activeTag ? tag.id !== activeTag.id && !descendantIds.has(tag.id) : true));
+  }, [items, activeTag, descendantIds]);
 
   const filteredItems = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -169,6 +203,7 @@ export default function TagCatalogPage() {
       color: normalizeHexColor(tag.color),
       description: tag.description ?? '',
       icon: tag.icon ?? '',
+      parentId: tag.parent_tag_id ?? '',
     });
     setFormError(null);
     setIsDialogOpen(true);
@@ -196,6 +231,7 @@ export default function TagCatalogPage() {
 
     const normalizedDescription = formState.description.trim();
     const normalizedIcon = formState.icon.trim();
+    const normalizedParentId = formState.parentId.trim();
 
     const shouldClearDescription = dialogMode === 'edit'
       && Boolean(activeTag?.description)
@@ -217,10 +253,25 @@ export default function TagCatalogPage() {
 
     try {
       if (dialogMode === 'create') {
-        await createTagMutation.mutateAsync(payload);
-        showToast(t('tags.toast.created'));
+        if (normalizedParentId) {
+          await createSubtagMutation.mutateAsync({
+            parentTagId: normalizedParentId,
+            data: payload,
+          });
+          showToast(t('tags.toast.created'));
+          setOnlyTopLevel(false);
+        } else {
+          await createTagMutation.mutateAsync(payload);
+          showToast(t('tags.toast.created'));
+        }
       } else if (activeTag?.id) {
-        await updateTagMutation.mutateAsync({ tagId: activeTag.id, data: payload });
+        await updateTagMutation.mutateAsync({
+          tagId: activeTag.id,
+          data: {
+            ...payload,
+            parent_tag_id: normalizedParentId.length > 0 ? normalizedParentId : null,
+          },
+        });
         showToast(t('tags.toast.updated'));
       }
       await refetch();
@@ -395,7 +446,9 @@ export default function TagCatalogPage() {
                           <td>
                             <span className={styles.levelBadge}>{formatLevelLabel(tag, t)}</span>
                           </td>
-                          <td title={tag.parent_tag_id || undefined}>{shortenId(tag.parent_tag_id)}</td>
+                          <td title={tag.parent_tag_id || undefined}>
+                            {tag.parent_tag_id ? (tagNameById.get(tag.parent_tag_id) ?? shortenId(tag.parent_tag_id)) : '—'}
+                          </td>
                           <td className={styles.usageCell}>{tag.usage_count}</td>
                           <td className={styles.timestamp}>{formatDate(tag.created_at, lang)}</td>
                           <td className={styles.timestamp}>{formatDate(tag.updated_at, lang)}</td>
@@ -471,6 +524,23 @@ export default function TagCatalogPage() {
             placeholder={t('tags.dialog.fields.namePlaceholder')}
             required
           />
+
+          <label className={styles.selectLabel} htmlFor="tag-parent">
+            {t('tags.dialog.fields.parent')}
+            <select
+              id="tag-parent"
+              className={styles.dialogSelect}
+              value={formState.parentId}
+              onChange={(event) => setFormState((prev) => ({ ...prev, parentId: event.target.value }))}
+            >
+              <option value="">{t('tags.dialog.fields.parentNone')}</option>
+              {parentCandidates.map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>
+                  {candidate.name}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <div className={styles.colorRow}>
             <div className={styles.colorPickerBlock}>

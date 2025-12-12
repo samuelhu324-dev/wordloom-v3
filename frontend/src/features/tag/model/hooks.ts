@@ -3,12 +3,14 @@ import {
   searchTags,
   getTag,
   createTag,
+  createSubtag,
   updateTag,
   deleteTag,
   getMostUsedTags,
   listTags,
   restoreTag,
   SearchTagsParams,
+  CreateSubtagRequest,
 } from './api';
 import { CreateTagRequest, UpdateTagRequest } from '@/entities/tag';
 
@@ -72,6 +74,21 @@ export const useCreateTag = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (request: CreateTagRequest) => createTag(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY.all });
+    },
+  });
+};
+
+interface CreateSubtagPayload {
+  parentTagId: string;
+  data: CreateSubtagRequest;
+}
+
+export const useCreateSubtag = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ parentTagId, data }: CreateSubtagPayload) => createSubtag(parentTagId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY.all });
     },

@@ -19,6 +19,7 @@ export interface CreateTagRequest {
   parent_id?: string;
   description?: string | null;
   icon?: string | null;
+  parent_tag_id?: string | null;
 }
 
 /** Update Tag Request */
