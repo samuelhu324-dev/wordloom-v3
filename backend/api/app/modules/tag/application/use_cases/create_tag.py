@@ -13,7 +13,7 @@ RULE-019: Color must be valid hex (#RRGGBB or #RRGGBBAA)
 from typing import Optional
 from uuid import UUID
 
-from ...domain import Tag, TagCreated
+from ...domain import Tag, TagCreated, DEFAULT_COLOR
 from ...application.ports.output import TagRepository
 from ...exceptions import (
     TagInvalidNameError,
@@ -32,7 +32,7 @@ class CreateTagUseCase:
     async def execute(
         self,
         name: str,
-        color: str,
+        color: Optional[str],
         icon: Optional[str] = None,
         description: Optional[str] = None
     ) -> Tag:
@@ -61,10 +61,11 @@ class CreateTagUseCase:
             raise TagInvalidNameError("Tag name must be <= 50 characters", name)
 
         # Validate color
-        if not color.startswith("#"):
-            raise TagInvalidColorError(color, "Color must start with #")
-        if len(color) not in [7, 9]:
-            raise TagInvalidColorError(color, "Color must be 6 or 8 digit hex")
+        normalized_color = color or DEFAULT_COLOR
+        if not normalized_color.startswith("#"):
+            raise TagInvalidColorError(normalized_color, "Color must start with #")
+        if len(normalized_color) not in [7, 9]:
+            raise TagInvalidColorError(normalized_color, "Color must be 6 or 8 digit hex")
 
         # Check uniqueness
         if await self.repository.check_name_exists(name):
@@ -74,7 +75,7 @@ class CreateTagUseCase:
         try:
             tag = Tag.create_toplevel(
                 name=name,
-                color=color,
+                color=normalized_color,
                 icon=icon,
                 description=description
             )

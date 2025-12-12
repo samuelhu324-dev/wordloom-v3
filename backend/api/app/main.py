@@ -230,6 +230,10 @@ app.add_middleware(
         "http://127.0.0.1:30002",       # Frontend served on 30002 (IPv4)
         "http://localhost:31002",      # 新增
         "http://127.0.0.1:31002",      # 建议也加
+        "http://localhost:30000",      # frontend dev alt port
+        "http://127.0.0.1:30000",
+        "http://localhost:31000",
+        "http://127.0.0.1:31000",
     ],
     allow_credentials=True,
     allow_methods=["*"],

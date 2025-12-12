@@ -9,7 +9,7 @@ Organized as:
 """
 
 # Aggregate Root
-from .tag import Tag, TagAssociation
+from .tag import Tag, TagAssociation, DEFAULT_COLOR
 
 # Domain Events
 from .events import (
@@ -40,6 +40,7 @@ __all__ = [
     # Aggregate Root & Value Objects
     "Tag",
     "TagAssociation",
+    "DEFAULT_COLOR",
     # Events
     "TagCreated",
     "TagRenamed",

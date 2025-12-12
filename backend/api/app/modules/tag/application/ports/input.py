@@ -27,7 +27,7 @@ from ...domain import Tag, EntityType
 class CreateTagRequest:
     """创建顶级 Tag 的请求"""
     name: str
-    color: str
+    color: Optional[str] = None
     icon: Optional[str] = None
     description: Optional[str] = None
 
@@ -37,7 +37,7 @@ class CreateSubtagRequest:
     """创建 Sub-tag 的请求"""
     parent_tag_id: UUID
     name: str
-    color: str
+    color: Optional[str] = None
     icon: Optional[str] = None
     description: Optional[str] = None
 

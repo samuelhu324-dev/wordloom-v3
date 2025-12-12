@@ -47,10 +47,10 @@ class CreateTagRequest(BaseModel):
         max_length=50,
         description="Tag name (unique, 1-50 characters)"
     )
-    color: str = Field(
-        ...,
+    color: Optional[str] = Field(
+        None,
         pattern=r"^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$",
-        description="Tag color in hex format (#RRGGBB or #RRGGBBAA)"
+        description="Tag color in hex format (#RRGGBB or #RRGGBBAA). Optional: backend will default to gray."
     )
     icon: Optional[str] = Field(
         None,
@@ -87,10 +87,10 @@ class CreateSubtagRequest(BaseModel):
         max_length=50,
         description="Sub-tag name"
     )
-    color: str = Field(
-        ...,
+    color: Optional[str] = Field(
+        None,
         pattern=r"^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$",
-        description="Sub-tag color"
+        description="Sub-tag color (optional; backend defaults to gray)"
     )
     icon: Optional[str] = Field(
         None,

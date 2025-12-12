@@ -21,6 +21,9 @@ from .events import (
     TagAssociatedWithEntity, TagDisassociatedFromEntity
 )
 
+# Default tag color (neutral gray) used when client omits color
+DEFAULT_COLOR = "#9CA3AF"
+
 
 # ============================================================================
 # Value Objects
@@ -138,11 +141,12 @@ class Tag(AggregateRoot):
     @staticmethod
     def create_toplevel(
         name: str,
-        color: str,
+        color: Optional[str],
         icon: Optional[str] = None,
         description: Optional[str] = None
     ) -> Tag:
         """Factory: Create a top-level Tag"""
+        color = color or DEFAULT_COLOR
         tag = Tag(
             id=uuid4(),
             name=name,
@@ -165,12 +169,13 @@ class Tag(AggregateRoot):
     def create_subtag(
         parent_tag_id: UUID,
         name: str,
-        color: str,
+        color: Optional[str],
         icon: Optional[str] = None,
         description: Optional[str] = None,
         parent_level: int = 0
     ) -> Tag:
         """Factory: Create a hierarchical sub-Tag"""
+        color = color or DEFAULT_COLOR
         tag = Tag(
             id=uuid4(),
             name=name,

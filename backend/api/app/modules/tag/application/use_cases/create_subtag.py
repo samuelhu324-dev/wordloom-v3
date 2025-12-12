@@ -13,7 +13,7 @@ RULE-020: Maximum hierarchy depth is 3 levels (top, sub, sub-sub)
 from typing import Optional
 from uuid import UUID
 
-from ...domain import Tag
+from ...domain import Tag, DEFAULT_COLOR
 from ...application.ports.output import TagRepository
 from ...exceptions import (
     TagNotFoundError,
@@ -34,7 +34,7 @@ class CreateSubtagUseCase:
         self,
         parent_tag_id: UUID,
         name: str,
-        color: str,
+        color: Optional[str],
         icon: Optional[str] = None,
         description: Optional[str] = None
     ) -> Tag:
@@ -82,17 +82,18 @@ class CreateSubtagUseCase:
             raise TagInvalidNameError("Tag name must be <= 50 characters", name)
 
         # Validate color
-        if not color.startswith("#"):
-            raise TagInvalidColorError(color, "Color must start with #")
-        if len(color) not in [7, 9]:
-            raise TagInvalidColorError(color, "Color must be 6 or 8 digit hex")
+        normalized_color = color or DEFAULT_COLOR
+        if not normalized_color.startswith("#"):
+            raise TagInvalidColorError(normalized_color, "Color must start with #")
+        if len(normalized_color) not in [7, 9]:
+            raise TagInvalidColorError(normalized_color, "Color must be 6 or 8 digit hex")
 
         # Create domain object
         try:
             tag = Tag.create_subtag(
                 parent_tag_id=parent_tag_id,
                 name=name,
-                color=color,
+                color=normalized_color,
                 icon=icon,
                 description=description,
                 parent_level=parent.level

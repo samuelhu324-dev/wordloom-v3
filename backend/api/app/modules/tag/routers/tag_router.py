@@ -93,6 +93,7 @@ async def create_tag(
         use_case = di.get_create_tag_use_case()
         dto = CreateTagInput(
             name=request.name,
+            color=request.color,
             description=request.description,
             icon=request.icon,
         )
