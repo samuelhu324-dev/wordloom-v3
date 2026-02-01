@@ -1,0 +1,621 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<title>QUICK_LOG.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+  font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+  font-size: var(--vscode-markdown-font-size, 14px);
+  padding: 0 26px;
+  line-height: var(--vscode-markdown-line-height, 22px);
+  word-wrap: break-word;
+}
+
+#code-csp-warning {
+  position: fixed;
+  top: 0;
+  right: 0;
+  color: white;
+  margin: 16px;
+  text-align: center;
+  font-size: 12px;
+  font-family: sans-serif;
+  background-color:#444444;
+  cursor: pointer;
+  padding: 6px;
+  box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+  text-decoration: none;
+  background-color:#007acc;
+  box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+  margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+  position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+  content: "";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: -12px;
+  height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+  left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+  border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+  border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+  border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+  border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+  border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+  border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+  border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+  border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+  border-left: none;
+}
+
+img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+a {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 1px solid -webkit-focus-ring-color;
+  outline-offset: -1px;
+}
+
+hr {
+  border: 0;
+  height: 2px;
+  border-bottom: 2px solid;
+}
+
+h1 {
+  padding-bottom: 0.3em;
+  line-height: 1.2;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+  font-weight: normal;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+table > thead > tr > th {
+  text-align: left;
+  border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+  padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+  border-top: 1px solid;
+}
+
+blockquote {
+  margin: 0 7px 0 5px;
+  padding: 0 16px 0 10px;
+  border-left-width: 5px;
+  border-left-style: solid;
+}
+
+code {
+  font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+  font-size: 1em;
+  line-height: 1.357em;
+}
+
+body.wordWrap pre {
+  white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+  padding: 16px;
+  border-radius: 3px;
+  overflow: auto;
+}
+
+pre code {
+  color: var(--vscode-editor-foreground);
+  tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+  background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+  background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+  background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+  border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+  border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+  border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+  border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+  color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+  color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+  color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+  color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+  color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+  color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+  color: #8959a8;
+}
+
+.hljs {
+  display: block;
+  overflow-x: auto;
+  color: #4d4d4c;
+  padding: 0.5em;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+  padding: 0 12px;
+}
+
+pre {
+  background-color: #f8f8f8;
+  border: 1px solid #cccccc;
+  border-radius: 3px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+  padding: 23px;
+  line-height: 19px;
+}
+
+blockquote {
+  background: rgba(127, 127, 127, 0.1);
+  border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+  height: 1.4em;
+}
+
+code {
+  font-size: 14px;
+  line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+  color: #C9AE75; /* Change the old color so it seems less like an error */
+  font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+  page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="%F0%9F%93%9D-quick-log--%E9%80%9F%E8%AE%B0%E6%97%A5%E5%BF%97">📝 Quick Log / 速记日志</h1>
+<p>This document logs ideas occrrued to me when working with the program.</p>
+<hr>
+<h2 id="2025-10-0413--a-week-trail">2025-10-04~13 | A Week Trail</h2>
+<p>Question Discovered - 04~13
+Question Dolved - 12~13</p>
+<h3 id="1-requirements--issues">1. Requirements &amp; Issues</h3>
+<ol>
+<li>
+<p><code>Add Entry</code>: 删除Add Entry(与Batch insert雷同)</p>
+</li>
+<li>
+<p><code>Batch Insert</code>: 出处能否改为可以选择（搜索）之前录入过的出处（按照字母数字顺序）以及能否统一修改出处名称，这能在一个.py中做到吗？</p>
+</li>
+<li>
+<p><code>Home Admin</code> + <code>Admin Bulk Edit</code>: 能否合二为一？</p>
+</li>
+<li>
+<p><code>Home Admin</code>: 默认保存修改选项</p>
+</li>
+<li>
+<p><code>Batch Insert</code>: 默认改为en-zh 不拆分优先</p>
+</li>
+<li>
+<p><code>From Page</code>: 这个文章阅览功能能出现在新的一栏里（from page），单独构成一个.py文件。要求是：（1 一篇文章 = 一个出处；（2 输入一个出处后，可以按照先后输入顺序显示相应的所有这个出处中的句子；（3 但是也需要中途插入句子（这里指一个有id的句子，而不是在原句上改）</p>
+</li>
+<li>
+<p><code>From Page</code>: （1 希望选择栏是可以随下拉一直显示在屏幕中的窗口，
+Home的insert功能希望有个快捷键点击入库，而不是长拉到下面；（2 图中的功能希望也像choose一样显示在左边，最好可以调整收缩，可以收起来看不见。</p>
+</li>
+<li>
+<p><code>From Page</code>: 8中功能目测很难以使用。希望把功能变成这样：（1 choose的位置改到文章前面（sentences for 附近，如第二张图）（2 在每个句子旁有一个编辑按钮把图一的功能装载进去，并且可以进行句子的各种修改（来源，出处，时间等）；但平时这些修改和编辑功能看不见，除非你点击"编辑"按钮。</p>
+</li>
+<li>
+<p><code>Insert</code> 识别到不匹配的中英文入库，驳回 (错误导入机制的识别,详细见<code>Day_5_2</code>)</p>
+</li>
+<li>
+<p><code>Insert</code>仿照新的<code>Home Admin</code>收成了小窗口非常便捷</p>
+</li>
+<li>
+<p><code>Home Admin</code> 万一集体导入错误，有一个时间筛选删除功能,可以精确到秒(已追加)</p>
+</li>
+<li>
+<p><code>Home Admin</code>: 预览匹配出来的是否可以一个个就能改（同1合并Add Entry）</p>
+</li>
+<li>
+<p><code>Home Admin</code>: Home这里没法筛选出处去查找了。新增一个出处筛选，以及这个出处栏（1 不仅可以选；（2 而且可以输入。</p>
+</li>
+<li>
+<p><code>Home Admine</code>: 统一出处修改(已添加) 为Bulk Replace</p>
+</li>
+<li>
+<p>.jpg输不进去（微笑.jpg），因为规则按照正则句号断开（使用一些现成的模型）</p>
+</li>
+<li>
+<p>能不能空一行就算录入一段（我记得之前有这个功能，但这一版没有了）</p>
+</li>
+<li>
+<p><code>Insert</code> 预先查看每条那请自动打开，不要预设折叠上！</p>
+</li>
+<li>
+<p><code>Insert</code>:注入键别在下面做成浮动，出现在方向旁边，所以方向也是浮动显示</p>
+</li>
+<li>
+<p><code>Insert</code> Batch入库记录看不到编号（已调整）</p>
+</li>
+<li>
+<p>如何对应中英进行集体修改？
+<code>Insert</code>+<code>Home Admin</code>的克隆可以改id顺序（方法是通过克隆一行出现替代原有内容，而达到ip修改效果）</p>
+</li>
+<li>
+<p>功能合并为菜单栏</p>
+</li>
+</ol>
+<h3 id="2-full-stack-preparation">2. Full-stack Preparation</h3>
+<ol>
+<li>为翻译软件新设一个开发工具箱(比如综合管理字体、网站等内容的调度)</li>
+<li><code>Insert</code>+<code>Home Admin</code>: 入库能不能改为浮动显示（相当于无论如何拖动都会显示出来，就像chat你里面那个代码的复制按钮一样）。这个功能目前在streamlit上不支持，所以希望可以脱离streamlit框架，改为正式全栈模式（上强度）</li>
+<li>输入数学公式怎么办？期望有可替代的模型。</li>
+<li>预览能不能在输入新内容时就刷新</li>
+<li>语言切换</li>
+<li>设计好几套字体系统/风格；格式进行统一调整、</li>
+<li>软件怎么设置快捷键，以及不与网页和各种端冲突？</li>
+<li>增加浮动窗功能 (目前streamlit不支持)</li>
+<li>添加为原始文档的索引功能，涉及到云盘和数据迁移；是一个全新的功能！！！</li>
+</ol>
+<h2 id="2025-10-1416--new-trial">2025-10-14~16 | New Trial</h2>
+<h3 id="1-requirements--issues">1. Requirements &amp; Issues</h3>
+<ol>
+<li><code>Insert</code>: 这条已显示能否摆在前面，否则录入时看不到，因为和录入键隔开太远；
+<a href="../static/media/gif/Insert_First.gif" target="_blank">
+<img src="../static/media/gif/Insert_First.gif" width="480" loading="lazy" alt="alt text">
+</a></li>
+<li><code>Quick Log</code>: 为了辅助log管理，新增两个工具：（1 WPS录屏功能；（2 鼠标高亮和取词 PointerFocus;</li>
+<li>因为今后组件过多，安装choco进行管理，安装以后可以用命令行工具安装文件
+<a href="../static/media/gif/Choco.gif" target="_blank">
+<img src="../static/media/gif/Choco.gif" width="480" loading="lazy" alt="alt text">
+</a></li>
+<li><code>Quick Log</code>: 考虑嵌入视频，但是markdown不支持，所以附带视频链接的同时，增加gif降低git阅览损耗，但也提供html版本。</li>
+<li><code>gif_maker</code>: 基于上述需求，制作小程序gif_maker来制作高质量的gif图片，以下开始就有演示
+<a href="../static/media/gif/Gif_Maker.gif" target="_blank">
+<img src="../static/media/gif/Gif_Maker.gif" width="480" loading="lazy" alt="alt text">
+</a></li>
+<li>路径名过于冗杂（包含中文，调用容易出错）换成了新的路径拥有新欢迎页面，并且拥有了名字Wordloom!
+<a href="../static/media/gif/Wordloom_Welcome.gif" target="_blank">
+<img src="../static/media/gif/Wordloom_Welcome.gif" width="480" loading="lazy" alt="alt text">
+</a></li>
+<li>新增功能的detection在代码翻译输入上有问题。默认语言检测关掉。</li>
+<li><code>Gif-Maker</code>: 默认显示输出的文件名为插入的文件名，以及把输出同步到assets中一键管理</li>
+<li><code>DEV_log</code>和<code>Quick_log</code>: 关于日志管理，在日志中同时添加了可看的gif链接也添加了可进一步查看的视频MP4。为了文件夹方便干净，重新在asset中做了分类，而不放在Readlog里面；</li>
+<li>搜索A时出现span和渲染冲突问题；</li>
+<li>每次一旦文件夹迁移就导致markdown文件都要改动。这怎么一劳永逸的解决??? 这个问题在软件工程里面叫做路径耦合；</li>
+<li>现在我欠了很多技术债，我必须一点点了解我所有代码的逻辑，我要怎么去补效率比较高，以及我对这些英语也不够了解，我还需要一边学习这些内容的英语一边学习代码知识，头疼。</li>
+<li>工作流需要，我的频繁调出自己的目录树，计划开发小工具来导出-不用powershell自带。以后统一把有用的命令行归类</li>
+<li>为wordloom成功设计了一个小logo，然后经过调整弄进网站了！
+<a href="../static/media/img/image-2.png" target="_blank">
+<img src="../static/media/img/image-2.png" width="480" loading="lazy" alt="alt text">
+</a>
+<a href="../static/media/img/image-3.png" target="_blank">
+<img src="../static/media/img/image-3.png" width="480" loading="lazy" alt="alt text">
+</a></li>
+<li>数据库和API迁移。(1 成功与streamlit解耦 （2 解耦不完全，为了方便数据管理，以后都不带下划线，把文件树重新整理</li>
+<li>验证后端完全迁移成功：三部曲
+<a href="../static/media/img/image-4.png" target="_blank">
+<img src="../static/media/img/image-4.png" width="480" loading="lazy" alt="alt text">
+</a></li>
+<li>增加swagger的小锁</li>
+<li>需要一个一键生成tree的小程序</li>
+<li>增加路径修正器，去掉历史的绝对盘符前缀，把路径层级调整为相对路径</li>
+<li>多标签文件管理问题</li>
+<li>把数据导入新的api的db中</li>
+<li>集成wordloom的开发工具箱（比如tree，比如路径修复，比如gif转化）采用GUI框架，并成功弄出一个小程序，会在后期设置中英双语。并增加一键打包脚本bat。
+<img src="image.png" alt="alt text"></li>
+<li>设置jwt</li>
+<li>一切顺畅，准备将streamlit换为更强的前端</li>
+<li>GIFmaker:默认生成位置问题，第二是点开目录问题</li>
+</ol>
+<h2 id="2025-10-17--new-trial--1">2025-10-17 | New Trial + 1</h2>
+<ol>
+<li>以后把每次chat的聊天内容提前生成文本日志和Quick Log做对比</li>
+<li>设计结构化日志 + 校验 进行断言 - 合并进WordloomToolkit里（把断言脚本及时落地）</li>
+<li>关于回滚文件与安全返回点：</li>
+<li>前端设计</li>
+<li>学习相关术语与英语，以及及时把Git落实到框架上</li>
+<li>Git学习完毕进入实操阶段，记得每次弄完commit以及发布新的CHANGELOG</li>
+<li>版本号追加
+Wordloom/
+│
+├─ VERSION                     ← 全局版本号
+├─ WordloomBackend/api/VERSION  ← 后端版本
+├─ WordloomFrontend/streamlit/VERSION ← 前端版本
+└─ assets/VERSION               ← 资源版本</li>
+<li>启动Git LFS，管理大量的gif, image, 和视频文件</li>
+<li>准备pre-commit钩子，用于工程级别的遗忘操作：)(确实很正常)</li>
+<li>CI/CD可以等以后再开发</li>
+<li>把版本发布的py合并到toolkit里面，另外以后做pre-commit后放到pre-push里面</li>
+</ol>
+<h2 id="2025-10-17--frontend-development">2025-10-17~ | Frontend development</h2>
+<h3 id="streamlit-%E6%A8%A1%E5%9D%97%E4%B8%8E%E6%8A%BD%E8%B1%A1%E5%8C%96">streamlit 模块与抽象化</h3>
+<ol>
+<li>
+<p>第一批文件发送
+推荐分批顺序（每批 1–3 个文件即可）：
+Home.py
+repo.py + models.py（如果有 text_utils.py 一起）
+pages/0_🏡_Home_Admin.py
+pages/3_🧩_Bulk_Insert_plus_status.py
+pages/2_📚_Insert.py
+pages/1_📑_From_Page.py
+gif_maker.py（确认缩略图/占位的调用点）
+你就按这个顺序一批一批贴过来或上传文件，我读完一批就回你一批可直接替换的改造补丁。</p>
+</li>
+<li>
+<p>第二批文件发送
+第 2 批：数据访问抽象（今天就铺好路，将来切 API 不会痛）
+目标：让前端只认识"数据服务层"，不要认识 SQLite 细节。
+抽象层落点
+以 WordloomFrontend/streamlit/repo.py 为门面，models.py 定义数据结构，text_utils.py 做辅助。先适配本地 app.db，等你后端 API 稳定后，只改这一层的实现即可。
+最小契约
+搜索、分页、按出处聚合、插入/更新/删除、批量导入（行迭代 + 事务），全部在这层封装。</p>
+</li>
+<li>
+<p>第三批文件发送</p>
+</li>
+</ol>
+<p>第 3 批：路径与样式的一次性"止血"
+目标：防止"搬家就全崩"的相对路径问题 + 统一样式入口。
+路径
+沿用你现有的 assets/static/... 组织；前端组件里统一从相对根引用。你仓库里有 fix_md_paths.py（用于文档），前端也会放一个 url_for_asset() 小工具，避免硬编码。
+样式
+加一个 styles/base.css（或保留现状），让字体、颜色、行距等在一处管控；不强制换你已有字体/配色，只做"可配置"。</p>
+<ol start="4">
+<li>第四批文件发送
+目标：给你"跑一遍就能心安"的最小测试与烟囱脚本。
+健康检查脚本：启动后端（如需）、检查前端关键页能否加载、抽样读写是否成功。
+演示数据夹具：一小份"英文↔中文"样例，便于回归。
+目录树导出：你工具箱里已有 tools/WordloomToolkit 与 tree_runner.py，保持使用。</li>
+</ol>
+<h3 id="%E5%BC%83%E8%88%B9%E4%B8%8A%E5%B2%B8%E6%96%B9%E6%A1%88">弃船上岸方案</h3>
+<ol>
+<li>
+<p>做到第一批末尾，结果Streamlit已经无法兼容大多数页面功能，出现多次重复读取和白屏。所以现在目标是直接升级换代。</p>
+</li>
+<li>
+<p>项目骨架
+src/
+app/
+layout.tsx                # 全局布局 + 字体
+page.tsx                  # 主页，可做导航/最近源
+admin/
+page.tsx                # Home Admin
+from/
+[source]/
+page.tsx              # From Page（按 source）
+insert/
+page.tsx
+bulk/
+page.tsx
+api/                      # 仅限 next/server actions（可选）
+components/
+ui/                       # shadcn 组件
+common/
+Toolbar.tsx
+EntryCard.tsx
+EditDialog.tsx
+ConfirmDialog.tsx
+admin/
+SearchForm.tsx
+ResultsList.tsx
+from/
+SentenceList.tsx
+lib/
+api.ts                    # axios 实例，拦截器
+queryClient.ts            # TanStack Query 客户端
+repo.ts                   # 对后端的"服务层"：统一封装 entries/sources
+schema.ts                 # zod 校验（与后端对齐）
+fonts.ts                  # 本地字体注册
+config.ts                 # WL_API_BASE 从环境读取
+types/
+openapi.d.ts              # openapi-typescript 生成
+styles/
+globals.css
+tokens.css                # 颜色/字号/间距变量</p>
+</li>
+<li>
+<p>批次</p>
+</li>
+<li>
+<p>关于中文输入法与VScode的不兼容问题调整</p>
+</li>
+</ol>
+
+</body>
+</html>
