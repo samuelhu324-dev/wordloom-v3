@@ -19,6 +19,9 @@ from uuid import UUID
 from datetime import datetime, timezone, timedelta
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
+import logging
+import time
 
 from api.app.modules.media.domain import Media, MediaState, EntityTypeForMedia
 from api.app.modules.media.domain import (
@@ -31,7 +34,11 @@ from api.app.modules.media.domain import (
     MediaRepositoryDeleteError,
 )
 from api.app.modules.media.application.ports.output import MediaRepository
+from api.app.shared.request_context import RequestContext
 from infra.database.models.media_models import MediaModel, MediaAssociationModel, MediaState as ModelMediaState
+
+
+logger = logging.getLogger(__name__)
 
 
 class SQLAlchemyMediaRepository(MediaRepository):
@@ -60,9 +67,9 @@ class SQLAlchemyMediaRepository(MediaRepository):
     async def save(self, media: Media) -> Media:
         """Persist media (create or update)"""
         try:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.info(f"[SAVE] Attempting to save media: id={media.id}, user_id={media.user_id}, storage_key={media.storage_key}, filename={media.filename}")
+            logger.info(
+                f"[SAVE] Attempting to save media: id={media.id}, user_id={media.user_id}, storage_key={media.storage_key}, filename={media.filename}"
+            )
 
             stmt = select(MediaModel).where(MediaModel.id == media.id)
             result = await self.session.execute(stmt)
@@ -72,6 +79,7 @@ class SQLAlchemyMediaRepository(MediaRepository):
                 logger.info(f"[SAVE] Updating existing media: {media.id}")
                 existing.filename = media.filename
                 existing.user_id = media.user_id
+                existing.storage_key = media.storage_key
                 existing.media_type = media.media_type.value
                 existing.mime_type = media.mime_type.value
                 existing.file_size = media.file_size
@@ -102,10 +110,12 @@ class SQLAlchemyMediaRepository(MediaRepository):
                     updated_at=media.updated_at,
                 )
                 self.session.add(model)
-                logger.info(f"[SAVE] Model added to session")
+                logger.info("[SAVE] Model added to session")
 
-            await self.session.commit()
-            logger.info(f"[SAVE] Successfully committed media: {media.id}")
+            # Flush so downstream code in the same transaction can read it,
+            # but leave commit/rollback to the outer Unit of Work / request boundary.
+            await self.session.flush()
+            logger.info(f"[SAVE] Successfully flushed media: {media.id}")
             # Verify the saved data by loading from database
             logger.info(f"[SAVE] Verifying save by loading from database...")
             stmt_verify = select(MediaModel).where(MediaModel.id == media.id)
@@ -116,24 +126,56 @@ class SQLAlchemyMediaRepository(MediaRepository):
             return media
 
         except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
             logger.exception(f"[MediaRepositoryImpl.save] Exception during save: {type(e).__name__}: {e}")
-            await self.session.rollback()
             # Include original exception type and message for diagnostic clarity
             raise MediaRepositorySaveError(f"{type(e).__name__}: {e}")
 
-    async def get_by_id(self, media_id: UUID) -> Optional[Media]:
+    async def get_by_id(self, media_id: UUID, *, ctx: Optional[RequestContext] = None) -> Optional[Media]:
         """Fetch media by ID"""
+        start = time.perf_counter()
+        correlation_id = getattr(ctx, "correlation_id", None)
         try:
             stmt = select(MediaModel).where(MediaModel.id == media_id)
             result = await self.session.execute(stmt)
             model = result.scalar_one_or_none()
+
+            db_duration_ms = (time.perf_counter() - start) * 1000
+            logger.info(
+                {
+                    "event": "media.repo.get_by_id",
+                    "operation": "media.get",
+                    "layer": "repo",
+                    "correlation_id": correlation_id,
+                    "media_id": str(media_id),
+                    "db_duration_ms": db_duration_ms,
+                    "row_count": 1 if model else 0,
+                }
+            )
+
             if not model:
                 return None
             return self._model_to_domain(model)
         except Exception as e:
-            raise MediaRepositoryQueryError(str(e))
+            db_duration_ms = (time.perf_counter() - start) * 1000
+
+            db_error_code = None
+            if isinstance(e, SQLAlchemyError):
+                orig = getattr(e, "orig", None)
+                db_error_code = getattr(orig, "pgcode", None) or getattr(orig, "sqlstate", None)
+
+            logger.exception(
+                {
+                    "event": "media.repo.get_by_id.failed",
+                    "operation": "media.get",
+                    "layer": "repo",
+                    "correlation_id": correlation_id,
+                    "media_id": str(media_id),
+                    "db_duration_ms": db_duration_ms,
+                    "error_type": type(e).__name__,
+                    "db_error_code": db_error_code,
+                }
+            )
+            raise MediaRepositoryQueryError(str(e)) from e
 
     async def list_active(self, skip: int = 0, limit: int = 100) -> List[Media]:
         """List active media items (without totals)"""

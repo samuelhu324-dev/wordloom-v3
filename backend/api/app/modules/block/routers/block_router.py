@@ -46,6 +46,11 @@ from api.app.modules.block.domain.exceptions import (
     BlockInvalidTypeError,
     DomainException,
 )
+from api.app.modules.block.exceptions import (
+    BlockNotFoundError as BlockModuleNotFoundError,
+    DomainException as BlockModuleDomainException,
+)
+from api.app.modules.block.domain.block import BlockType
 
 
 logger = logging.getLogger(__name__)
@@ -88,8 +93,28 @@ async def create_block(
     """
     try:
         logger.info(f"Creating block: type={request.block_type}, book_id={request.book_id}")
+
+        raw_block_type = request.block_type
+        try:
+            if isinstance(raw_block_type, BlockType):
+                block_type = raw_block_type
+            else:
+                normalized = str(raw_block_type).strip()
+                # Accept both "text" and "TEXT" styles.
+                block_type = BlockType(normalized.lower())
+        except Exception as exc:
+            raise BlockInvalidTypeError(str(raw_block_type)) from exc
+
         use_case = di.get_create_block_use_case()
-        response: BlockResponse = await use_case.execute(request)
+        created_block = await use_case.execute(
+            book_id=request.book_id,
+            block_type=block_type,
+            content=request.content,
+            metadata=request.metadata,
+            position_after_id=request.position_after_id,
+        )
+
+        response: BlockResponse = BlockResponse.from_domain(created_block)
         logger.info(f"Block created successfully: block_id={response.id}, type={response.block_type}")
         return asdict(response)
     except BlockInvalidTypeError as e:
@@ -254,11 +279,28 @@ async def update_block(
     """
     try:
         logger.debug(f"Updating block: block_id={block_id}")
-        request.block_id = block_id
         use_case = di.get_update_block_use_case()
-        response: BlockResponse = await use_case.execute(request)
+        updated_block = await use_case.execute(
+            block_id=block_id,
+            content=request.content,
+            metadata=request.metadata,
+        )
+        response: BlockResponse = BlockResponse.from_domain(updated_block)
         logger.info(f"Block updated successfully: block_id={block_id}")
         return asdict(response)
+    except BlockModuleNotFoundError as e:
+        logger.warning(f"Block not found: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=e.to_dict(),
+        )
+    except BlockModuleDomainException as e:
+        # Map module domain exceptions (validation/operation) to their declared HTTP status.
+        logger.warning(f"Block update failed: {e}")
+        raise HTTPException(
+            status_code=e.http_status_code,
+            detail=e.to_dict(),
+        )
     except BlockNotFoundError as e:
         logger.warning(f"Block not found: {e}")
         raise HTTPException(
@@ -365,6 +407,18 @@ async def delete_block(
         use_case = di.get_delete_block_use_case()
         await use_case.execute(request)
         logger.info(f"Block soft-deleted successfully: block_id={block_id}")
+    except BlockModuleNotFoundError as e:
+        logger.warning(f"Block not found: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=e.to_dict(),
+        )
+    except BlockModuleDomainException as e:
+        logger.warning(f"Block delete failed: {e}")
+        raise HTTPException(
+            status_code=e.http_status_code,
+            detail=e.to_dict(),
+        )
     except BlockNotFoundError as e:
         logger.warning(f"Block not found: {e}")
         raise HTTPException(

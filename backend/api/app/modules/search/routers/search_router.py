@@ -25,10 +25,13 @@ Query Parameters:
 - offset: int = 0
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from dataclasses import asdict
+import logging
 from typing import Optional
 from uuid import UUID
-import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.app.dependencies import DIContainer, get_di_container
 from api.app.modules.search.application.ports.input import (
@@ -36,6 +39,9 @@ from api.app.modules.search.application.ports.input import (
     ExecuteSearchResponse,
     ExecuteSearchUseCase,
 )
+from api.app.modules.search.schemas import BlockSearchHitSchema, BlockTwoStageSearchResponse
+from infra.database.session import get_db_session
+from infra.storage.search_repository_impl import PostgresSearchAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +149,82 @@ async def search_blocks(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Search failed"
+        )
+
+
+# =========================================================================
+# Endpoint: Search Blocks (Two-Stage, with tags)
+# =========================================================================
+
+
+@router.get(
+    "/blocks/two-stage",
+    response_model=BlockTwoStageSearchResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Two-stage search blocks (with tags)",
+    description="""
+    Two-stage block search:
+    1) search_index recall (cheap)
+    2) blocks + tag_associations + tags join (strict business filter)
+
+    This endpoint is intentionally implemented without touching SearchPort,
+    as a search-specific workflow/DTO.
+    """,
+)
+async def search_blocks_two_stage(
+    q: str = Query(..., min_length=1, max_length=500, description="Search keyword"),
+    book_id: Optional[UUID] = Query(None, description="Optional: limit to specific book"),
+    limit: int = Query(20, ge=1, le=1000, description="Results per page"),
+    candidate_limit: int = Query(200, ge=1, le=5000, description="Stage1 candidate limit"),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Search blocks via two-stage SQL, returning tags."""
+    try:
+        logger.info(
+            {
+                "event": "search.blocks.two_stage.requested",
+                "q_preview": (q[:80] + "…") if len(q) > 80 else q,
+                "book_id": str(book_id) if book_id else None,
+                "limit": limit,
+                "candidate_limit": candidate_limit,
+            }
+        )
+        repo = PostgresSearchAdapter(session)
+        hits = await repo.search_block_hits_two_stage(
+            q=q,
+            book_id=book_id,
+            limit=limit,
+            candidate_limit=candidate_limit,
+        )
+        logger.info(
+            {
+                "event": "search.blocks.two_stage.returned",
+                "count": len(hits),
+            }
+        )
+        return BlockTwoStageSearchResponse(
+            total=len(hits),
+            hits=[
+                BlockSearchHitSchema(
+                    id=str(h.id),
+                    snippet=h.snippet,
+                    score=h.score,
+                    tags=h.tags,
+                )
+                for h in hits
+            ],
+        )
+    except ValueError as e:
+        logger.warning(f"Invalid search query: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid search query: {e}",
+        )
+    except Exception as e:
+        logger.error(f"Two-stage search error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Two-stage search failed",
         )
 
 

@@ -13,6 +13,7 @@ from uuid import UUID
 from datetime import datetime, timezone, timedelta
 
 from ...domain import Media
+from ...application.ports.input import PurgeMediaCommand
 from ...application.ports.output import MediaRepository
 from ...exceptions import (
     MediaNotFoundError,
@@ -29,7 +30,10 @@ class PurgeMediaUseCase:
     def __init__(self, repository: MediaRepository):
         self.repository = repository
 
-    async def execute(self, media_id: UUID) -> None:
+    async def execute_command(self, command: PurgeMediaCommand) -> None:
+        await self.execute(command.media_id, force=command.force)
+
+    async def execute(self, media_id: UUID, force: bool = False) -> None:
         """
         Execute purge media use case
 
@@ -45,7 +49,7 @@ class PurgeMediaUseCase:
         if not media:
             raise MediaNotFoundError(media_id)
 
-        if not media.is_eligible_for_purge():
+        if (not force) and (not media.is_eligible_for_purge()):
             days_remaining = 0
             if media.trash_at:
                 trash_duration = datetime.now(timezone.utc) - media.trash_at

@@ -140,12 +140,24 @@ export function useQuickUpdateLibrary() {
     mutationFn: ({ libraryId, data }: QuickUpdateInput) =>
       libraryApi.updateLibrary(libraryId, data),
     onSuccess: (updatedLibrary) => {
+      // 仅更新基础字段，保留列表/详情中的 tags 以避免被旧值覆盖
       queryClient.setQueriesData({ queryKey: QUERY_KEY }, (oldData: unknown) => {
         if (!Array.isArray(oldData)) return oldData;
-        return oldData.map((item: any) => (item.id === updatedLibrary.id ? updatedLibrary : item));
+        return oldData.map((item: any) => {
+          if (!item || item.id !== updatedLibrary.id) return item;
+          const nextTags = item.tags ?? updatedLibrary.tags;
+          const nextTagTotal = item.tag_total_count ?? updatedLibrary.tag_total_count;
+          return { ...item, ...updatedLibrary, tags: nextTags, tag_total_count: nextTagTotal };
+        });
       });
-      queryClient.setQueryData(QUERY_KEY_DETAIL(updatedLibrary.id), updatedLibrary);
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+
+      queryClient.setQueryData(QUERY_KEY_DETAIL(updatedLibrary.id), (prev: any) => {
+        if (!prev) return updatedLibrary;
+        const nextTags = prev.tags ?? updatedLibrary.tags;
+        const nextTagTotal = prev.tag_total_count ?? updatedLibrary.tag_total_count;
+        return { ...prev, ...updatedLibrary, tags: nextTags, tag_total_count: nextTagTotal };
+      });
+      // 不在这里 invalidate，以免新的列表请求把更新后的 tags 覆盖回旧值
     },
   });
 }

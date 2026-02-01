@@ -34,7 +34,7 @@ from pathlib import Path as FilePath
 from typing import Any, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy import select
 
 from api.app.dependencies import DIContainer, get_di_container
@@ -532,20 +532,47 @@ async def update_book(
 )
 async def upload_book_cover(
     book_id: UUID,
+    request: Request,
     file: UploadFile = File(..., description="封面图片 (JPEG/PNG/WEBP/GIF, ≤10MB)"),
     di: DIContainer = Depends(get_di_container),
 ):
+    correlation_id = getattr(getattr(request, "state", None), "correlation_id", None)
+
+    def _emit_usecase_outcome(
+        *,
+        outcome: str,
+        status_code: int,
+        media_id: Optional[UUID] = None,
+        error: Optional[object] = None,
+    ) -> None:
+        logger.info(
+            {
+                "event": "usecase.outcome",
+                "operation": "book.cover.bind",
+                "layer": "handler",
+                "outcome": outcome,
+                "status_code": status_code,
+                "correlation_id": correlation_id,
+                "entity_type": "book",
+                "entity_id": str(book_id),
+                "media_id": str(media_id) if media_id else None,
+                "error": error,
+            }
+        )
+
     logger.info("Uploading cover for book_id=%s", book_id)
     get_use_case = di.get_get_book_use_case()
     try:
         book = await get_use_case.execute(GetReq(book_id=book_id))
     except BookNotFoundError as error:
+        _emit_usecase_outcome(outcome="not_found", status_code=status.HTTP_404_NOT_FOUND, error=str(error))
         raise HTTPException(
             status_code=_http_status(error, status.HTTP_404_NOT_FOUND),
             detail=_domain_error_payload(error, "BOOK_NOT_FOUND"),
         )
 
     if not _book_allows_custom_cover(book):
+        _emit_usecase_outcome(outcome="validation_failed", status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, error="BOOK_NOT_STABLE")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
@@ -556,6 +583,7 @@ async def upload_book_cover(
 
     file_bytes = await file.read()
     if not file_bytes:
+        _emit_usecase_outcome(outcome="validation_failed", status_code=status.HTTP_400_BAD_REQUEST, error="EMPTY_FILE")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "EMPTY_FILE", "message": "封面文件不能为空"},
@@ -564,6 +592,7 @@ async def upload_book_cover(
     try:
         mime_type = _resolve_media_mime(file)
     except ValueError:
+        _emit_usecase_outcome(outcome="validation_failed", status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, error="UNSUPPORTED_IMAGE")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"code": "UNSUPPORTED_IMAGE", "message": "仅支持 JPEG/PNG/WEBP/GIF 封面"},
@@ -576,6 +605,7 @@ async def upload_book_cover(
         storage_key = await _book_cover_storage.save_book_cover(file_bytes, book_id, filename)
     except Exception as exc:
         logger.exception("Failed to persist book cover asset for %s", book_id)
+        _emit_usecase_outcome(outcome="error", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error="COVER_STORAGE_FAILED")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"code": "COVER_STORAGE_FAILED", "message": "无法保存封面文件"},
@@ -592,16 +622,24 @@ async def upload_book_cover(
         )
     except (InvalidMimeTypeError, FileSizeTooLargeError, InvalidDimensionsError) as exc:
         await _book_cover_storage.delete_file(storage_key)
+        _emit_usecase_outcome(outcome="validation_failed", status_code=exc.http_status, error=exc.to_dict())
         raise HTTPException(status_code=exc.http_status, detail=exc.to_dict()) from exc
     except StorageQuotaExceededError as exc:
         await _book_cover_storage.delete_file(storage_key)
+        _emit_usecase_outcome(
+            outcome="conflict" if exc.http_status == status.HTTP_409_CONFLICT else "error",
+            status_code=exc.http_status,
+            error=exc.to_dict(),
+        )
         raise HTTPException(status_code=exc.http_status, detail=exc.to_dict()) from exc
     except MediaOperationError as exc:
         await _book_cover_storage.delete_file(storage_key)
+        _emit_usecase_outcome(outcome="error", status_code=exc.http_status, error=exc.to_dict())
         raise HTTPException(status_code=exc.http_status, detail=exc.to_dict()) from exc
     except Exception as exc:
         await _book_cover_storage.delete_file(storage_key)
         logger.exception("Unexpected failure uploading cover media for book %s", book_id)
+        _emit_usecase_outcome(outcome="error", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error="MEDIA_UPLOAD_FAILED")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"code": "MEDIA_UPLOAD_FAILED", "message": "封面上传失败"},
@@ -618,15 +656,26 @@ async def upload_book_cover(
         updated_book = await update_use_case.execute(update_request)
     except (InvalidBookMaturityTransitionError, InvalidBookDataError) as error:
         logger.warning("Book cover assignment failed for %s: %s", book_id, error)
+        _emit_usecase_outcome(outcome="validation_failed", status_code=_http_status(error, status.HTTP_422_UNPROCESSABLE_ENTITY), media_id=getattr(media, "id", None), error=str(error))
         raise HTTPException(
             status_code=_http_status(error, status.HTTP_422_UNPROCESSABLE_ENTITY),
             detail=_domain_error_payload(error, "INVALID_BOOK_COVER_STATE"),
         )
     except DomainException as error:
+        _emit_usecase_outcome(outcome="validation_failed", status_code=_http_status(error, status.HTTP_422_UNPROCESSABLE_ENTITY), media_id=getattr(media, "id", None), error=str(error))
         raise HTTPException(
             status_code=_http_status(error, status.HTTP_422_UNPROCESSABLE_ENTITY),
             detail=_domain_error_payload(error, "VALIDATION_ERROR"),
         )
+    except Exception as error:  # pragma: no cover - defensive
+        logger.error("Unexpected error assigning book cover: %s", error, exc_info=True)
+        _emit_usecase_outcome(outcome="error", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, media_id=getattr(media, "id", None), error=str(error))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "OPERATION_ERROR", "message": "Failed to assign book cover"},
+        )
+
+    _emit_usecase_outcome(outcome="success", status_code=status.HTTP_201_CREATED, media_id=getattr(media, "id", None))
 
     return await _serialize_book_with_theme(updated_book, di)
 

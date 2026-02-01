@@ -39,6 +39,7 @@ class Settings(BaseSettings):
 
     # Logging
     log_level: str = "INFO"
+    log_json: bool = True
 
     # Development flags
     allow_dev_library_owner_override: bool = True

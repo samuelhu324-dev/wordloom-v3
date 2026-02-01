@@ -15,6 +15,7 @@ Architecture:
 """
 
 import os
+import logging
 from typing import List, Optional, Tuple
 from uuid import UUID
 from datetime import datetime, timezone
@@ -23,6 +24,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.app.modules.tag.domain import Tag, TagAssociation, EntityType
+from api.app.modules.tag.domain.events import TagDeleted
 from api.app.modules.tag.exceptions import (
     TagNotFoundError,
     TagAlreadyExistsError,
@@ -30,11 +32,15 @@ from api.app.modules.tag.exceptions import (
     TagRepositoryQueryError,
 )
 from api.app.modules.tag.application.ports.output import TagRepository
+from api.app.shared.events import get_event_bus
 from infra.database.models.tag_models import (
     TagModel,
     TagAssociationModel,
     EntityType as ORMEntityType,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def _resolve_default_user_id() -> UUID:
@@ -57,6 +63,16 @@ class SQLAlchemyTagRepository(TagRepository):
 
     def __init__(self, db_session: AsyncSession):
         self.session = db_session
+
+    async def _publish_domain_events(self, tag: Tag) -> None:
+        events = tag.get_events()
+        if not events:
+            return
+
+        event_bus = get_event_bus()
+        for ev in events:
+            await event_bus.publish(ev)
+        tag.clear_events()
 
     async def save(self, tag: Tag) -> Tag:
         try:
@@ -97,6 +113,10 @@ class SQLAlchemyTagRepository(TagRepository):
                 self.session.add(model)
 
             await self.session.commit()
+
+            # Publish domain events AFTER successful persistence.
+            # This triggers infra side effects (e.g., search_index + outbox).
+            await self._publish_domain_events(tag)
             return tag
 
         except TagAlreadyExistsError:
@@ -126,6 +146,10 @@ class SQLAlchemyTagRepository(TagRepository):
 
             model.deleted_at = datetime.now(timezone.utc)
             await self.session.commit()
+
+            # The delete use case operates directly on the repository, so we emit
+            # the domain event here to trigger side effects (search index cleanup).
+            await get_event_bus().publish(TagDeleted(tag_id=tag_id))
 
         except TagNotFoundError:
             raise

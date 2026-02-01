@@ -107,7 +107,12 @@ async def get_db_session():
     """
     factory = await get_session_factory()
     async with factory() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
 async def shutdown_engine():

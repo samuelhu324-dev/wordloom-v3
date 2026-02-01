@@ -425,6 +425,8 @@ export const zhCN = {
   'books.dialog.fields.coverIconLabel': '封面图标',
   'books.dialog.fields.coverIconDescription': '在展柜 / 列表封面上展示 Lucide 图标',
   'books.dialog.fields.coverIconHelper': '不选择时默认使用首字母 + 默认封面，可随时切换或清除。',
+  'books.dialog.coverIconPicker.allIcons': '全部图标',
+  'books.dialog.coverIconPicker.clear': '清除封面图标',
   'books.dialog.tags.loading': '加载中…',
   'books.dialog.tags.emptyHint': '没有更多可用的标签，输入后按回车即可新建。',
   'books.dialog.errors.titleRequired': '书名不能为空',

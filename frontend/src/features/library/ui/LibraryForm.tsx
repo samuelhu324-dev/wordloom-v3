@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import { CreateLibraryRequest } from '@/entities/library';
 import type { TagDto } from '@/entities/tag';
 import { Button, Input, Modal } from '@/shared/ui';
@@ -67,6 +67,7 @@ export const LibraryForm: React.FC<LibraryFormProps> = ({
   showThemeColorField = true,
 }) => {
   const { t } = useI18n();
+  const formId = useId();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedTags, setSelectedTags] = useState<LibraryFormTagValue[]>(initialTags ?? []);
@@ -201,13 +202,16 @@ export const LibraryForm: React.FC<LibraryFormProps> = ({
     e.preventDefault();
     const trimmedName = name.trim();
     const trimmedDesc = description.trim();
+    const normalizedDescription = trimmedDesc
+      ? trimmedDesc
+      : (isEdit ? '' : undefined);
     if (!trimmedName) return;
     if (themeColorError) return;
     await Promise.resolve(
       onSubmit({
         formValues: {
           name: trimmedName,
-          description: trimmedDesc ? trimmedDesc : undefined,
+          description: normalizedDescription,
           theme_color: showThemeColorField ? (resolvedThemeColorValue || undefined) : undefined,
         },
         tags: selectedTags,
@@ -238,8 +242,25 @@ export const LibraryForm: React.FC<LibraryFormProps> = ({
       showCloseButton
       lockScroll
       headingGap="compact"
+      footer={(
+        <div style={{ display: 'flex', gap: 'var(--spacing-md)', justifyContent: 'flex-end' }}>
+          <Button
+            type="submit"
+            variant="primary"
+            loading={isLoading}
+            form={formId}
+            data-testid="library-form-submit"
+          >
+            {resolvedSubmitLabel}
+          </Button>
+        </div>
+      )}
     >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+      <form
+        id={formId}
+        onSubmit={handleSubmit}
+        style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', minHeight: 0 }}
+      >
         <Input
           label={resolvedNameLabel}
           value={name}
@@ -247,6 +268,7 @@ export const LibraryForm: React.FC<LibraryFormProps> = ({
           placeholder={resolvedNamePlaceholder}
           required
           autoFocus
+          data-testid="library-form-name"
         />
         <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
           <label style={{ fontSize:'var(--font-size-xs)', fontWeight:500, letterSpacing:'.5px' }}>{resolvedDescriptionLabel}</label>
@@ -266,6 +288,7 @@ export const LibraryForm: React.FC<LibraryFormProps> = ({
               background:'var(--color-surface-alt)',
               color:'var(--color-text-primary)'
             }}
+            data-testid="library-form-description"
           />
         </div>
         <TagMultiSelect
@@ -317,11 +340,6 @@ export const LibraryForm: React.FC<LibraryFormProps> = ({
             </p>
           </div>
         )}
-        <div style={{ display: 'flex', gap: 'var(--spacing-md)', justifyContent: 'flex-end', marginTop: 'var(--spacing-xs)' }}>
-          <Button type="submit" variant="primary" loading={isLoading}>
-            {resolvedSubmitLabel}
-          </Button>
-        </div>
       </form>
     </Modal>
   );

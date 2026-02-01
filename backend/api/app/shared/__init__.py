@@ -14,6 +14,7 @@ from .errors import BusinessError
 from .schemas import PageResponse, ErrorResponse, BaseResponse
 from .events import EventBus
 from .deps import get_db
+from .request_context import RequestContext
 
 __all__ = [
     "AggregateRoot",
@@ -25,4 +26,5 @@ __all__ = [
     "BaseResponse",
     "EventBus",
     "get_db",
+    "RequestContext",
 ]

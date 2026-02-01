@@ -175,6 +175,7 @@ class StorageManager:
     DIRECTORY_BLOCK_IMAGES = "block_images"
     DIRECTORY_CHRONICLE_ATTACHMENTS = "chronicle_attachments"
     DIRECTORY_TEMP = "temp"
+    DIRECTORY_MEDIA_FILES = "media_files"
 
     def __init__(self, strategy: IStorageStrategy):
         """
@@ -241,6 +242,18 @@ class StorageManager:
             content,
             filename,
             self.DIRECTORY_TEMP
+        )
+
+    async def save_media_file(self, content: bytes, original_filename: str | None = None) -> str:
+        """Save generic media file and return storage key."""
+        suffix = Path(original_filename or "").suffix.lower() or ".bin"
+        safe_stem = Path(original_filename or "media").stem or "media"
+        normalized = safe_stem.replace(" ", "_")
+        filename = f"{uuid4().hex}_{normalized}{suffix}"
+        return await self.strategy.save_file(
+            content,
+            filename,
+            self.DIRECTORY_MEDIA_FILES,
         )
 
     async def delete_file(self, file_path: str) -> None:

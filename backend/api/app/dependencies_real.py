@@ -133,6 +133,12 @@ class DIContainerReal:
         from api.app.modules.media.application.use_cases.get_media import GetMediaUseCase
         return GetMediaUseCase(self.media_repo)
 
+    def get_update_media_metadata_use_case(self):
+        from api.app.modules.media.application.use_cases.update_media_metadata import (
+            UpdateMediaMetadataUseCase,
+        )
+        return UpdateMediaMetadataUseCase(self.media_repo)
+
     # ========== Bookshelf UseCases ==========
     def get_create_bookshelf_use_case(self):
         from api.app.modules.bookshelf.application.use_cases.create_bookshelf import CreateBookshelfUseCase

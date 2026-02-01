@@ -18,8 +18,9 @@ Architecture:
 
 from datetime import datetime, timedelta, timezone
 import logging
-from app.shared.base import DomainEvent
-from backend.infra.event_bus.event_handler_registry import EventHandlerRegistry
+from api.app.shared.base import DomainEvent
+
+from ..event_handler_registry import EventHandlerRegistry
 
 logger = logging.getLogger(__name__)
 

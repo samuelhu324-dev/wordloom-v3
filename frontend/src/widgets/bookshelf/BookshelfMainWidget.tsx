@@ -19,9 +19,9 @@ interface BookshelfMainWidgetProps {
   onViewAll?: () => void;
 }
 
-type ViewMode = 'grid' | 'list';
+// 仅 List 模式，移除 Grid/偏好持久化
 type SortOption = 'updated_desc' | 'name_asc' | 'book_count_desc';
-type StatusFilter = 'all' | 'active' | 'archived' | 'basement';
+type StatusFilter = 'all' | 'active' | 'archived';
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'updated_desc', label: '最近更新' },
@@ -33,7 +33,6 @@ const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: '全部状态' },
   { value: 'active', label: '仅 Active' },
   { value: 'archived', label: '仅 Archived' },
-  { value: 'basement', label: 'Basement' },
 ];
 
 const TAG_LIMIT = 3;
@@ -65,62 +64,17 @@ export const BookshelfMainWidget = React.forwardRef<HTMLDivElement, BookshelfMai
       }
     }, [isAtLimit, isFormOpen]);
 
-    // View mode state (grid | list)
-    const [viewMode, setViewMode] = useState<ViewMode>('grid');
+    // 仅 List 视图，不做本地持久化
     const [sortOption, setSortOption] = useState<SortOption>('updated_desc');
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+    const [sortRefreshTick, setSortRefreshTick] = useState(0);
 
-    const storageKeys = useMemo(() => ({
-      view: `wl_bookshelf_viewmode_${libraryId}`,
-      sort: `wl_bookshelf_sort_${libraryId}`,
-      filter: `wl_bookshelf_filter_${libraryId}`,
-    }), [libraryId]);
-
-    useEffect(() => {
-      if (typeof window === 'undefined') return;
-      try {
-        const savedView = localStorage.getItem(storageKeys.view);
-        if (savedView === 'grid' || savedView === 'list') {
-          setViewMode(savedView);
-        }
-        const savedSort = localStorage.getItem(storageKeys.sort) as SortOption | null;
-        if (savedSort && SORT_OPTIONS.some(opt => opt.value === savedSort)) {
-          setSortOption(savedSort);
-        }
-        const savedFilter = localStorage.getItem(storageKeys.filter) as StatusFilter | null;
-        if (savedFilter && FILTER_OPTIONS.some(opt => opt.value === savedFilter)) {
-          setStatusFilter(savedFilter);
-        }
-      } catch (err) {
-        console.warn('Bookshelf view state restore failed', err);
-      }
-    }, [storageKeys]);
-
-    useEffect(() => {
-      if (typeof window === 'undefined') return;
-      try {
-        localStorage.setItem(storageKeys.view, viewMode);
-      } catch {}
-    }, [storageKeys.view, viewMode]);
-
-    useEffect(() => {
-      if (typeof window === 'undefined') return;
-      try {
-        localStorage.setItem(storageKeys.sort, sortOption);
-      } catch {}
-    }, [sortOption, storageKeys.sort]);
-
-    useEffect(() => {
-      if (typeof window === 'undefined') return;
-      try {
-        localStorage.setItem(storageKeys.filter, statusFilter);
-      } catch {}
-    }, [statusFilter, storageKeys.filter]);
-
-    const toggleViewMode = (mode: ViewMode) => setViewMode(mode);
     const handleSortChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
       setSortOption(event.target.value as SortOption);
+      setSortRefreshTick((t) => t + 1);
     };
+
+    const handleSortRefresh = () => setSortRefreshTick((t) => t + 1);
     const handleFilterChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
       setStatusFilter(event.target.value as StatusFilter);
     };
@@ -128,11 +82,9 @@ export const BookshelfMainWidget = React.forwardRef<HTMLDivElement, BookshelfMai
     const derivedBookshelves = useMemo(() => {
       let list = [...bookshelves];
       if (statusFilter === 'active') {
-        list = list.filter(item => (item.status || 'active') === 'active' && item.type !== 'BASEMENT');
+        list = list.filter(item => (item.status || 'active') === 'active');
       } else if (statusFilter === 'archived') {
         list = list.filter(item => (item.status || '').toLowerCase() === 'archived');
-      } else if (statusFilter === 'basement') {
-        list = list.filter(item => item.type === 'BASEMENT');
       }
 
       switch (sortOption) {
@@ -153,7 +105,7 @@ export const BookshelfMainWidget = React.forwardRef<HTMLDivElement, BookshelfMai
       }
 
       return list;
-    }, [bookshelves, sortOption, statusFilter]);
+    }, [bookshelves, sortOption, statusFilter, sortRefreshTick]);
 
     const hasBookshelves = derivedBookshelves.length > 0;
     const shouldShowList = isLoading || hasBookshelves;
@@ -229,18 +181,6 @@ export const BookshelfMainWidget = React.forwardRef<HTMLDivElement, BookshelfMai
               {onViewAll && (
                 <Button variant="secondary" size="sm" onClick={onViewAll}>查看全部</Button>
               )}
-              <div className={styles.viewToggle}>
-                <Button
-                  variant={viewMode === 'grid' ? 'primary' : 'secondary'}
-                  size="sm"
-                  onClick={() => toggleViewMode('grid')}
-                >网格</Button>
-                <Button
-                  variant={viewMode === 'list' ? 'primary' : 'secondary'}
-                  size="sm"
-                  onClick={() => toggleViewMode('list')}
-                >列表</Button>
-              </div>
               <div className={styles.selectControl}>
                 <label htmlFor={`bookshelf-sort-${libraryId}`}>排序</label>
                 <select id={`bookshelf-sort-${libraryId}`} value={sortOption} onChange={handleSortChange}>
@@ -275,7 +215,6 @@ export const BookshelfMainWidget = React.forwardRef<HTMLDivElement, BookshelfMai
             bookshelves={[]}
             isLoading={false}
             onSelectBookshelf={onSelectBookshelf}
-            viewMode={viewMode}
           />
         </div>
       );
@@ -305,25 +244,18 @@ export const BookshelfMainWidget = React.forwardRef<HTMLDivElement, BookshelfMai
             {onViewAll && (
               <Button variant="secondary" size="sm" onClick={onViewAll}>查看全部</Button>
             )}
-            <div className={styles.viewToggle}>
-              <Button
-                variant={viewMode === 'grid' ? 'primary' : 'secondary'}
-                size="sm"
-                onClick={() => toggleViewMode('grid')}
-              >网格</Button>
-              <Button
-                variant={viewMode === 'list' ? 'primary' : 'secondary'}
-                size="sm"
-                onClick={() => toggleViewMode('list')}
-              >列表</Button>
-            </div>
             <div className={styles.selectControl}>
               <label htmlFor={`bookshelf-sort-${libraryId}`}>排序</label>
-              <select id={`bookshelf-sort-${libraryId}`} value={sortOption} onChange={handleSortChange}>
-                {SORT_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
+              <div className={styles.selectRow}>
+                <select id={`bookshelf-sort-${libraryId}`} value={sortOption} onChange={handleSortChange}>
+                  {SORT_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+                <Button variant="secondary" size="sm" onClick={handleSortRefresh} title="刷新排序">
+                  刷新
+                </Button>
+              </div>
             </div>
             <div className={styles.selectControl}>
               <label htmlFor={`bookshelf-filter-${libraryId}`}>筛选</label>
@@ -350,11 +282,10 @@ export const BookshelfMainWidget = React.forwardRef<HTMLDivElement, BookshelfMai
             bookshelves={derivedBookshelves}
             isLoading={isLoading}
             onSelectBookshelf={onSelectBookshelf}
-            viewMode={viewMode}
           />
         ) : (
           <div className={styles.noResult}>
-            <p>{bookshelves.length === 0 ? '当前书库还没有书橱，点击右上角新建一个。' : '没有符合筛选条件的书橱，试试调整筛选或排序。'}</p>
+            <p>No bookshelves yet</p>
           </div>
         )}
         <LibraryForm

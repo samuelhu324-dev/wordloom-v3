@@ -230,9 +230,6 @@ class LibraryResponse(BaseModel):
 
     model_config = ConfigDict(
         from_attributes=True,  # Pydantic v2 ORM mode
-        json_encoders={
-            datetime: lambda v: v.isoformat() if v else None,
-        },
         json_schema_extra={
             "example": {
                 "id": "550e8400-e29b-41d4-a716-446655440000",

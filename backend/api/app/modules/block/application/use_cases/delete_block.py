@@ -8,11 +8,11 @@ This use case handles:
 - Persisting via repository
 """
 
-from uuid import UUID
 import logging
 
 from ...domain import Block
 from ...application.ports.output import BlockRepository
+from ..ports.input import DeleteBlockRequest
 from ...exceptions import (
     BlockNotFoundError,
     BlockOperationError,
@@ -27,7 +27,7 @@ class DeleteBlockUseCase:
     def __init__(self, repository: BlockRepository):
         self.repository = repository
 
-    async def execute(self, block_id: UUID, book_id: UUID) -> Block:
+    async def execute(self, request: DeleteBlockRequest) -> Block:
         """
         Soft delete block and capture Paperballs recovery context
 
@@ -36,9 +36,9 @@ class DeleteBlockUseCase:
         - Captures deleted_next_id (Level 2 recovery)
         - Captures deleted_section_path (Level 3 recovery)
 
-        Args:
-            block_id: Block ID to delete
-            book_id: Parent book ID
+                Args:
+                        request: DeleteBlockRequest containing:
+                            - block_id: Block ID to delete
 
         Returns:
             Deleted Block domain object with Paperballs context
@@ -47,10 +47,21 @@ class DeleteBlockUseCase:
             BlockNotFoundError: If block not found
             BlockOperationError: On persistence error
         """
+        block_id = request.block_id
         block = await self.repository.get_by_id(block_id)
         if not block:
             logger.error(f"Block {block_id} not found for deletion")
             raise BlockNotFoundError(block_id)
+
+        # Resolve book_id from the block to avoid requiring callers to provide it.
+        book_id = getattr(block, "book_id", None)
+        if not book_id:
+            logger.error(f"Block {block_id} has no book_id; cannot capture sibling context")
+            raise BlockOperationError(
+                block_id=str(block_id),
+                operation="delete",
+                reason="missing book_id",
+            )
 
         try:
             # === NEW: Capture Paperballs recovery context ===

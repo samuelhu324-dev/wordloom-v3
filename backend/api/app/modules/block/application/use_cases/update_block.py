@@ -53,8 +53,11 @@ class UpdateBlockUseCase:
             if content is not None:
                 block.update_content(content)
 
-            if metadata is not None:
-                block.update_metadata(metadata)
+            # NOTE:
+            # The current Block domain model does not expose metadata.
+            # We accept metadata in the API contract for forward-compatibility,
+            # but ignore it here to avoid failing updates.
+            _ = metadata
 
             updated_block = await self.repository.save(block)
             return updated_block

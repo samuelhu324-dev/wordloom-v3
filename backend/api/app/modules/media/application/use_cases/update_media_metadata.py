@@ -12,6 +12,7 @@ from typing import Optional
 from uuid import UUID
 
 from ...domain import Media
+from ...application.ports.input import UpdateMediaMetadataCommand
 from ...application.ports.output import MediaRepository
 from ...exceptions import (
     MediaNotFoundError,
@@ -26,6 +27,21 @@ class UpdateMediaMetadataUseCase:
 
     def __init__(self, repository: MediaRepository):
         self.repository = repository
+
+    async def execute_command(self, command: UpdateMediaMetadataCommand) -> Media:
+        if command.duration_ms is not None:
+            return await self.execute_update_video_metadata(command.media_id, command.duration_ms)
+
+        if command.width is not None or command.height is not None:
+            if command.width is None or command.height is None:
+                raise InvalidDimensionsError(
+                    command.width or 0,
+                    command.height or 0,
+                    "Both width and height are required",
+                )
+            return await self.execute_update_image_metadata(command.media_id, command.width, command.height)
+
+        raise InvalidDurationError(0, "Either duration_ms or (width,height) must be provided")
 
     async def execute_update_image_metadata(
         self,

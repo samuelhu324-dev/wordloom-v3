@@ -13,6 +13,7 @@ Supported entity types: Book, Bookshelf, Block
 from uuid import UUID
 
 from ...domain import EntityTypeForMedia
+from ...application.ports.input import AssociateMediaCommand
 from ...application.ports.output import MediaRepository
 from ...exceptions import (
     MediaNotFoundError,
@@ -26,6 +27,9 @@ class AssociateMediaUseCase:
 
     def __init__(self, repository: MediaRepository):
         self.repository = repository
+
+    async def execute_command(self, command: AssociateMediaCommand) -> None:
+        await self.execute(command.media_id, command.entity_type, command.entity_id)
 
     async def execute(
         self,

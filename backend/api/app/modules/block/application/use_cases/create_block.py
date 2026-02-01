@@ -48,18 +48,28 @@ class CreateBlockUseCase:
             BlockOperationError: On persistence error
         """
         try:
-            # Compute fractional index
-            order_index = None
-            if position_after_id:
-                # Get position of previous block and compute new fractional index
-                pass  # Implementation depends on fractional index algorithm
+            # NOTE:
+            # - The current domain factory `Block.create(...)` does not accept `metadata`.
+            # - For HEADING blocks, domain requires `heading_level`.
+
+            heading_level: Optional[int] = None
+            if metadata and isinstance(metadata, dict):
+                raw_heading_level = metadata.get("heading_level")
+                if raw_heading_level is not None:
+                    try:
+                        heading_level = int(raw_heading_level)
+                    except (TypeError, ValueError):
+                        heading_level = None
+
+            # TODO: implement fractional ordering once the algorithm is defined.
+            # For now, rely on the domain default order.
+            _ = position_after_id
 
             block = Block.create(
                 book_id=book_id,
                 block_type=block_type,
-                content=content,
-                metadata=metadata,
-                order=order_index
+                content=content or "",
+                heading_level=heading_level,
             )
             created_block = await self.repository.save(block)
             return created_block

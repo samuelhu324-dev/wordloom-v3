@@ -113,6 +113,12 @@
   font-size: 0.85rem;
 }
 
+.selectRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
 .noResult {
   padding: var(--spacing-2xl);
   text-align: center;

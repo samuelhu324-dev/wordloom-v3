@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { DEFAULT_LIBRARY_SILVER_GRADIENT } from '../utils/coverGradient';
 
 export interface LibraryCoverAvatarProps {
@@ -16,11 +16,18 @@ export const LibraryCoverAvatar: React.FC<LibraryCoverAvatarProps> = ({
 }) => {
   const resolvedSize = typeof size === 'number' ? `${size}px` : size;
   const gradient = DEFAULT_LIBRARY_SILVER_GRADIENT;
+  const [resolvedCover, setResolvedCover] = useState<string | null>(coverUrl ?? null);
   const initial = useMemo(() => {
     const trimmed = name.trim();
     if (!trimmed) return 'L';
     return trimmed.charAt(0).toUpperCase();
   }, [name]);
+
+  useEffect(() => {
+    setResolvedCover(coverUrl ?? null);
+  }, [coverUrl]);
+
+  const showImage = Boolean(resolvedCover);
 
   return (
     <div
@@ -41,13 +48,14 @@ export const LibraryCoverAvatar: React.FC<LibraryCoverAvatarProps> = ({
         textTransform: 'uppercase',
       }}
     >
-      {coverUrl ? (
+      {showImage ? (
         <img
-          src={coverUrl}
+          src={resolvedCover ?? undefined}
           alt={`${name} cover`}
           loading="lazy"
           decoding="async"
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          onError={() => setResolvedCover(null)}
         />
       ) : (
         <span style={{ lineHeight: 1 }}>{initial}</span>

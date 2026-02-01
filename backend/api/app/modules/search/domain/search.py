@@ -63,7 +63,7 @@ class SearchHit:
     Single search result - ValueObject
 
     Represents one entity match from the search.
-    Includes metadata for display and ranking.
+    Includes metadata for display and ranking.rank
 
     Invariants:
     - title: non-empty

@@ -4,7 +4,7 @@
 """
 
 from typing import Optional, Dict, Any, List, TYPE_CHECKING
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from uuid import UUID
 from datetime import datetime
 
@@ -18,8 +18,9 @@ class ChronicleBookOpenedRequest(BaseModel):
     book_id: UUID = Field(..., description="被打开的 Book ID")
     actor_id: Optional[UUID] = Field(None, description="触发者，匿名可为空")
 
-    class Config:
-        json_schema_extra = {"example": {"book_id": "11111111-1111-1111-1111-111111111111"}}
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"book_id": "11111111-1111-1111-1111-111111111111"}}
+    )
 
 
 class ChronicleEventRead(BaseModel):
@@ -32,8 +33,7 @@ class ChronicleEventRead(BaseModel):
     occurred_at: datetime
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @classmethod
     def from_domain(cls, event: "ChronicleEvent") -> "ChronicleEventRead":

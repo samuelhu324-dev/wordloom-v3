@@ -1,0 +1,71 @@
+# Infra-only compose (Elasticsearch + optional monitoring)
+#
+# Usage examples:
+#   docker compose -f docker-compose.infra.yml up -d es
+#   docker compose -f docker-compose.infra.yml --profile monitoring up -d
+#
+# Notes:
+# - This file is intentionally independent from docker-compose.yml (sandbox).
+# - dev/test isolation is achieved by using different DATABASE_URL and ELASTIC_INDEX
+#   (see .env.dev / .env.test). If you want physical isolation later, add a second
+#   ES service with a different host port and separate volume.
+
+services:
+  es:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      xpack.security.http.ssl.enabled: "false"
+      xpack.security.transport.ssl.enabled: "false"
+      # Keep it modest by default; override if needed.
+      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200 >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    profiles: ["monitoring"]
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    # Helps Linux engines resolve host.docker.internal; harmless elsewhere.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      es:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:10.4.3
+    profiles: ["monitoring"]
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: "admin"
+      GF_SECURITY_ADMIN_PASSWORD: "admin"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+      - ./docker/grafana/dashboards:/etc/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+
+volumes:
+  es_data:
+  prometheus_data:
+  grafana_data:

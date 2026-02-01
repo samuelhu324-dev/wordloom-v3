@@ -54,7 +54,7 @@ class SQLAlchemyBookRepository(BookRepository):
     async def save(self, book: Book) -> Book:
         """Save or update Book aggregate and return Domain object.
 
-        Commit is executed here for simplicity; in future introduce UnitOfWork.
+        Commit/rollback is handled by the outer Unit of Work / request boundary.
         """
         try:
             stmt = select(BookModel).where(BookModel.id == book.id)
@@ -115,11 +115,10 @@ class SQLAlchemyBookRepository(BookRepository):
                 )
                 self.session.add(model)
 
-            await self.session.commit()
+            await self.session.flush()
             return book
 
         except IntegrityError as e:
-            await self.session.rollback()
             logger.error(f"Integrity constraint violated: {e}")
             error_str = str(e).lower()
             if "bookshelf_id" in error_str or "library_id" in error_str:

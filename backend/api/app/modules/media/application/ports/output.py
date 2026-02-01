@@ -22,6 +22,7 @@ from uuid import UUID
 from datetime import datetime
 
 from api.app.modules.media.domain import Media, MediaState, EntityTypeForMedia
+from api.app.shared.request_context import RequestContext
 
 
 class MediaRepository(ABC):
@@ -42,7 +43,7 @@ class MediaRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_by_id(self, media_id: UUID) -> Optional[Media]:
+    async def get_by_id(self, media_id: UUID, *, ctx: Optional[RequestContext] = None) -> Optional[Media]:
         """Get media by ID, or None if not found"""
         pass
 

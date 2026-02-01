@@ -13,6 +13,7 @@ import {
   Archive,
   ArchiveRestore,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { LibraryDto } from '@/entities/library';
 import { DEFAULT_LIBRARY_SILVER_GRADIENT } from '@/entities/library';
 import { showToast } from '@/shared/ui/toast';
@@ -20,6 +21,8 @@ import { uploadLibraryCover } from '../model/api';
 import styles from './LibraryCard.module.css';
 import { LibraryTagsRow } from './LibraryTagsRow';
 import { useI18n } from '@/i18n/useI18n';
+import { ImageLoadHandle, reportImageError, reportImageLoaded, startImageLoad } from '@/shared/telemetry/imageMetrics';
+import { UiRequestHandle, emitUiRendered, markUiResponse, startUiRequest } from '@/shared/telemetry/uiRequestMetrics';
 
 export interface LibraryCardProps {
   library: LibraryDto;
@@ -123,11 +126,16 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
   actionsDisabled,
   className,
 }) => {
+  const queryClient = useQueryClient();
   const { t, lang } = useI18n();
   const [coverUrl, setCoverUrl] = useState<string | null>(library.coverUrl ?? null);
+  const [coverSrc, setCoverSrc] = useState<string | null>(library.coverUrl ?? null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const coverLoadRef = useRef<ImageLoadHandle | null>(null);
+  const coverActionRef = useRef<UiRequestHandle | null>(null);
+  const nextCoverCidRef = useRef<string | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -136,10 +144,8 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
   const gradient = DEFAULT_LIBRARY_SILVER_GRADIENT;
   const isPinned = library.pinned;
   const isArchived = Boolean(library.archived_at);
-  const descriptionTooltip = library.description?.trim();
-  const bookshelvesTooltip = bookshelvesCount == null
-    ? t('libraries.list.tooltip.bookshelvesUnknown')
-    : t('libraries.list.tooltip.bookshelves', { count: bookshelvesCount });
+  const resolvedBookshelvesCount = bookshelvesCount == null ? 1 : Math.max(1, bookshelvesCount);
+  const bookshelvesTooltip = t('libraries.list.tooltip.bookshelves', { count: resolvedBookshelvesCount });
   const booksTooltip = booksCount == null
     ? t('libraries.list.tooltip.booksUnknown')
     : t('libraries.list.tooltip.books', { count: booksCount });
@@ -151,6 +157,31 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
   useEffect(() => {
     setCoverUrl(library.coverUrl ?? null);
   }, [library.coverUrl, library.cover_media_id, library.updated_at]);
+
+  useEffect(() => {
+    if (!coverUrl) {
+      coverLoadRef.current = null;
+      setCoverSrc(null);
+      return;
+    }
+
+    // Local preview (blob/data) should not produce cid-linked metrics.
+    if (coverUrl.startsWith('blob:') || coverUrl.startsWith('data:')) {
+      coverLoadRef.current = null;
+      setCoverSrc(coverUrl);
+      return;
+    }
+
+    const nextCid = nextCoverCidRef.current || undefined;
+    const handle = startImageLoad('library.cover.load', coverUrl, nextCid);
+    coverLoadRef.current = handle;
+    setCoverSrc(handle.instrumentedUrl);
+
+    // Only reuse the upload correlation id for the very next server image load.
+    if (nextCid) {
+      nextCoverCidRef.current = null;
+    }
+  }, [coverUrl]);
 
   const disableQuickActions = actionsDisabled || isUploading;
 
@@ -209,16 +240,26 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
 
       try {
         setIsUploading(true);
+
+        const action = startUiRequest('library.cover.update');
+        coverActionRef.current = action;
+        nextCoverCidRef.current = action.correlationId;
+
         previewUrl = URL.createObjectURL(file);
         setCoverUrl(previewUrl);
 
-        const updated = await uploadLibraryCover(library.id, file);
-        setCoverUrl(updated.coverUrl ?? null);
+        const updated = await uploadLibraryCover(library.id, file, action.correlationId);
+        coverActionRef.current = markUiResponse(action);
+        const nextCoverUrl = updated.coverUrl ?? null;
+        setCoverUrl(nextCoverUrl);
+        patchLibraryCoverCaches(queryClient, library.id, nextCoverUrl, updated.cover_media_id, updated.updated_at);
         showToast(t('libraries.card.toast.coverUpdated'));
         shouldCloseDialog = true;
       } catch (error) {
         console.error('[library] cover upload failed', error);
         showToast(t('libraries.card.toast.coverFailed'));
+        coverActionRef.current = null;
+        nextCoverCidRef.current = null;
         setCoverUrl(previousCover ?? null);
       } finally {
         setIsUploading(false);
@@ -237,6 +278,8 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
   return (
     <div
       className={rootClassName}
+      data-testid="library-card"
+      data-library-id={library.id}
       role={isInteractive ? 'button' : 'group'}
       tabIndex={isInteractive ? 0 : -1}
       aria-label={t('libraries.card.ariaLabel', { name: library.name })}
@@ -294,6 +337,7 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
           className={styles.actionButton}
           aria-label={t('libraries.list.actions.edit')}
           data-tooltip={t('libraries.list.actions.edit')}
+          data-testid="library-edit-button"
           disabled={disableQuickActions}
           onClick={(e) => {
             e.stopPropagation();
@@ -322,11 +366,42 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
         aria-label={t('libraries.card.coverAria')}
         style={!coverUrl ? { background: gradient } : undefined}
       >
-        {coverUrl ? (
+        {coverSrc ? (
           <img
-            src={coverUrl}
+            src={coverSrc}
             alt={t('libraries.card.coverAlt', { name: library.name })}
             style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
+            onLoad={(e) => {
+              const handle = coverLoadRef.current;
+              if (!handle) return;
+              reportImageLoaded(handle, e.currentTarget, {
+                entity_type: 'library',
+                entity_id: library.id,
+              });
+
+              const action = coverActionRef.current;
+              if (action && action.correlationId === handle.correlationId) {
+                void emitUiRendered(action, {
+                  entity_type: 'library',
+                  entity_id: library.id,
+                  image_url: handle.instrumentedUrl,
+                });
+                coverActionRef.current = null;
+              }
+            }}
+            onError={() => {
+              const handle = coverLoadRef.current;
+              if (handle) {
+                reportImageError(handle, {
+                  entity_type: 'library',
+                  entity_id: library.id,
+                });
+              }
+              // If the new cover image fails to load, keep the action handle for debugging,
+              // but avoid leaking it across unrelated future loads.
+              coverActionRef.current = null;
+              setCoverUrl(null);
+            }}
           />
         ) : (
           <div className={styles.coverGradient} style={{ background: gradient }} />
@@ -475,11 +550,11 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
         <div className={styles.metricsRow} aria-label={t('libraries.list.columns.metrics')}>
           <span
             className={styles.metricValue}
-            style={{ opacity: bookshelvesCount == null ? 0.55 : 1 }}
+            style={{ opacity: 1 }}
             data-tooltip={bookshelvesTooltip}
             aria-label={bookshelvesTooltip}
           >
-            <LibraryIcon size={12} /> {bookshelvesCount == null ? '—' : bookshelvesCount}
+            <LibraryIcon size={12} /> {resolvedBookshelvesCount}
           </span>
           <span
             className={styles.metricValue}
@@ -506,3 +581,40 @@ export const LibraryCard: React.FC<LibraryCardProps> = ({
 };
 
 export default LibraryCard;
+
+function patchLibraryCoverCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  libraryId: string,
+  coverUrl: string | null,
+  coverMediaId?: string | null,
+  updatedAt?: string | null,
+) {
+  // 更新 react-query 列表缓存
+  queryClient.setQueriesData({ queryKey: ['libraries'] }, (old: unknown) => {
+    if (!Array.isArray(old)) return old;
+    return old.map((item: any) => (item?.id === libraryId
+      ? { ...item, coverUrl, cover_media_id: coverMediaId, updated_at: updatedAt ?? item?.updated_at }
+      : item));
+  });
+
+  // 更新 react-query 详情缓存
+  queryClient.setQueryData(['libraries', libraryId], (old: any) => {
+    if (!old) return old;
+    return { ...old, coverUrl, cover_media_id: coverMediaId, updated_at: updatedAt ?? old.updated_at };
+  });
+
+  // 同步本地缓存
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem('wl_libraries_cache');
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.data)) return;
+    const nextData = parsed.data.map((item: any) => (item?.id === libraryId
+      ? { ...item, coverUrl, cover_media_id: coverMediaId, updated_at: updatedAt ?? item?.updated_at }
+      : item));
+    localStorage.setItem('wl_libraries_cache', JSON.stringify({ ...parsed, data: nextData }));
+  } catch (_) {
+    // ignore
+  }
+}

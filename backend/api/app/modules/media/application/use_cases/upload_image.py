@@ -13,6 +13,7 @@ from typing import Optional
 from uuid import UUID
 
 from ...domain import Media, MediaMimeType
+from ...application.ports.input import UploadImageCommand
 from ...application.ports.output import MediaRepository
 from ...exceptions import (
     InvalidMimeTypeError,
@@ -38,6 +39,17 @@ class UploadImageUseCase:
 
     def __init__(self, repository: MediaRepository):
         self.repository = repository
+
+    async def execute_command(self, command: UploadImageCommand) -> Media:
+        return await self.execute(
+            filename=command.filename,
+            mime_type=command.mime_type,
+            file_size=command.file_size,
+            storage_key=command.storage_key,
+            user_id=command.user_id,
+            width=command.width,
+            height=command.height,
+        )
 
     async def execute(
         self,

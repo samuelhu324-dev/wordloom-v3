@@ -425,6 +425,8 @@ export const enUS = {
   'books.dialog.fields.coverIconLabel': 'Cover icon',
   'books.dialog.fields.coverIconDescription': 'Lucide icon shown on the shelf/List cover',
   'books.dialog.fields.coverIconHelper': 'If empty, the first letter + default cover will be used. You can change or clear it anytime.',
+  'books.dialog.coverIconPicker.allIcons': 'All Icons',
+  'books.dialog.coverIconPicker.clear': 'Erasing Cover Icons',
   'books.dialog.tags.loading': 'Loading…',
   'books.dialog.tags.emptyHint': 'No tags available. Press Enter to create a new one.',
   'books.dialog.errors.titleRequired': 'Please enter a title',

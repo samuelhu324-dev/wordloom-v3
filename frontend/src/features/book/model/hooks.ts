@@ -326,7 +326,8 @@ export const useRecalculateBookMaturity = (bookId: string) => {
 export const useUploadBookCover = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ bookId, file }: { bookId: string; file: File }) => uploadBookCover(bookId, file),
+    mutationFn: ({ bookId, file, correlationId }: { bookId: string; file: File; correlationId?: string }) =>
+      uploadBookCover(bookId, file, correlationId),
     onSuccess: (updatedBook) => {
       queryClient.setQueryData(QUERY_KEY.detail(updatedBook.id), updatedBook);
       queryClient.setQueriesData({ queryKey: QUERY_KEY.all }, (oldData) => mergeBookIntoCache(oldData, updatedBook));

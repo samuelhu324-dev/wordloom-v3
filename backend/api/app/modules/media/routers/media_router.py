@@ -15,28 +15,19 @@ Policies:
 
 import logging
 import os
-from dataclasses import asdict
+import time
+import uuid
 from pathlib import Path as FilePath
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, UploadFile, File, status, Request
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.background import BackgroundTask
 
 from api.app.dependencies import DIContainer, get_di_container
-from api.app.modules.media.application.ports.input import (
-    UploadImageRequest,
-    UploadVideoRequest,
-    DeleteMediaRequest,
-    RestoreMediaRequest,
-    PurgeMediaRequest,
-    AssociateMediaRequest,
-    DisassociateMediaRequest,
-    GetMediaRequest,
-    UpdateMediaMetadataRequest,
-    MediaResponse,
-)
+from api.app.modules.media.schemas import MediaResponse as MediaDetailResponse
 from api.app.modules.media.domain.exceptions import (
     MediaNotFoundError,
     InvalidMimeTypeError,
@@ -47,8 +38,24 @@ from api.app.modules.media.domain.exceptions import (
     AssociationError,
     DomainException,
 )
+from api.app.modules.media.exceptions import (
+    MediaNotFoundError as MediaNotFoundErrorV2,
+    DomainException as DomainExceptionV2,
+)
+from api.app.shared.request_context import RequestContext
 from infra.database import get_db_session
 from infra.storage.media_repository_impl import SQLAlchemyMediaRepository
+from infra.storage.storage_manager import LocalStorageStrategy, StorageManager
+
+from api.app.modules.media.routers import mappers as media_mappers
+from api.app.modules.media.routers.schemas import (
+    UploadImageQuery,
+    UploadVideoQuery,
+    UpdateMediaMetadataBody,
+    AssociateMediaQuery,
+    DisassociateMediaQuery,
+    PurgeMediaQuery,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -57,6 +64,7 @@ router = APIRouter(prefix="", tags=["media"])
 
 _BACKEND_ROOT = FilePath(__file__).resolve().parents[5]
 _STORAGE_ROOT = FilePath(os.getenv("WORDLOOM_STORAGE_ROOT", _BACKEND_ROOT / "storage")).resolve()
+_media_storage = StorageManager(LocalStorageStrategy(str(_STORAGE_ROOT)))
 
 
 def _resolve_storage_path(storage_key: str) -> FilePath:
@@ -85,23 +93,33 @@ def _resolve_storage_path(storage_key: str) -> FilePath:
 )
 async def upload_image(
     file: UploadFile = File(..., description="Image file to upload"),
-    description: Optional[str] = Query(None, description="Optional image description"),
+    query: UploadImageQuery = Depends(),
     di: DIContainer = Depends(get_di_container)
 ):
     """Upload an image file to media storage"""
     try:
         content = await file.read()
+        if not content:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Image file is empty",
+            )
 
-        request = UploadImageRequest(
-            filename=file.filename,
-            mime_type=file.content_type,
-            file_content=content,
-            description=description
-        )
-
-        use_case = di.get_upload_image_use_case()
-        response: MediaResponse = await use_case.execute(request)
-        return asdict(response)
+        filename = (file.filename or "image").replace(" ", "_")
+        storage_key = await _media_storage.save_media_file(content, filename)
+        try:
+            command = media_mappers.to_upload_image_command(
+                filename=filename,
+                content_type=file.content_type,
+                file_size=len(content),
+                storage_key=storage_key,
+            )
+            use_case = di.get_upload_image_use_case()
+            media = await use_case.execute_command(command)
+            return MediaDetailResponse.model_validate(media)
+        except Exception:
+            await _media_storage.delete_file(storage_key)
+            raise
     except InvalidMimeTypeError as e:
         logger.warning(f"Invalid MIME type for image: {file.filename} ({file.content_type})")
         raise HTTPException(
@@ -147,23 +165,33 @@ async def upload_image(
 )
 async def upload_video(
     file: UploadFile = File(..., description="Video file to upload"),
-    description: Optional[str] = Query(None, description="Optional video description"),
+    query: UploadVideoQuery = Depends(),
     di: DIContainer = Depends(get_di_container)
 ):
     """Upload a video file to media storage"""
     try:
         content = await file.read()
+        if not content:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Video file is empty",
+            )
 
-        request = UploadVideoRequest(
-            filename=file.filename,
-            mime_type=file.content_type,
-            file_content=content,
-            description=description
-        )
-
-        use_case = di.get_upload_video_use_case()
-        response: MediaResponse = await use_case.execute(request)
-        return asdict(response)
+        filename = (file.filename or "video").replace(" ", "_")
+        storage_key = await _media_storage.save_media_file(content, filename)
+        try:
+            command = media_mappers.to_upload_video_command(
+                filename=filename,
+                content_type=file.content_type,
+                file_size=len(content),
+                storage_key=storage_key,
+            )
+            use_case = di.get_upload_video_use_case()
+            media = await use_case.execute_command(command)
+            return MediaDetailResponse.model_validate(media)
+        except Exception:
+            await _media_storage.delete_file(storage_key)
+            raise
     except InvalidMimeTypeError as e:
         logger.warning(f"Invalid MIME type for video: {file.filename} ({file.content_type})")
         raise HTTPException(
@@ -207,28 +235,103 @@ async def upload_video(
     description="Retrieve detailed information about a specific media file"
 )
 async def get_media(
+    request: Request,
     media_id: UUID = Path(..., description="Media ID"),
     di: DIContainer = Depends(get_di_container)
 ):
     """Get detailed information about a media file"""
+    start = time.perf_counter()
+    correlation_id = getattr(request.state, "correlation_id", None) or request.headers.get("X-Request-Id") or str(uuid.uuid4())
+    ctx = RequestContext(
+        correlation_id=correlation_id,
+        actor_id=None,
+        workspace_id=None,
+        route=str(request.url.path),
+        method=request.method,
+    )
+
+    logger.info(
+        {
+            "event": "media.get.request_received",
+            "operation": "media.get",
+            "layer": "handler",
+            "correlation_id": ctx.correlation_id,
+            "media_id": str(media_id),
+            "route": ctx.route,
+            "method": ctx.method,
+        }
+    )
+
     try:
-        request = GetMediaRequest(media_id=media_id)
         use_case = di.get_media_use_case()
-        response: MediaResponse = await use_case.execute(request)
-        return asdict(response)
-    except MediaNotFoundError:
+        media = await use_case.execute(media_id, ctx=ctx)
+
+        duration_ms = (time.perf_counter() - start) * 1000
+        logger.info(
+            {
+                "event": "media.get.success",
+                "operation": "media.get",
+                "layer": "handler",
+                "outcome": "success",
+                "correlation_id": ctx.correlation_id,
+                "media_id": str(media_id),
+                "duration_ms": duration_ms,
+            }
+        )
+
+        return MediaDetailResponse.model_validate(media)
+    except (MediaNotFoundError, MediaNotFoundErrorV2):
+        duration_ms = (time.perf_counter() - start) * 1000
+        logger.info(
+            {
+                "event": "media.get.not_found",
+                "operation": "media.get",
+                "layer": "handler",
+                "outcome": "not_found",
+                "correlation_id": ctx.correlation_id,
+                "media_id": str(media_id),
+                "duration_ms": duration_ms,
+                "error_type": "MediaNotFoundError",
+            }
+        )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Media {media_id} not found"
         )
-    except DomainException as e:
-        logger.error(f"Domain error getting media: {e}")
+    except (DomainException, DomainExceptionV2) as e:
+        duration_ms = (time.perf_counter() - start) * 1000
+        logger.error(
+            {
+                "event": "media.get.failed",
+                "operation": "media.get",
+                "layer": "handler",
+                "outcome": "error",
+                "correlation_id": ctx.correlation_id,
+                "media_id": str(media_id),
+                "duration_ms": duration_ms,
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+            }
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
     except Exception as e:
-        logger.error(f"Unexpected error getting media: {e}")
+        duration_ms = (time.perf_counter() - start) * 1000
+        logger.exception(
+            {
+                "event": "media.get.failed",
+                "operation": "media.get",
+                "layer": "handler",
+                "outcome": "error",
+                "correlation_id": ctx.correlation_id,
+                "media_id": str(media_id),
+                "duration_ms": duration_ms,
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+            }
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get media"
@@ -246,39 +349,246 @@ async def get_media(
     description="Stream the stored media file from disk"
 )
 async def download_media_file(
+    request: Request,
     media_id: UUID = Path(..., description="Media ID"),
     session: AsyncSession = Depends(get_db_session),
 ):
     """Return the raw media binary referenced by the media record."""
+    start = time.perf_counter()
+    req_method = request.method
+    req_path = str(request.url.path)
+    query_cid = request.query_params.get("cid")
+    correlation_id = (
+        query_cid
+        or getattr(request.state, "correlation_id", None)
+        or request.headers.get("X-Request-Id")
+        or str(uuid.uuid4())
+    )
+    # Ensure middleware (and downstream code) sees the same correlation id.
+    request.state.correlation_id = correlation_id
+
+    ctx = RequestContext(
+        correlation_id=correlation_id,
+        actor_id=None,
+        workspace_id=None,
+        route=str(request.url.path),
+        method=request.method,
+    )
+
+    logger.info(
+        {
+            "event": "media.file.request_received",
+            "operation": "media.file",
+            "layer": "handler",
+            "correlation_id": ctx.correlation_id,
+            "cid": query_cid,
+            "cache_bust": request.query_params.get("v"),
+            "media_id": str(media_id),
+            "route": ctx.route,
+            "method": req_method,
+            "path": req_path,
+        }
+    )
+
     repository = SQLAlchemyMediaRepository(session)
     try:
-        media = await repository.get_by_id(media_id)
+        db_start = time.perf_counter()
+        media = await repository.get_by_id(media_id, ctx=ctx)
+        db_duration_ms = (time.perf_counter() - db_start) * 1000
     except Exception as exc:
-        logger.exception("Failed to load media %s", media_id)
+        duration_ms = (time.perf_counter() - start) * 1000
+        logger.exception(
+            {
+                "event": "media.file.failed",
+                "operation": "media.file",
+                "layer": "handler",
+                "outcome": "error",
+                "correlation_id": ctx.correlation_id,
+                "cid": query_cid,
+                "media_id": str(media_id),
+                "duration_ms": duration_ms,
+                "error_type": type(exc).__name__,
+                "error_message": str(exc),
+                "method": req_method,
+                "path": req_path,
+                "status_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+            }
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to load media metadata",
         ) from exc
 
     if not media:
+        duration_ms = (time.perf_counter() - start) * 1000
+        logger.info(
+            {
+                "event": "media.file.not_found",
+                "operation": "media.file",
+                "layer": "handler",
+                "outcome": "not_found",
+                "correlation_id": ctx.correlation_id,
+                "cid": query_cid,
+                "media_id": str(media_id),
+                "duration_ms": duration_ms,
+                "method": req_method,
+                "path": req_path,
+                "status_code": status.HTTP_404_NOT_FOUND,
+            }
+        )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Media {media_id} not found",
         )
 
+    logger.info(
+        {
+            "event": "media.file.db_loaded",
+            "operation": "media.file",
+            "layer": "handler",
+            "correlation_id": ctx.correlation_id,
+            "cid": query_cid,
+            "media_id": str(media_id),
+            "storage_key": getattr(media, "storage_key", None),
+            "db_duration_ms": db_duration_ms,
+            "method": req_method,
+            "path": req_path,
+        }
+    )
+
+    resolve_start = time.perf_counter()
     file_path = _resolve_storage_path(media.storage_key)
+    resolve_duration_ms = (time.perf_counter() - resolve_start) * 1000
+
+    logger.info(
+        {
+            "event": "media.file.storage_resolved",
+            "operation": "media.file",
+            "layer": "handler",
+            "correlation_id": ctx.correlation_id,
+            "cid": query_cid,
+            "media_id": str(media_id),
+            "storage_key": getattr(media, "storage_key", None),
+            "file_path": str(file_path),
+            # Keep both names for compatibility; storage_duration_ms is the recommended field.
+            "storage_duration_ms": resolve_duration_ms,
+            "resolve_duration_ms": resolve_duration_ms,
+            "method": req_method,
+            "path": req_path,
+        }
+    )
+
     if not file_path.is_file():
-        logger.error("Media file missing on disk for %s (expected %s)", media_id, file_path)
+        duration_ms = (time.perf_counter() - start) * 1000
+        logger.error(
+            {
+                "event": "media.file.file_missing",
+                "operation": "media.file",
+                "layer": "handler",
+                "outcome": "file_missing",
+                "correlation_id": ctx.correlation_id,
+                "cid": query_cid,
+                "media_id": str(media_id),
+                "storage_key": getattr(media, "storage_key", None),
+                "file_path": str(file_path),
+                "storage_duration_ms": resolve_duration_ms,
+                "resolve_duration_ms": resolve_duration_ms,
+                "duration_ms": duration_ms,
+                "method": req_method,
+                "path": req_path,
+                "status_code": status.HTTP_404_NOT_FOUND,
+            }
+        )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Media file not found",
         )
 
+    try:
+        file_size_bytes = file_path.stat().st_size
+    except OSError as exc:
+        duration_ms = (time.perf_counter() - start) * 1000
+        logger.exception(
+            {
+                "event": "media.file.failed",
+                "operation": "media.file",
+                "layer": "handler",
+                "outcome": "error",
+                "correlation_id": ctx.correlation_id,
+                "cid": query_cid,
+                "media_id": str(media_id),
+                "file_path": str(file_path),
+                "duration_ms": duration_ms,
+                "error_type": type(exc).__name__,
+                "error_message": str(exc),
+                "method": req_method,
+                "path": req_path,
+                "status_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+            }
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to read media file",
+        ) from exc
+
     media_type = getattr(media.mime_type, "value", str(media.mime_type))
+
+    duration_ms = (time.perf_counter() - start) * 1000
+    logger.info(
+        {
+            "event": "media.file.response_prepared",
+            "operation": "media.file",
+            "layer": "handler",
+            "outcome": "success",
+            "correlation_id": ctx.correlation_id,
+            "cid": query_cid,
+            "cache_bust": request.query_params.get("v"),
+            "media_id": str(media_id),
+            "filename": getattr(media, "filename", None),
+            "mime_type": media_type,
+            "storage_key": getattr(media, "storage_key", None),
+            "file_path": str(file_path),
+            "file_size_bytes": file_size_bytes,
+            "db_duration_ms": db_duration_ms,
+            "storage_duration_ms": resolve_duration_ms,
+            "resolve_duration_ms": resolve_duration_ms,
+            "duration_ms": duration_ms,
+            "method": req_method,
+            "path": req_path,
+            "status_code": status.HTTP_200_OK,
+        }
+    )
+
+    def _log_response_sent() -> None:
+        total_duration_ms = (time.perf_counter() - start) * 1000
+        logger.info(
+            {
+                "event": "media.file.response_sent",
+                "operation": "media.file",
+                "layer": "handler",
+                "outcome": "success",
+                "correlation_id": ctx.correlation_id,
+                "cid": query_cid,
+                "cache_bust": request.query_params.get("v"),
+                "media_id": str(media_id),
+                "filename": getattr(media, "filename", None),
+                "mime_type": media_type,
+                "storage_key": getattr(media, "storage_key", None),
+                "file_path": str(file_path),
+                "file_size_bytes": file_size_bytes,
+                "total_duration_ms": total_duration_ms,
+                "method": req_method,
+                "path": req_path,
+                "status_code": status.HTTP_200_OK,
+            }
+        )
+
     return FileResponse(
         path=str(file_path),
         media_type=media_type,
         filename=media.filename,
+        headers={"X-Request-Id": ctx.correlation_id},
+        background=BackgroundTask(_log_response_sent),
     )
 
 
@@ -294,18 +604,23 @@ async def download_media_file(
 )
 async def update_media_metadata(
     media_id: UUID = Path(..., description="Media ID"),
-    description: Optional[str] = Query(None, description="Updated description"),
+    body: UpdateMediaMetadataBody = None,
     di: DIContainer = Depends(get_di_container)
 ):
     """Update media metadata"""
     try:
-        request = UpdateMediaMetadataRequest(
+        if body is None:
+            body = UpdateMediaMetadataBody()
+
+        command = media_mappers.to_update_media_metadata_command(
             media_id=media_id,
-            description=description
+            width=body.width,
+            height=body.height,
+            duration_ms=body.duration_ms,
         )
         use_case = di.get_update_media_metadata_use_case()
-        response: MediaResponse = await use_case.execute(request)
-        return asdict(response)
+        media = await use_case.execute_command(command)
+        return MediaDetailResponse.model_validate(media)
     except MediaNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -343,20 +658,19 @@ async def update_media_metadata(
 )
 async def associate_media(
     media_id: UUID = Path(..., description="Media ID"),
-    entity_type: str = Query(..., description="Entity type (book, block, etc.)"),
-    entity_id: UUID = Query(..., description="Entity ID"),
+    query: AssociateMediaQuery = Depends(),
     di: DIContainer = Depends(get_di_container)
 ):
     """Associate media with an entity"""
     try:
-        request = AssociateMediaRequest(
-            media_id=media_id,
-            entity_type=entity_type,
-            entity_id=entity_id
-        )
         use_case = di.get_associate_media_use_case()
-        response: MediaResponse = await use_case.execute(request)
-        return asdict(response)
+        command = media_mappers.to_associate_media_command(
+            media_id=media_id,
+            entity_type=query.entity_type,
+            entity_id=query.entity_id,
+        )
+        await use_case.execute_command(command)
+        return {"ok": True}
     except MediaNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -395,20 +709,19 @@ async def associate_media(
 )
 async def disassociate_media(
     media_id: UUID = Path(..., description="Media ID"),
-    entity_type: str = Query(..., description="Entity type (book, block, etc.)"),
-    entity_id: UUID = Query(..., description="Entity ID"),
+    query: DisassociateMediaQuery = Depends(),
     di: DIContainer = Depends(get_di_container)
 ):
     """Disassociate media from an entity"""
     try:
-        request = DisassociateMediaRequest(
-            media_id=media_id,
-            entity_type=entity_type,
-            entity_id=entity_id
-        )
         use_case = di.get_disassociate_media_use_case()
-        response: MediaResponse = await use_case.execute(request)
-        return asdict(response)
+        command = media_mappers.to_disassociate_media_command(
+            media_id=media_id,
+            entity_type=query.entity_type,
+            entity_id=query.entity_id,
+        )
+        await use_case.execute_command(command)
+        return {"ok": True}
     except MediaNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -451,10 +764,9 @@ async def delete_media(
 ):
     """Move media to trash (soft delete)"""
     try:
-        request = DeleteMediaRequest(media_id=media_id)
         use_case = di.get_delete_media_use_case()
-        response: MediaResponse = await use_case.execute(request)
-        return asdict(response)
+        deleted = await use_case.execute(media_id)
+        return MediaDetailResponse.model_validate(deleted)
     except MediaNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -491,10 +803,9 @@ async def restore_media(
 ):
     """Restore media from trash"""
     try:
-        request = RestoreMediaRequest(media_id=media_id)
         use_case = di.get_restore_media_use_case()
-        response: MediaResponse = await use_case.execute(request)
-        return asdict(response)
+        restored = await use_case.execute(media_id)
+        return MediaDetailResponse.model_validate(restored)
     except MediaNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -527,15 +838,15 @@ async def restore_media(
 )
 async def purge_media(
     media_id: UUID = Path(..., description="Media ID"),
-    force: bool = Query(False, description="Force purge even if not in trash"),
+    query: PurgeMediaQuery = Depends(),
     di: DIContainer = Depends(get_di_container)
 ):
     """Permanently delete media"""
     try:
-        request = PurgeMediaRequest(media_id=media_id, force=force)
         use_case = di.get_purge_media_use_case()
-        response: MediaResponse = await use_case.execute(request)
-        return asdict(response)
+        command = media_mappers.to_purge_media_command(media_id=media_id, force=query.force)
+        await use_case.execute_command(command)
+        return {"ok": True}
     except MediaNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

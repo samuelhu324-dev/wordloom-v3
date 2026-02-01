@@ -1,12 +1,12 @@
 "use client";
 
-import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { BookDto } from '@/entities/book';
 import { useCreateBook, useUpdateBook } from '@/features/book/model/hooks';
 import { updateBook as updateBookApi } from '@/features/book/model/api';
 import { showToast } from '@/shared/ui/toast';
-import { Modal } from '@/shared/ui';
+import { Button, Modal } from '@/shared/ui';
 import { useCreateTag } from '@/features/tag/model/hooks';
 import { searchTags } from '@/features/tag/model/api';
 import type { TagDto } from '@/entities/tag';
@@ -21,6 +21,7 @@ import {
   type TagSelection,
 } from './types';
 import { useI18n } from '@/i18n/useI18n';
+import styles from '../BookEditDialog.module.css';
 
 export interface BookEditDialogShellProps {
   isOpen: boolean;
@@ -47,6 +48,7 @@ export const BookEditDialogShell = ({
 }: BookEditDialogShellProps) => {
   const { t } = useI18n();
   const isEditMode = mode === 'edit';
+  const formId = useId();
   const queryClient = useQueryClient();
   const updateBookMutation = useUpdateBook(book?.id ?? '');
   const createBookMutation = useCreateBook();
@@ -64,6 +66,7 @@ export const BookEditDialogShell = ({
     canAddMore,
     selectedNameKeys,
   } = useBookEditState({ isOpen, mode, book });
+  const submitDisabled = isEditMode ? !book : false;
 
   const { items, label, isLoading, query, isSearching } = useTagSuggestions(tagInput, { isOpen });
   const tagEmptyHint = t('books.dialog.tags.emptyHint');
@@ -264,8 +267,16 @@ export const BookEditDialogShell = ({
       showCloseButton
       lockScroll
       headingGap="compact"
+      footer={(
+        <div className={styles.footer}>
+          <Button type="submit" variant="primary" loading={isSaving} disabled={submitDisabled} form={formId}>
+            {mode === 'edit' ? t('button.save') : t('button.create')}
+          </Button>
+        </div>
+      )}
     >
       <BookEditForm
+        formId={formId}
         mode={mode}
         title={title}
         summary={summary}
@@ -283,7 +294,7 @@ export const BookEditDialogShell = ({
         }
         isSaving={isSaving}
         formError={formError}
-        submitDisabled={isEditMode ? !book : false}
+        submitDisabled={submitDisabled}
         onSubmit={handleSubmit}
         onTitleChange={setTitle}
         onSummaryChange={setSummary}

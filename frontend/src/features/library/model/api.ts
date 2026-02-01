@@ -149,12 +149,19 @@ export async function recordLibraryView(libraryId: string): Promise<LibraryDto> 
 }
 
 /** Upload library cover via multipart form data */
-export async function uploadLibraryCover(libraryId: string, file: File): Promise<LibraryDto> {
+export async function uploadLibraryCover(
+  libraryId: string,
+  file: File,
+  correlationId?: string,
+): Promise<LibraryDto> {
   const formData = new FormData();
   formData.append('file', file);
 
   const response = await apiClient.post<LibraryDto>(`${BASE_URL}/${libraryId}/cover`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      ...(correlationId ? { 'X-Request-Id': correlationId } : null),
+    },
   });
 
   return decorateLibrary(response.data as LibraryDto);
@@ -206,11 +213,14 @@ function normalizeLibraryTagsResponse(payload: LibraryTagsResponseDto): LibraryT
 function decorateLibraries(items: LibraryDto[]): LibraryDto[] {
   return items.map((item) => decorateLibrary(item));
 }
-
 function decorateLibrary(library: LibraryDto): LibraryDto {
   if (!library) return library;
+
   const tags = Array.isArray(library.tags) ? library.tags : [];
-  const tagTotal = typeof library.tag_total_count === 'number' ? library.tag_total_count : tags.length;
+  const tagTotal = typeof library.tag_total_count === 'number'
+    ? library.tag_total_count
+    : tags.length;
+
   const normalized: LibraryDto = {
     ...library,
     tags,

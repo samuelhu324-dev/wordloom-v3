@@ -10,6 +10,7 @@ Output ports (repository interface):
 """
 
 from .input import ExecuteSearchUseCase
+from .candidate_provider import Candidate, CandidateProvider
 from .output import SearchPort
 
 __all__ = [
@@ -17,4 +18,7 @@ __all__ = [
     "ExecuteSearchUseCase",
     # Output port
     "SearchPort",
+    # Two-stage Stage1 port
+    "Candidate",
+    "CandidateProvider",
 ]

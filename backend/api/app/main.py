@@ -15,14 +15,16 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import Response
 import logging
 from pathlib import Path
 
+from api.app.config.logging_config import setup_logging
+
 # Setup logging first (before any other imports)
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+setup_logging()
+
+from api.app.middlewares.payload_metrics import PayloadMetricsMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -208,6 +210,39 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# =========================================================================
+# Observability Middleware
+# =========================================================================
+
+app.add_middleware(PayloadMetricsMiddleware)
+
+
+@app.on_event("startup")
+async def _startup_env_guard() -> None:
+    # Safety fuse: refuse to start if WORDLOOM_ENV doesn't match the connected DB.
+    # This prevents accidental writes to the wrong database (dev vs test).
+    try:
+        from infra.database.env_guard import assert_expected_database_environment
+        from infra.database.session import get_session_factory
+
+        session_factory = await get_session_factory()
+        async with session_factory() as session:
+            await assert_expected_database_environment(session)
+        logger.info("[ENV_GUARD] Database environment check: OK")
+    except Exception as exc:  # noqa: BLE001
+        logger.error("[ENV_GUARD] Database environment check failed: %s", exc)
+        raise
+
+# =========================================================================
+# Prometheus Metrics Endpoint
+# =========================================================================
+
+@app.get("/metrics", include_in_schema=False)
+async def metrics() -> Response:
+    from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
 # ============================================================================
 # CORS Middleware
 # ============================================================================
@@ -343,7 +378,31 @@ async def shutdown():
 # ============================================================================
 
 from fastapi import Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Log schema validation failures (422) in a machine-readable way."""
+    correlation_id = getattr(request.state, "correlation_id", None)
+    errors = exc.errors()
+
+    logger.info(
+        {
+            "event": "schema.validation_failed",
+            "layer": "exception_handler",
+            "correlation_id": correlation_id,
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": 422,
+            "error_count": len(errors),
+            "errors": errors,
+        }
+    )
+
+    # Keep FastAPI's default response shape for 422.
+    return JSONResponse(status_code=422, content={"detail": errors})
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):

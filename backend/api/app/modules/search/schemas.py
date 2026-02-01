@@ -71,8 +71,35 @@ class ExecuteSearchResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# =========================================================================
+# Two-stage Block Search (Search-only DTOs)
+# =========================================================================
+
+
+class BlockSearchHitSchema(BaseModel):
+    """Two-stage block search hit (search-only response shape)."""
+
+    id: str = Field(..., description="Block UUID")
+    snippet: Optional[str] = Field(None, description="Preview text")
+    score: Optional[float] = Field(None, description="Optional relevance score")
+    tags: List[str] = Field(default_factory=list, description="Tag names")
+
+    model_config = {"from_attributes": True}
+
+
+class BlockTwoStageSearchResponse(BaseModel):
+    """Response for two-stage block search."""
+
+    total: int = Field(..., ge=0, description="Returned hits count")
+    hits: List[BlockSearchHitSchema] = Field(default_factory=list)
+
+    model_config = {"from_attributes": True}
+
+
 __all__ = [
     "ExecuteSearchRequest",
     "SearchHitSchema",
     "ExecuteSearchResponse",
+    "BlockSearchHitSchema",
+    "BlockTwoStageSearchResponse",
 ]

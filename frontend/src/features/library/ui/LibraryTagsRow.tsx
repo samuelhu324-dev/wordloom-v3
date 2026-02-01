@@ -33,7 +33,13 @@ export const LibraryTagsRow: React.FC<LibraryTagsRowProps> = ({
   const rowClassName = [styles.row, styles[size], className].filter(Boolean).join(' ');
 
   if (visible.length === 0 && remaining === 0) {
-    return <div className={rowClassName}><span className={styles.placeholder}>{resolvedPlaceholder}</span></div>;
+    return (
+      <div className={rowClassName}>
+        <span className={styles.placeholder} data-testid="library-tags-placeholder">
+          {resolvedPlaceholder}
+        </span>
+      </div>
+    );
   }
 
   return (

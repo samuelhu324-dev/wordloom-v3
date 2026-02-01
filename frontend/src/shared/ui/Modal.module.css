@@ -75,7 +75,12 @@
 }
 .modalCloseButton:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
 
-.modalBody { margin: 0 0 var(--spacing-lg); flex: 1; }
+.modalBody {
+  margin: 0 0 var(--spacing-lg);
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
 .modalFooter { display: flex; gap: var(--spacing-md); justify-content: flex-end; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

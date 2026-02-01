@@ -1,0 +1,43 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  # IMPORTANT:
+  # - API runs on host (WSL2) and exposes /metrics
+  # - worker runs on host and exposes /metrics (default 9108, test often 9109)
+  #
+  # Docker containers can reach the host via host.docker.internal on Docker Desktop.
+  # For Linux engines we add extra_hosts=host-gateway in docker-compose.infra.yml.
+
+  - job_name: "wordloom-api-dev"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:30001"]
+        labels:
+          env: "dev"
+          component: "api"
+
+  - job_name: "wordloom-worker-dev"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:9108"]
+        labels:
+          env: "dev"
+          component: "worker"
+
+  - job_name: "wordloom-api-test"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:30011"]
+        labels:
+          env: "test"
+          component: "api"
+
+  - job_name: "wordloom-worker-test"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:9109"]
+        labels:
+          env: "test"
+          component: "worker"

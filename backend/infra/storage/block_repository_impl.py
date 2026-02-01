@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.app.modules.block.domain import Block, BlockContent, BlockType
 from api.app.modules.block.application.ports.output import BlockRepository
+from api.app.shared.events import get_event_bus
 from infra.database.models import BlockModel
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,16 @@ class SQLAlchemyBlockRepository(BlockRepository):
             session: AsyncSession for async database access
         """
         self.session = session
+
+    async def _publish_domain_events(self, block: Block) -> None:
+        events = block.get_events()
+        if not events:
+            return
+
+        event_bus = get_event_bus()
+        for ev in events:
+            await event_bus.publish(ev)
+        block.clear_events()
 
     async def save(self, block: Block) -> Block:
         """Save Block (create or update) and return refreshed domain aggregate."""
@@ -114,6 +125,10 @@ class SQLAlchemyBlockRepository(BlockRepository):
                 logger.debug(f"Updating block {block.id}")
 
         await self.session.commit()
+
+        # Publish domain events AFTER successful persistence.
+        # This triggers infra side effects (search_index + outbox enqueue).
+        await self._publish_domain_events(block)
         return block
 
     async def get_by_id(self, block_id: UUID) -> Optional[Block]:
