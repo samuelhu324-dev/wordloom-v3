@@ -798,14 +798,18 @@ export function useLibraryTagCatalog(params: UseLibraryTagCatalogParams = {}) {
 
   const shouldFetchGlobalCatalog = normalizedGlobalTargets.length > 0 && enabled;
 
-  const globalTagQuery = useQuery<TagDescriptionsMap | undefined>({
+  const globalTagQuery = useQuery<TagDescriptionsMap | null>({
     queryKey: [
       'global-tag-catalog',
       normalizedGlobalTargets.map((target) => target.normalized).sort().join('|'),
     ],
-    queryFn: () => fetchGlobalTagDescriptions(normalizedGlobalTargets),
+    queryFn: async () => {
+      const data = await fetchGlobalTagDescriptions(normalizedGlobalTargets);
+      return data ?? null;
+    },
     enabled: shouldFetchGlobalCatalog,
     staleTime: staleTimeMs,
+    initialData: null,
   });
 
   const tagDescriptionsMap = React.useMemo(
@@ -858,9 +862,9 @@ export function useLibraryTagCatalog(params: UseLibraryTagCatalogParams = {}) {
 
 async function fetchGlobalTagDescriptions(
   targets: Array<{ label: string; normalized: string }>,
-): Promise<TagDescriptionsMap | undefined> {
+): Promise<TagDescriptionsMap | null> {
   if (!targets.length) {
-    return undefined;
+    return null;
   }
 
   const results = await Promise.all(targets.map(async ({ label, normalized }) => {
@@ -889,5 +893,5 @@ async function fetchGlobalTagDescriptions(
     hasEntries = true;
   });
 
-  return hasEntries ? map : undefined;
+  return hasEntries ? map : null;
 }

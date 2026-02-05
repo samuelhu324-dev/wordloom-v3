@@ -70,6 +70,15 @@ class SearchIndexModel(Base):
         nullable=False,
         index=True
     )
+
+    # Scope Key (Projection partition key)
+    # Nullable for legacy rows / entity types that are not library-scoped.
+    library_id = Column(
+        UUID(as_uuid=True),
+        nullable=True,
+        index=True,
+    )
+
     entity_id = Column(
         UUID(as_uuid=True),
         nullable=False,
@@ -119,6 +128,7 @@ class SearchIndexModel(Base):
     __table_args__ = (
         UniqueConstraint("entity_type", "entity_id", name="uq_search_index_entity"),
         Index("idx_search_index_type", "entity_type"),
+        Index("idx_search_index_library_type", "library_id", "entity_type"),
         Index("idx_search_index_updated", "updated_at"),
         Index("idx_search_index_entity", "entity_type", "entity_id"),
     )
@@ -132,6 +142,7 @@ class SearchIndexModel(Base):
         return {
             "id": str(self.id),
             "entity_type": self.entity_type,
+            "library_id": str(self.library_id) if self.library_id else None,
             "entity_id": str(self.entity_id),
             "text": self.text,
             "snippet": self.snippet,
@@ -154,6 +165,7 @@ class SearchIndexModel(Base):
         return cls(
             id=data.get("id"),
             entity_type=data["entity_type"],
+            library_id=data.get("library_id"),
             entity_id=data["entity_id"],
             text=data["text"],
             snippet=data.get("snippet"),

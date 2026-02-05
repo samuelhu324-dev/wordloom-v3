@@ -74,12 +74,28 @@ class SearchOutboxEventModel(Base):
 
     processed_at = Column(DateTime(timezone=True), nullable=True, index=True)
 
+    # When the current processing attempt began (set on claim). Used to detect
+    # stuck events even if leases are being renewed.
+    processing_started_at = Column(DateTime(timezone=True), nullable=True, index=True)
+
+    # Coarse, low-cardinality reason for the last error (e.g., es_429, es_4xx).
+    # Keep separate from `error` so we can query/aggregate without parsing text.
+    error_reason = Column(String(80), nullable=True, index=True)
+
     error = Column(Text, nullable=True)
+
+    # Manual replay audit (explicit ops path): failed -> pending.
+    replay_count = Column(Integer, nullable=False, default=0)
+    last_replayed_at = Column(DateTime(timezone=True), nullable=True)
+    last_replayed_by = Column(String(120), nullable=True)
+    last_replayed_reason = Column(Text, nullable=True)
 
     __table_args__ = (
         Index("idx_search_outbox_entity", "entity_type", "entity_id"),
         Index("idx_search_outbox_processed", "processed_at"),
         Index("idx_search_outbox_claim", "status", "next_retry_at", "lease_until", "event_version"),
+        Index("idx_search_outbox_processing_started", "status", "processing_started_at"),
+        Index("idx_search_outbox_error_reason", "status", "error_reason"),
     )
 
 

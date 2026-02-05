@@ -24,7 +24,11 @@ const normalizeBaseOrigin = (input?: string | null): string => {
 
 const isBrowser = typeof window !== 'undefined';
 const envBaseOrigin = normalizeBaseOrigin(process.env.NEXT_PUBLIC_API_BASE?.trim() || '');
-const DEFAULT_SERVER_BASE = 'http://localhost:30001';
+const DEFAULT_SERVER_BASE = normalizeBaseOrigin(
+  process.env.API_PROXY_TARGET?.trim() ||
+    process.env.NEXT_PUBLIC_API_BASE?.trim() ||
+    'http://localhost:30001'
+);
 
 // 浏览器侧默认走同源（空字符串），由 Next rewrites → API_PROXY_TARGET 处理跨端口代理；
 // 仅在 Storybook/脚本/CI 等脱离 Next 环境时才依赖 NEXT_PUBLIC_API_BASE 或回落到 localhost:30001。

@@ -20,12 +20,20 @@ const MENU_ITEMS: MenuItem[] = [
 ];
 
 export const WorkboxMenu: React.FC = () => {
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const hoverTimerRef = useRef<number | null>(null);
   const pathname = usePathname();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const { t } = useI18n();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Avoid hydration mismatch when language is resolved from client storage.
+  const workboxLabel = mounted ? t('nav.workbox') : 'Workbox';
 
   // Hover logic with delays
   const handleMouseEnter = () => {
@@ -86,18 +94,18 @@ export const WorkboxMenu: React.FC = () => {
         type="button"
         aria-haspopup="true"
         aria-expanded={open}
-        aria-label={t('nav.workbox')}
+        aria-label={workboxLabel}
         className={styles.trigger}
         onClick={() => setOpen(o => !o)}
         onKeyDown={handleKeyDown}
       >
-        {t('nav.workbox')} <span className={styles.caret} aria-hidden="true">▾</span>
+        {workboxLabel} <span className={styles.caret} aria-hidden="true">▾</span>
       </button>
       {open && (
         <div
           ref={menuRef}
           role="menu"
-          aria-label={t('nav.workbox')}
+          aria-label={workboxLabel}
           className={styles.panel}
         >
           <div className={styles.activeBar} />

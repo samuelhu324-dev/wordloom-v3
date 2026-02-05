@@ -12,6 +12,13 @@ class ChronicleEventType(str, Enum):
     BOOK_MOVED_TO_BASEMENT = "book_moved_to_basement"  # Legacy alias (保留历史数据)
     BOOK_RESTORED = "book_restored"
     BOOK_DELETED = "book_deleted"
+    BOOK_RENAMED = "book_renamed"
+    BOOK_UPDATED = "book_updated"
+    BLOCK_CREATED = "block_created"
+    BLOCK_UPDATED = "block_updated"
+    BLOCK_SOFT_DELETED = "block_soft_deleted"
+    BLOCK_RESTORED = "block_restored"
+    BLOCK_TYPE_CHANGED = "block_type_changed"
     BLOCK_STATUS_CHANGED = "block_status_changed"
     BOOK_OPENED = "book_opened"
     BOOK_STAGE_CHANGED = "book_stage_changed"
@@ -27,6 +34,9 @@ class ChronicleEventType(str, Enum):
     WORDCOUNT_MILESTONE_REACHED = "wordcount_milestone_reached"
     TODO_PROMOTED_FROM_BLOCK = "todo_promoted_from_block"
     TODO_COMPLETED = "todo_completed"
+
+    TAG_ADDED_TO_BOOK = "tag_added_to_book"
+    TAG_REMOVED_FROM_BOOK = "tag_removed_from_book"
 
     # P2 placeholders (still listed to keep contracts stable)
     WORK_SESSION_SUMMARY = "work_session_summary"

@@ -4,6 +4,7 @@ from uuid import UUID
 from datetime import datetime
 
 from ..domain import ChronicleEventType, ChronicleEvent, ChronicleRepositoryPort
+from api.app.shared.request_context import get_request_context
 
 
 RECENT_EVENT_TYPES: Tuple[ChronicleEventType, ...] = (
@@ -44,12 +45,41 @@ class ChronicleRecorderService:
     ) -> ChronicleEvent:
         """Low-level helper to persist a Chronicle event."""
 
+        ctx = get_request_context()
+        if actor_id is None and ctx and ctx.actor_id:
+            actor_id = ctx.actor_id
+
+        # Build payload with durable envelope fields.
+        # Keep these stable even if Timeline/scoring rules evolve.
+        final_payload: Dict[str, Any] = dict(payload or {})
+        final_payload.setdefault("schema_version", 1)
+        final_payload.setdefault("provenance", "live")
+
+        if ctx and ctx.correlation_id:
+            final_payload.setdefault("correlation_id", ctx.correlation_id)
+            final_payload.setdefault("source", "api")
+            if ctx.route or ctx.method:
+                http_ctx = dict(final_payload.get("http") or {})
+                if ctx.route:
+                    http_ctx.setdefault("route", ctx.route)
+                if ctx.method:
+                    http_ctx.setdefault("method", ctx.method)
+                if http_ctx:
+                    final_payload["http"] = http_ctx
+        else:
+            final_payload.setdefault("source", "unknown")
+
+        if actor_id is not None:
+            final_payload.setdefault("actor_kind", "user")
+        else:
+            final_payload.setdefault("actor_kind", "unknown")
+
         event = ChronicleEvent.create(
             event_type=event_type,
             book_id=book_id,
             actor_id=actor_id,
             block_id=block_id,
-            payload=payload,
+            payload=final_payload,
             occurred_at=occurred_at,
         )
         await self._repo.save(event)
@@ -70,7 +100,8 @@ class ChronicleRecorderService:
         occurred_at: Optional[datetime] = None,
         source: Optional[str] = None,
     ) -> ChronicleEvent:
-        payload = {"source": source} if source else None
+        # Avoid colliding with durable envelope field `source`.
+        payload = {"view_source": source} if source else None
         return await self.record_event(
             book_id=book_id,
             event_type=ChronicleEventType.BOOK_VIEWED,
@@ -93,6 +124,173 @@ class ChronicleRecorderService:
             actor_id=actor_id,
             occurred_at=occurred_at,
             payload=payload,
+        )
+
+    async def record_book_renamed(
+        self,
+        *,
+        book_id: UUID,
+        from_title: str,
+        to_title: str,
+        actor_id: Optional[UUID] = None,
+        occurred_at: Optional[datetime] = None,
+    ) -> ChronicleEvent:
+        payload = {"from": from_title, "to": to_title}
+        return await self.record_event(
+            book_id=book_id,
+            event_type=ChronicleEventType.BOOK_RENAMED,
+            actor_id=actor_id,
+            occurred_at=occurred_at,
+            payload=payload,
+        )
+
+    async def record_book_updated(
+        self,
+        *,
+        book_id: UUID,
+        fields: Dict[str, Any],
+        trigger: Optional[str] = None,
+        actor_id: Optional[UUID] = None,
+        occurred_at: Optional[datetime] = None,
+    ) -> ChronicleEvent:
+        payload: Dict[str, Any] = {"fields": dict(fields)}
+        if trigger:
+            payload["trigger"] = trigger
+        return await self.record_event(
+            book_id=book_id,
+            event_type=ChronicleEventType.BOOK_UPDATED,
+            actor_id=actor_id,
+            occurred_at=occurred_at,
+            payload=payload,
+        )
+
+    async def record_block_created(
+        self,
+        *,
+        book_id: UUID,
+        block_id: UUID,
+        block_type: Optional[str] = None,
+        actor_id: Optional[UUID] = None,
+        occurred_at: Optional[datetime] = None,
+    ) -> ChronicleEvent:
+        payload: Dict[str, Any] = {}
+        if block_type:
+            payload["block_type"] = str(block_type)
+        return await self.record_event(
+            book_id=book_id,
+            event_type=ChronicleEventType.BLOCK_CREATED,
+            actor_id=actor_id,
+            block_id=block_id,
+            occurred_at=occurred_at,
+            payload=payload,
+        )
+
+    async def record_block_updated(
+        self,
+        *,
+        book_id: UUID,
+        block_id: UUID,
+        fields: Dict[str, Any],
+        actor_id: Optional[UUID] = None,
+        occurred_at: Optional[datetime] = None,
+    ) -> ChronicleEvent:
+        payload: Dict[str, Any] = {"fields": dict(fields)}
+        return await self.record_event(
+            book_id=book_id,
+            event_type=ChronicleEventType.BLOCK_UPDATED,
+            actor_id=actor_id,
+            block_id=block_id,
+            occurred_at=occurred_at,
+            payload=payload,
+        )
+
+    async def record_block_soft_deleted(
+        self,
+        *,
+        book_id: UUID,
+        block_id: UUID,
+        actor_id: Optional[UUID] = None,
+        occurred_at: Optional[datetime] = None,
+    ) -> ChronicleEvent:
+        return await self.record_event(
+            book_id=book_id,
+            event_type=ChronicleEventType.BLOCK_SOFT_DELETED,
+            actor_id=actor_id,
+            block_id=block_id,
+            occurred_at=occurred_at,
+            payload={},
+        )
+
+    async def record_block_restored(
+        self,
+        *,
+        book_id: UUID,
+        block_id: UUID,
+        actor_id: Optional[UUID] = None,
+        occurred_at: Optional[datetime] = None,
+    ) -> ChronicleEvent:
+        return await self.record_event(
+            book_id=book_id,
+            event_type=ChronicleEventType.BLOCK_RESTORED,
+            actor_id=actor_id,
+            block_id=block_id,
+            occurred_at=occurred_at,
+            payload={},
+        )
+
+    async def record_block_type_changed(
+        self,
+        *,
+        book_id: UUID,
+        block_id: UUID,
+        from_type: Optional[str] = None,
+        to_type: Optional[str] = None,
+        actor_id: Optional[UUID] = None,
+        occurred_at: Optional[datetime] = None,
+    ) -> ChronicleEvent:
+        payload: Dict[str, Any] = {
+            "from": str(from_type) if from_type is not None else None,
+            "to": str(to_type) if to_type is not None else None,
+        }
+        return await self.record_event(
+            book_id=book_id,
+            event_type=ChronicleEventType.BLOCK_TYPE_CHANGED,
+            actor_id=actor_id,
+            block_id=block_id,
+            occurred_at=occurred_at,
+            payload=payload,
+        )
+
+    async def record_tag_added_to_book(
+        self,
+        *,
+        book_id: UUID,
+        tag_id: UUID,
+        actor_id: Optional[UUID] = None,
+        occurred_at: Optional[datetime] = None,
+    ) -> ChronicleEvent:
+        return await self.record_event(
+            book_id=book_id,
+            event_type=ChronicleEventType.TAG_ADDED_TO_BOOK,
+            actor_id=actor_id,
+            occurred_at=occurred_at,
+            payload={"tag_id": str(tag_id)},
+        )
+
+    async def record_tag_removed_from_book(
+        self,
+        *,
+        book_id: UUID,
+        tag_id: UUID,
+        actor_id: Optional[UUID] = None,
+        occurred_at: Optional[datetime] = None,
+    ) -> ChronicleEvent:
+        return await self.record_event(
+            book_id=book_id,
+            event_type=ChronicleEventType.TAG_REMOVED_FROM_BOOK,
+            actor_id=actor_id,
+            occurred_at=occurred_at,
+            payload={"tag_id": str(tag_id)},
         )
 
     async def record_book_moved(
@@ -437,6 +635,7 @@ class ChronicleRecorderService:
             book_id=book_id,
             event_type=ChronicleEventType.TODO_PROMOTED_FROM_BLOCK,
             actor_id=actor_id,
+            block_id=block_id,
             occurred_at=occurred_at,
             payload=payload,
         )
@@ -462,6 +661,7 @@ class ChronicleRecorderService:
             book_id=book_id,
             event_type=ChronicleEventType.TODO_COMPLETED,
             actor_id=actor_id,
+            block_id=block_id,
             occurred_at=occurred_at,
             payload=payload,
         )
