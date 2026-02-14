@@ -46,6 +46,10 @@ class ChronicleOutboxEventModel(Base):
     error_reason = Column(String(80), nullable=True, index=True)
     error = Column(Text, nullable=True)
 
+    # Optional tracing propagation (W3C Trace Context).
+    traceparent = Column(String(512), nullable=True)
+    tracestate = Column(Text, nullable=True)
+
     replay_count = Column(Integer, nullable=False, default=0)
     last_replayed_at = Column(DateTime(timezone=True), nullable=True)
     last_replayed_by = Column(String(120), nullable=True)

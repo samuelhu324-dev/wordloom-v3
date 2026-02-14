@@ -84,6 +84,11 @@ class SearchOutboxEventModel(Base):
 
     error = Column(Text, nullable=True)
 
+    # Optional tracing propagation (W3C Trace Context).
+    # When present, workers should continue this trace.
+    traceparent = Column(String(512), nullable=True)
+    tracestate = Column(Text, nullable=True)
+
     # Manual replay audit (explicit ops path): failed -> pending.
     replay_count = Column(Integer, nullable=False, default=0)
     last_replayed_at = Column(DateTime(timezone=True), nullable=True)
