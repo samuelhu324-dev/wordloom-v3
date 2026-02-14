@@ -43,6 +43,11 @@ class StubDI:
         return self._query
 
 
+class StubActor:
+    def __init__(self, user_id):
+        self.user_id = user_id
+
+
 @pytest.mark.asyncio
 async def test_record_book_opened_returns_serialized_event():
     book_id = uuid4()
@@ -57,7 +62,7 @@ async def test_record_book_opened_returns_serialized_event():
     di = StubDI(recorder, query_service=None)
 
     request = ChronicleBookOpenedRequest(book_id=book_id, actor_id=actor_id)
-    response = await record_book_opened(request, di=di)
+    response = await record_book_opened(request, actor=StubActor(actor_id), di=di)
 
     assert recorder.calls == [{"book_id": book_id, "actor_id": actor_id}]
     assert response.event_type == ChronicleEventType.BOOK_OPENED

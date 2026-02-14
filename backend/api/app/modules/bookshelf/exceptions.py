@@ -97,6 +97,32 @@ class BookshelfNotFoundError(BookshelfException):
         )
 
 
+class BookshelfForbiddenError(BookshelfException):
+    """Authorization failure when actor does not own the target library/bookshelf."""
+
+    code = "BOOKSHELF_FORBIDDEN"
+    http_status = 403
+
+    def __init__(
+        self,
+        *,
+        bookshelf_id: Optional[str] = None,
+        library_id: Optional[str] = None,
+        actor_user_id: Optional[str] = None,
+        reason: str = "Actor is not allowed to access this bookshelf",
+    ):
+        message = reason
+        super().__init__(
+            message=message,
+            details={
+                "bookshelf_id": bookshelf_id,
+                "library_id": library_id,
+                "actor_user_id": actor_user_id,
+                "reason": reason,
+            },
+        )
+
+
 class BookshelfAlreadyExistsError(BookshelfException):
     """
     RULE-006: 当同一 Library 下创建重名 Bookshelf 时触发

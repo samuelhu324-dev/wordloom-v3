@@ -14,20 +14,102 @@
 """
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from uuid import UUID
 from decimal import Decimal
 import logging
 
 from infra.database.session import get_db_session
 from infra.storage.block_repository_impl import SQLAlchemyBlockRepository
+from infra.database.models.book_models import BookModel
+from infra.database.models.block_models import BlockModel
+from infra.database.models.library_models import LibraryModel
+from api.app.shared.actor import Actor
+from api.app.config.security import get_current_actor
+from api.app.config.setting import get_settings
 from api.app.modules.block.domain.block import Block, BlockType
+from api.app.modules.chronicle.application.services import ChronicleRecorderService
+from api.app.modules.chronicle.application.todo_facts import diff_todo_list_facts
+from infra.storage.chronicle_repository_impl import SQLAlchemyChronicleRepository
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/phase0", tags=["Blocks-Phase0"])
 
+_settings = get_settings()
+
 MAX_BYTES = 20000
 WARN_BYTES = 15000
+
+
+async def _assert_book_owner(
+    session: AsyncSession,
+    *,
+    book_id: UUID,
+    actor_user_id: UUID,
+    enforce_owner_check: bool,
+) -> None:
+    if not enforce_owner_check:
+        return
+
+    result = await session.execute(
+        select(BookModel.library_id).where(BookModel.id == book_id)
+    )
+    library_id = result.scalar_one_or_none()
+    if library_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "BOOK_NOT_FOUND", "message": "未找到书籍"},
+        )
+
+    result = await session.execute(
+        select(LibraryModel.user_id).where(LibraryModel.id == library_id)
+    )
+    owner_user_id = result.scalar_one_or_none()
+    if owner_user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "LIBRARY_NOT_FOUND", "message": "未找到书库"},
+        )
+
+    if owner_user_id != actor_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "FORBIDDEN",
+                "message": "无权限访问该书籍/块",
+                "details": {
+                    "actor_user_id": str(actor_user_id),
+                    "library_id": str(library_id),
+                    "book_id": str(book_id),
+                },
+            },
+        )
+
+
+async def _assert_block_owner(
+    session: AsyncSession,
+    *,
+    block_id: UUID,
+    actor_user_id: UUID,
+    enforce_owner_check: bool,
+) -> UUID:
+    result = await session.execute(
+        select(BlockModel.book_id).where(BlockModel.id == block_id)
+    )
+    book_id = result.scalar_one_or_none()
+    if book_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "BLOCK_NOT_FOUND", "message": "未找到块"},
+        )
+    await _assert_book_owner(
+        session,
+        book_id=book_id,
+        actor_user_id=actor_user_id,
+        enforce_owner_check=enforce_owner_check,
+    )
+    return book_id
 
 
 def _serialize(block: Block) -> dict:
@@ -47,10 +129,18 @@ def _serialize(block: Block) -> dict:
 async def create_block_phase0(
     book_id: UUID,
     payload: dict,
+    actor: Actor = Depends(get_current_actor),
     session: AsyncSession = Depends(get_db_session),
 ):
     """Create block (Phase0 minimal). Robust error surfacing added."""
     try:
+        await _assert_book_owner(
+            session,
+            book_id=book_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+        )
+
         block_type_raw = payload.get("type", "text")
         content_raw = payload.get("content", "")
         heading_level = payload.get("heading_level")
@@ -96,8 +186,25 @@ async def list_blocks_phase0(
     book_id: UUID,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    actor: Actor = Depends(get_current_actor),
     session: AsyncSession = Depends(get_db_session),
 ):
+    await _assert_book_owner(
+        session,
+        book_id=book_id,
+        actor_user_id=actor.user_id,
+        enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+    )
+
+    # Chronicle: treat first page list as opening the book content.
+    if page == 1:
+        try:
+            chronicle_repo = SQLAlchemyChronicleRepository(session)
+            chronicle = ChronicleRecorderService(chronicle_repo)
+            await chronicle.record_book_opened(book_id=book_id, actor_id=actor.user_id)
+        except Exception:
+            pass
+
     repo = SQLAlchemyBlockRepository(session)
     # 简化分页：取全部后切片（Phase0 数据规模可控）
     all_blocks = await repo.list_by_book(book_id, limit=10000, offset=0)
@@ -119,8 +226,15 @@ async def list_blocks_phase0(
 async def update_block_content_phase0(
     block_id: UUID,
     payload: dict,
+    actor: Actor = Depends(get_current_actor),
     session: AsyncSession = Depends(get_db_session),
 ):
+    await _assert_block_owner(
+        session,
+        block_id=block_id,
+        actor_user_id=actor.user_id,
+        enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+    )
     content_raw = payload.get("content")
     type_raw = payload.get("type")
     heading_level = payload.get("heading_level")
@@ -144,6 +258,14 @@ async def update_block_content_phase0(
     if not block:
         raise HTTPException(404, detail={"code": "BLOCK_NOT_FOUND", "message": "未找到块"})
 
+    old_content = None
+    try:
+        old_content = str(getattr(block, "content", ""))
+    except Exception:
+        old_content = None
+
+    old_type = getattr(getattr(block, "type", None), "value", None) or getattr(block, "type", None)
+
     if content_raw is not None:
         block.update_content(content_raw)
 
@@ -154,36 +276,137 @@ async def update_block_content_phase0(
             raise HTTPException(422, detail={"code": "BLOCK_TYPE_INVALID", "message": str(exc)})
 
     await repo.save(block)
+
+    # Chronicle: record stable facts (non-blocking).
+    try:
+        chronicle_repo = SQLAlchemyChronicleRepository(session)
+        chronicle = ChronicleRecorderService(chronicle_repo)
+
+        changed: list[str] = []
+        if content_raw is not None:
+            changed.append("content")
+        if changed:
+            await chronicle.record_block_updated(
+                book_id=getattr(block, "book_id", None),
+                block_id=block_id,
+                fields={"changed": changed},
+                actor_id=actor.user_id,
+            )
+
+        if new_type is not None:
+            new_type_value = getattr(new_type, "value", None) or str(new_type)
+            if str(old_type) != str(new_type_value):
+                await chronicle.record_block_type_changed(
+                    book_id=getattr(block, "book_id", None),
+                    block_id=block_id,
+                    from_type=str(old_type) if old_type is not None else None,
+                    to_type=str(new_type_value),
+                    actor_id=actor.user_id,
+                )
+
+        # TODO facts: derive promoted/completed from todo_list content changes.
+        effective_type = (
+            getattr(new_type, "value", None)
+            if new_type is not None
+            else getattr(getattr(block, "type", None), "value", None)
+        )
+        if content_raw is not None and str(effective_type) == "todo_list":
+            promoted_events, completed_events = diff_todo_list_facts(
+                old_content=old_content if str(old_type) == "todo_list" else None,
+                new_content=content_raw,
+            )
+            for item in promoted_events:
+                await chronicle.record_todo_promoted_from_block(
+                    book_id=getattr(block, "book_id", None),
+                    block_id=block_id,
+                    todo_id=item.get("todo_id"),
+                    text=item.get("text"),
+                    is_urgent=item.get("is_urgent"),
+                    actor_id=actor.user_id,
+                )
+            for item in completed_events:
+                await chronicle.record_todo_completed(
+                    book_id=getattr(block, "book_id", None),
+                    block_id=block_id,
+                    todo_id=item.get("todo_id"),
+                    text=item.get("text"),
+                    promoted=item.get("promoted"),
+                    actor_id=actor.user_id,
+                )
+    except Exception:
+        pass
     resp = _serialize(block)
     if content_raw is not None and byte_len >= WARN_BYTES:
         resp["warning"] = {"code": "CONTENT_NEAR_LIMIT", "message": f"内容已达到 {byte_len} 字节 (>{WARN_BYTES})"}
     return resp
 
 @router.delete("/blocks/{block_id}", status_code=204)
-async def delete_block_phase0(block_id: UUID, session: AsyncSession = Depends(get_db_session)):
+async def delete_block_phase0(
+    block_id: UUID,
+    actor: Actor = Depends(get_current_actor),
+    session: AsyncSession = Depends(get_db_session),
+):
+    await _assert_block_owner(
+        session,
+        block_id=block_id,
+        actor_user_id=actor.user_id,
+        enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+    )
     repo = SQLAlchemyBlockRepository(session)
     block = await repo.get_by_id(block_id)
     if not block:
         raise HTTPException(404, detail={"code": "BLOCK_NOT_FOUND", "message": "未找到块"})
     block.mark_deleted()
     await repo.save(block)
+
+    try:
+        chronicle_repo = SQLAlchemyChronicleRepository(session)
+        chronicle = ChronicleRecorderService(chronicle_repo)
+        await chronicle.record_block_soft_deleted(
+            book_id=getattr(block, "book_id", None),
+            block_id=block_id,
+            actor_id=actor.user_id,
+        )
+    except Exception:
+        pass
     return None
 
 @router.post("/blocks/{block_id}/restore")
-async def restore_block_phase0(block_id: UUID, session: AsyncSession = Depends(get_db_session)):
+async def restore_block_phase0(
+    block_id: UUID,
+    actor: Actor = Depends(get_current_actor),
+    session: AsyncSession = Depends(get_db_session),
+):
+    book_id = await _assert_block_owner(
+        session,
+        block_id=block_id,
+        actor_user_id=actor.user_id,
+        enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+    )
     repo = SQLAlchemyBlockRepository(session)
-    block = await repo.get_by_id(block_id)
+    block = await repo.get_any_by_id(block_id)
     if not block:
         raise HTTPException(404, detail={"code": "BLOCK_NOT_FOUND", "message": "未找到块"})
     if block.soft_deleted_at is None:
         raise HTTPException(409, detail={"code": "BLOCK_NOT_DELETED", "message": "块未处于删除状态"})
 
     # 简化恢复：放到末尾（last order + 1）
-    existing = await repo.list_by_book(block.book_id, limit=10000, offset=0)
+    existing = await repo.list_by_book(book_id, limit=10000, offset=0)
     active = [b for b in existing if b.soft_deleted_at is None and b.id != block.id]
     last_order = active[-1].order if active else Decimal("0")
     block.restore_from_basement(last_order + Decimal("1"), recovery_level=4)
     await repo.save(block)
+
+    try:
+        chronicle_repo = SQLAlchemyChronicleRepository(session)
+        chronicle = ChronicleRecorderService(chronicle_repo)
+        await chronicle.record_block_restored(
+            book_id=getattr(block, "book_id", None),
+            block_id=block_id,
+            actor_id=actor.user_id,
+        )
+    except Exception:
+        pass
     return _serialize(block)
 
 __all__ = ["router"]

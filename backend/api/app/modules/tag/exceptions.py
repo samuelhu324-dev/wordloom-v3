@@ -249,6 +249,29 @@ class TagOperationError(TagException):
         )
 
 
+class TagForbiddenError(TagException):
+    """403 - Actor is not allowed to operate on Tag resources."""
+
+    def __init__(
+        self,
+        message: str = "Forbidden",
+        *,
+        actor_user_id: Optional[str] = None,
+        entity_type: Optional[str] = None,
+        entity_id: Optional[str] = None,
+    ):
+        super().__init__(
+            message=message,
+            code="TAG_FORBIDDEN",
+            http_status=403,
+            details={
+                "actor_user_id": actor_user_id,
+                "entity_type": entity_type,
+                "entity_id": entity_id,
+            },
+        )
+
+
 # ============================================
 # Repository Level Exceptions
 # ============================================

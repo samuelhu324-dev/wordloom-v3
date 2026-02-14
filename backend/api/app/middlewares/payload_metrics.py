@@ -9,6 +9,8 @@ from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
+from api.app.shared.request_context import RequestContext, set_request_context, reset_request_context
+
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +39,27 @@ class PayloadMetricsMiddleware(BaseHTTPMiddleware):
         )
         request.state.correlation_id = correlation_id
 
+        # Best-effort: attach correlation_id onto the active request span so
+        # operators can pivot correlation_id -> trace in Jaeger.
+        try:
+            from opentelemetry import trace
+
+            span = trace.get_current_span()
+            if span is not None:
+                span.set_attribute("correlation_id", correlation_id)
+                span.set_attribute("wordloom.correlation_id", correlation_id)
+        except Exception:
+            # Never break request handling.
+            pass
+
+        token = set_request_context(
+            RequestContext(
+                correlation_id=correlation_id,
+                route=request.url.path,
+                method=request.method,
+            )
+        )
+
         # Entry log: proves request hit the application and pins correlation_id.
         logger.info(
             {
@@ -50,7 +73,11 @@ class PayloadMetricsMiddleware(BaseHTTPMiddleware):
             }
         )
 
-        response: Response = await call_next(request)
+        try:
+            response: Response = await call_next(request)
+        finally:
+            # Prevent context leakage across concurrent requests.
+            reset_request_context(token)
 
         # Handlers may override request.state.correlation_id (e.g. when `cid` is
         # computed from query params). Use the final value for logging/headers.

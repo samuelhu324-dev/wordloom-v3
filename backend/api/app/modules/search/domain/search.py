@@ -39,6 +39,7 @@ class SearchQuery:
     """
     text: str
     type: Optional[SearchEntityType] = None  # None = global search all types
+    library_id: Optional[UUID] = None        # Projection scope key
     book_id: Optional[UUID] = None           # Scope search to a specific book
     limit: int = 20
     offset: int = 0

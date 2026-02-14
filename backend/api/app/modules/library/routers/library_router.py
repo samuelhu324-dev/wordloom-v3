@@ -80,7 +80,8 @@ from api.app.modules.media.exceptions import (
 )
 
 # Security
-from api.app.config.security import get_current_user_id
+from api.app.config.security import get_current_actor, get_current_user_id
+from api.app.shared.actor import Actor
 from api.app.config.setting import get_settings
 
 # Storage
@@ -465,11 +466,16 @@ async def record_library_view(
 @router.get("/{library_id}", response_model=LibraryDetailResponse)
 async def get_library(
     library_id: UUID = FastAPIPath(...),
+    actor: Actor = Depends(get_current_actor),
     use_case_bundle: tuple[GetLibraryUseCase, AsyncSession] = Depends(get_get_library_usecase),
 ) -> LibraryDetailResponse:
     try:
         use_case, session = use_case_bundle
-        uc_request = GetLibraryRequest(library_id=library_id)
+        uc_request = GetLibraryRequest(
+            library_id=library_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+        )
         uc_response = await use_case.execute(uc_request)
         tags_map, tag_totals = await _load_library_tags(session, [uc_response.library_id])
         return _build_library_detail_response(
@@ -652,7 +658,7 @@ async def upload_library_cover(
 async def patch_library(
     library_id: UUID = FastAPIPath(...),
     request: LibraryUpdate = None,
-    user_id: UUID = Depends(get_current_user_id),
+    actor: Actor = Depends(get_current_actor),
     use_case_bundle: tuple[UpdateLibraryUseCase, AsyncSession] = Depends(get_update_library_usecase),
 ) -> LibraryDetailResponse:
     try:
@@ -661,6 +667,8 @@ async def patch_library(
         theme_color_field_provided = bool(request and "theme_color" in request.model_fields_set)
         update_req = UpdateLibraryRequest(
             library_id=library_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
             name=request.name if request else None,
             description=request.description if request else None,
             cover_media_id=request.cover_media_id if cover_media_field_provided else None,
@@ -672,8 +680,6 @@ async def patch_library(
             archived=request.archived if request else None,
         )
         uc_response = await use_case.execute(update_req)
-        if (not _settings.allow_dev_library_owner_override) and uc_response.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
         tags_map, tag_totals = await _load_library_tags(session, [library_id])
         return _build_library_detail_response(
             uc_response,
@@ -771,12 +777,16 @@ async def replace_library_tags(
 @router.delete("/{library_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_library(
     library_id: UUID = FastAPIPath(...),
-    user_id: UUID = Depends(get_current_user_id),
+    actor: Actor = Depends(get_current_actor),
     use_case_bundle: tuple[DeleteLibraryUseCase, AsyncSession] = Depends(get_delete_library_usecase),
 ) -> None:
     try:
         use_case, _session = use_case_bundle
-        uc_request = DeleteLibraryRequest(library_id=library_id)
+        uc_request = DeleteLibraryRequest(
+            library_id=library_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+        )
         await use_case.execute(uc_request)
     except LibraryException as exc:
         raise _handle_domain_exception(exc)

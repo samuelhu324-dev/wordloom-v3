@@ -142,27 +142,55 @@ class DIContainerReal:
     # ========== Bookshelf UseCases ==========
     def get_create_bookshelf_use_case(self):
         from api.app.modules.bookshelf.application.use_cases.create_bookshelf import CreateBookshelfUseCase
-        return CreateBookshelfUseCase(self.bookshelf_repo, self.tag_repo)
+        return CreateBookshelfUseCase(
+            self.bookshelf_repo,
+            self.tag_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_list_bookshelves_use_case(self):
         from api.app.modules.bookshelf.application.use_cases.list_bookshelves import ListBookshelvesUseCase
-        return ListBookshelvesUseCase(self.bookshelf_repo)
+        return ListBookshelvesUseCase(
+            self.bookshelf_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_get_bookshelf_use_case(self):
         from api.app.modules.bookshelf.application.use_cases.get_bookshelf import GetBookshelfUseCase
-        return GetBookshelfUseCase(self.bookshelf_repo)
+        return GetBookshelfUseCase(
+            self.bookshelf_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_update_bookshelf_use_case(self):
         from api.app.modules.bookshelf.application.use_cases.update_bookshelf import UpdateBookshelfUseCase
-        return UpdateBookshelfUseCase(self.bookshelf_repo, self.tag_repo)
+        return UpdateBookshelfUseCase(
+            self.bookshelf_repo,
+            self.tag_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_bookshelf_dashboard_use_case(self):
         from api.app.modules.bookshelf.application.use_cases.get_bookshelf_dashboard import GetBookshelfDashboardUseCase
-        return GetBookshelfDashboardUseCase(self.session)
+        return GetBookshelfDashboardUseCase(
+            self.session,
+            library_repository=self.library_repo,
+        )
 
     def get_delete_bookshelf_use_case(self):
         from api.app.modules.bookshelf.application.use_cases.delete_bookshelf import DeleteBookshelfUseCase
-        return DeleteBookshelfUseCase(self.bookshelf_repo)
+        return DeleteBookshelfUseCase(
+            self.bookshelf_repo,
+            library_repository=self.library_repo,
+        )
+
+    def get_get_basement_use_case(self):
+        from api.app.modules.bookshelf.application.use_cases.get_basement import GetBasementUseCase
+
+        return GetBasementUseCase(
+            self.bookshelf_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_restore_bookshelf_use_case(self):
         from api.app.modules.bookshelf.application.use_cases.restore_bookshelf import RestoreBookshelfUseCase
@@ -175,15 +203,27 @@ class DIContainerReal:
     # ========== Book UseCases ==========
     def get_create_book_use_case(self):
         from api.app.modules.book.application.use_cases.create_book import CreateBookUseCase
-        return CreateBookUseCase(self.book_repo, self.event_bus)
+        return CreateBookUseCase(
+            self.book_repo,
+            self.event_bus,
+            library_repository=self.library_repo,
+        )
 
     def get_list_books_use_case(self):
         from api.app.modules.book.application.use_cases.list_books import ListBooksUseCase
-        return ListBooksUseCase(self.book_repo, self.session)
+        return ListBooksUseCase(
+            self.book_repo,
+            self.session,
+            library_repository=self.library_repo,
+            bookshelf_repository=self.bookshelf_repo,
+        )
 
     def get_get_book_use_case(self):
         from api.app.modules.book.application.use_cases.get_book import GetBookUseCase
-        return GetBookUseCase(self.book_repo)
+        return GetBookUseCase(
+            self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_update_book_use_case(self):
         from api.app.modules.book.application.use_cases.update_book import UpdateBookUseCase
@@ -194,7 +234,12 @@ class DIContainerReal:
             associate_use_case=self.get_associate_tag_use_case(),
             disassociate_use_case=self.get_disassociate_tag_use_case(),
         )
-        return UpdateBookUseCase(self.book_repo, self.event_bus, tag_sync_service=tag_sync_service)
+        return UpdateBookUseCase(
+            self.book_repo,
+            self.event_bus,
+            tag_sync_service=tag_sync_service,
+            library_repository=self.library_repo,
+        )
 
     def get_delete_book_use_case(self):
         from api.app.modules.book.application.services import BookBasementBridge
@@ -209,19 +254,35 @@ class DIContainerReal:
             self.bookshelf_repo,
             self.event_bus,
             basement_bridge=basement_bridge,
+            library_repository=self.library_repo,
         )
 
     def get_move_book_use_case(self):
         from api.app.modules.book.application.use_cases.move_book import MoveBookUseCase
-        return MoveBookUseCase(self.book_repo, self.event_bus)
+        return MoveBookUseCase(
+            self.book_repo,
+            self.event_bus,
+            bookshelf_repository=self.bookshelf_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_restore_book_use_case(self):
         from api.app.modules.book.application.use_cases.restore_book import RestoreBookUseCase
-        return RestoreBookUseCase(self.book_repo, self.event_bus)
+        return RestoreBookUseCase(
+            self.book_repo,
+            self.event_bus,
+            library_repository=self.library_repo,
+            bookshelf_repository=self.bookshelf_repo,
+        )
 
     def get_list_deleted_books_use_case(self):
         from api.app.modules.book.application.use_cases.list_deleted_books import ListDeletedBooksUseCase
-        return ListDeletedBooksUseCase(self.book_repo, self.session)
+        return ListDeletedBooksUseCase(
+            self.book_repo,
+            self.session,
+            library_repository=self.library_repo,
+            bookshelf_repository=self.bookshelf_repo,
+        )
 
     def get_recalculate_book_maturity_use_case(self):
         from api.app.modules.book.application.use_cases.recalculate_book_maturity import RecalculateBookMaturityUseCase
@@ -299,35 +360,67 @@ class DIContainerReal:
     # ========== Block UseCases ==========
     def get_create_block_use_case(self):
         from api.app.modules.block.application.use_cases.create_block import CreateBlockUseCase
-        return CreateBlockUseCase(self.block_repo)
+        return CreateBlockUseCase(
+            self.block_repo,
+            book_repository=self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_list_blocks_use_case(self):
         from api.app.modules.block.application.use_cases.list_blocks import ListBlocksUseCase
-        return ListBlocksUseCase(self.block_repo)
+        return ListBlocksUseCase(
+            self.block_repo,
+            book_repository=self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_get_block_use_case(self):
         from api.app.modules.block.application.use_cases.get_block import GetBlockUseCase
-        return GetBlockUseCase(self.block_repo)
+        return GetBlockUseCase(
+            self.block_repo,
+            book_repository=self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_update_block_use_case(self):
         from api.app.modules.block.application.use_cases.update_block import UpdateBlockUseCase
-        return UpdateBlockUseCase(self.block_repo)
+        return UpdateBlockUseCase(
+            self.block_repo,
+            book_repository=self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_reorder_blocks_use_case(self):
         from api.app.modules.block.application.use_cases.reorder_blocks import ReorderBlocksUseCase
-        return ReorderBlocksUseCase(self.block_repo)
+        return ReorderBlocksUseCase(
+            self.block_repo,
+            book_repository=self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_delete_block_use_case(self):
         from api.app.modules.block.application.use_cases.delete_block import DeleteBlockUseCase
-        return DeleteBlockUseCase(self.block_repo)
+        return DeleteBlockUseCase(
+            self.block_repo,
+            book_repository=self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_restore_block_use_case(self):
         from api.app.modules.block.application.use_cases.restore_block import RestoreBlockUseCase
-        return RestoreBlockUseCase(self.block_repo)
+        return RestoreBlockUseCase(
+            self.block_repo,
+            book_repository=self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_list_deleted_blocks_use_case(self):
         from api.app.modules.block.application.use_cases.list_deleted_blocks import ListDeletedBlocksUseCase
-        return ListDeletedBlocksUseCase(self.block_repo)
+        return ListDeletedBlocksUseCase(
+            self.block_repo,
+            book_repository=self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     # ========== Tag UseCases ==========
     def get_create_tag_use_case(self):
@@ -346,10 +439,24 @@ class DIContainerReal:
         return RestoreTagAdapter(self.tag_repo)
 
     def get_associate_tag_use_case(self):
-        return AssociateTagAdapter(self.tag_repo)
+        return AssociateTagAdapter(
+            self.tag_repo,
+            library_repository=self.library_repo,
+            bookshelf_repository=self.bookshelf_repo,
+            book_repository=self.book_repo,
+            block_repository=self.block_repo,
+            chronicle_service=self.get_chronicle_recorder_service(),
+        )
 
     def get_disassociate_tag_use_case(self):
-        return DisassociateTagAdapter(self.tag_repo)
+        return DisassociateTagAdapter(
+            self.tag_repo,
+            library_repository=self.library_repo,
+            bookshelf_repository=self.bookshelf_repo,
+            book_repository=self.book_repo,
+            block_repository=self.block_repo,
+            chronicle_service=self.get_chronicle_recorder_service(),
+        )
 
     def get_search_tags_use_case(self):
         return SearchTagsAdapter(self.tag_repo)

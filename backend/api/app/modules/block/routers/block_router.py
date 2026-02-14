@@ -29,6 +29,9 @@ import logging
 from dataclasses import asdict
 
 from api.app.dependencies import DIContainer, get_di_container
+from api.app.shared.actor import Actor
+from api.app.config.security import get_current_actor
+from api.app.config.setting import get_settings
 from api.app.modules.block.application.ports.input import (
     CreateBlockRequest,
     ListBlocksRequest,
@@ -41,16 +44,13 @@ from api.app.modules.block.application.ports.input import (
     BlockResponse,
     BlockListResponse,
 )
-from api.app.modules.block.domain.exceptions import (
-    BlockNotFoundError,
-    BlockInvalidTypeError,
+from api.app.modules.block.exceptions import (
     DomainException,
 )
-from api.app.modules.block.exceptions import (
-    BlockNotFoundError as BlockModuleNotFoundError,
-    DomainException as BlockModuleDomainException,
-)
-from api.app.modules.block.domain.block import BlockType
+from api.app.modules.chronicle.application.todo_facts import diff_todo_list_facts
+
+
+_settings = get_settings()
 
 
 logger = logging.getLogger(__name__)
@@ -71,6 +71,7 @@ router = APIRouter(prefix="", tags=["blocks"])
 )
 async def create_block(
     request: CreateBlockRequest,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """创建新块
@@ -92,48 +93,48 @@ async def create_block(
         HTTPException 500: Operation error
     """
     try:
-        logger.info(f"Creating block: type={request.block_type}, book_id={request.book_id}")
+        logger.info("Creating block: type=%s, book_id=%s", request.block_type, request.book_id)
 
-        raw_block_type = request.block_type
-        try:
-            if isinstance(raw_block_type, BlockType):
-                block_type = raw_block_type
-            else:
-                normalized = str(raw_block_type).strip()
-                # Accept both "text" and "TEXT" styles.
-                block_type = BlockType(normalized.lower())
-        except Exception as exc:
-            raise BlockInvalidTypeError(str(raw_block_type)) from exc
-
-        use_case = di.get_create_block_use_case()
-        created_block = await use_case.execute(
+        create_request = CreateBlockRequest(
             book_id=request.book_id,
-            block_type=block_type,
+            block_type=request.block_type,
             content=request.content,
             metadata=request.metadata,
             position_after_id=request.position_after_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
         )
 
+        use_case = di.get_create_block_use_case()
+        created_block = await use_case.execute(create_request)
+
+        # Chronicle: record stable fact for timeline/audit.
+        try:
+            chronicle = di.get_chronicle_recorder_service()
+            await chronicle.record_block_created(
+                book_id=request.book_id,
+                block_id=getattr(created_block, "id", None) or getattr(created_block, "block_id", None),
+                block_type=str(request.block_type) if getattr(request, "block_type", None) else None,
+                actor_id=actor.user_id,
+            )
+        except Exception:
+            # Non-blocking: keep write path resilient.
+            logger.warning("Chronicle record_block_created failed", exc_info=True)
+
         response: BlockResponse = BlockResponse.from_domain(created_block)
-        logger.info(f"Block created successfully: block_id={response.id}, type={response.block_type}")
+        logger.info("Block created successfully: block_id=%s", response.id)
         return asdict(response)
-    except BlockInvalidTypeError as e:
-        logger.warning(f"Block creation failed - invalid type: {e}")
+    except DomainException as error:
+        logger.warning("Block creation failed: %s", error)
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INVALID_BLOCK_TYPE", "message": str(e)}
+            status_code=error.http_status,
+            detail=error.to_dict(),
         )
-    except DomainException as e:
-        logger.warning(f"Block creation failed - validation error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"code": "VALIDATION_ERROR", "message": str(e)}
-        )
-    except Exception as e:
-        logger.error(f"Unexpected error creating block: {e}", exc_info=True)
+    except Exception as error:
+        logger.error("Unexpected error creating block: %s", error, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"code": "OPERATION_ERROR", "message": "Failed to create block"}
+            detail={"code": "OPERATION_ERROR", "message": "Failed to create block"},
         )
 
 
@@ -152,6 +153,7 @@ async def list_blocks(
     include_deleted: bool = Query(False, description="Include soft-deleted blocks (RULE-012/POLICY-008)"),
     skip: int = Query(0, ge=0, description="Pagination skip"),
     limit: int = Query(50, ge=1, le=100, description="Pagination limit"),
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """列出�?(RULE-015-REVISED: �?sort_key 排序, POLICY-008: 默认排除软删除的�?
@@ -175,20 +177,28 @@ async def list_blocks(
             book_id=book_id,
             skip=skip,
             limit=limit,
-            include_deleted=include_deleted
+            include_deleted=include_deleted,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
         )
         use_case = di.get_list_blocks_use_case()
         response: BlockListResponse = await use_case.execute(request)
+
+        # Chronicle: treat first page list as opening the book content.
+        if skip == 0 and not include_deleted:
+            try:
+                chronicle = di.get_chronicle_recorder_service()
+                await chronicle.record_book_opened(book_id=book_id, actor_id=actor.user_id)
+            except Exception:
+                logger.warning("Chronicle record_book_opened failed", exc_info=True)
+
         logger.debug(f"Listed {len(response.items)} blocks from book {book_id}")
         return asdict(response)
-    except DomainException as e:
-        logger.warning(f"List blocks failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"code": "VALIDATION_ERROR", "message": str(e)}
-        )
-    except Exception as e:
-        logger.error(f"Unexpected error listing blocks: {e}", exc_info=True)
+    except DomainException as error:
+        logger.warning("List blocks failed: %s", error)
+        raise HTTPException(status_code=error.http_status, detail=error.to_dict())
+    except Exception as error:
+        logger.error("Unexpected error listing blocks: %s", error, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"code": "OPERATION_ERROR", "message": "Failed to list blocks"}
@@ -207,6 +217,7 @@ async def list_blocks(
 )
 async def get_block(
     block_id: UUID,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """获取块详�?
@@ -222,25 +233,21 @@ async def get_block(
     """
     try:
         logger.debug(f"Getting block: block_id={block_id}")
-        request = GetBlockRequest(block_id=block_id)
+        request = GetBlockRequest(
+            block_id=block_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+        )
         use_case = di.get_get_block_use_case()
-        response: BlockResponse = await use_case.execute(request)
+        block = await use_case.execute(request)
+        response: BlockResponse = BlockResponse.from_domain(block)
         logger.debug(f"Retrieved block: {response.id}")
         return asdict(response)
-    except BlockNotFoundError as e:
-        logger.warning(f"Block not found: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "BLOCK_NOT_FOUND", "message": str(e)}
-        )
-    except DomainException as e:
-        logger.warning(f"Get block failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"code": "VALIDATION_ERROR", "message": str(e)}
-        )
-    except Exception as e:
-        logger.error(f"Unexpected error getting block: {e}", exc_info=True)
+    except DomainException as error:
+        logger.warning("Get block failed: %s", error)
+        raise HTTPException(status_code=error.http_status, detail=error.to_dict())
+    except Exception as error:
+        logger.error("Unexpected error getting block: %s", error, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"code": "OPERATION_ERROR", "message": "Failed to get block"}
@@ -260,6 +267,7 @@ async def get_block(
 async def update_block(
     block_id: UUID,
     request: UpdateBlockRequest,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """更新�?
@@ -279,42 +287,91 @@ async def update_block(
     """
     try:
         logger.debug(f"Updating block: block_id={block_id}")
+
+        existing_block = None
+        existing_block_type: Optional[str] = None
+        existing_content: Optional[str] = None
+        if request.content is not None:
+            try:
+                get_uc = di.get_get_block_use_case()
+                existing_block = await get_uc.execute(
+                    GetBlockRequest(
+                        block_id=block_id,
+                        actor_user_id=actor.user_id,
+                        enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+                    )
+                )
+                existing_type = getattr(existing_block, "type", None)
+                existing_block_type = getattr(existing_type, "value", None) or (str(existing_type) if existing_type is not None else None)
+                existing_content = str(getattr(existing_block, "content", ""))
+            except Exception:
+                existing_block = None
+
         use_case = di.get_update_block_use_case()
-        updated_block = await use_case.execute(
+        update_request = UpdateBlockRequest(
             block_id=block_id,
             content=request.content,
             metadata=request.metadata,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
         )
+        updated_block = await use_case.execute(update_request)
+
+        # Chronicle: record stable fact for timeline/audit.
+        try:
+            changed: List[str] = []
+            if request.content is not None:
+                changed.append("content")
+            if request.metadata is not None:
+                changed.append("metadata")
+            fields = {"changed": changed}
+            chronicle = di.get_chronicle_recorder_service()
+            await chronicle.record_block_updated(
+                book_id=getattr(updated_block, "book_id", None),
+                block_id=block_id,
+                fields=fields,
+                actor_id=actor.user_id,
+            )
+
+            # TODO facts: derive promoted/completed from todo_list content changes.
+            if (
+                request.content is not None
+                and existing_block_type == "todo_list"
+                and getattr(updated_block, "book_id", None) is not None
+            ):
+                promoted_events, completed_events = diff_todo_list_facts(
+                    old_content=existing_content,
+                    new_content=request.content,
+                )
+                for item in promoted_events:
+                    await chronicle.record_todo_promoted_from_block(
+                        book_id=getattr(updated_block, "book_id", None),
+                        block_id=block_id,
+                        todo_id=item.get("todo_id"),
+                        text=item.get("text"),
+                        is_urgent=item.get("is_urgent"),
+                        actor_id=actor.user_id,
+                    )
+                for item in completed_events:
+                    await chronicle.record_todo_completed(
+                        book_id=getattr(updated_block, "book_id", None),
+                        block_id=block_id,
+                        todo_id=item.get("todo_id"),
+                        text=item.get("text"),
+                        promoted=item.get("promoted"),
+                        actor_id=actor.user_id,
+                    )
+        except Exception:
+            logger.warning("Chronicle record_block_updated failed", exc_info=True)
+
         response: BlockResponse = BlockResponse.from_domain(updated_block)
         logger.info(f"Block updated successfully: block_id={block_id}")
         return asdict(response)
-    except BlockModuleNotFoundError as e:
-        logger.warning(f"Block not found: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=e.to_dict(),
-        )
-    except BlockModuleDomainException as e:
-        # Map module domain exceptions (validation/operation) to their declared HTTP status.
-        logger.warning(f"Block update failed: {e}")
-        raise HTTPException(
-            status_code=e.http_status_code,
-            detail=e.to_dict(),
-        )
-    except BlockNotFoundError as e:
-        logger.warning(f"Block not found: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "BLOCK_NOT_FOUND", "message": str(e)}
-        )
-    except DomainException as e:
-        logger.warning(f"Block update failed - validation error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"code": "VALIDATION_ERROR", "message": str(e)}
-        )
-    except Exception as e:
-        logger.error(f"Unexpected error updating block: {e}", exc_info=True)
+    except DomainException as error:
+        logger.warning("Block update failed: %s", error)
+        raise HTTPException(status_code=error.http_status, detail=error.to_dict())
+    except Exception as error:
+        logger.error("Unexpected error updating block: %s", error, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"code": "OPERATION_ERROR", "message": "Failed to update block"}
@@ -333,6 +390,7 @@ async def update_block(
 )
 async def reorder_blocks(
     request: ReorderBlocksRequest,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """重新排序�?
@@ -351,24 +409,24 @@ async def reorder_blocks(
     """
     try:
         logger.debug(f"Reordering block: block_id={request.block_id}, new_order={request.new_order}")
+
+        reorder_request = ReorderBlocksRequest(
+            block_id=request.block_id,
+            position_after_id=request.position_after_id,
+            position_before_id=request.position_before_id,
+            new_order=request.new_order,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+        )
         use_case = di.get_reorder_blocks_use_case()
-        response: BlockResponse = await use_case.execute(request)
+        response: BlockResponse = await use_case.execute(reorder_request)
         logger.info(f"Block reordered successfully: block_id={request.block_id}")
         return asdict(response)
-    except BlockNotFoundError as e:
-        logger.warning(f"Block not found: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "BLOCK_NOT_FOUND", "message": str(e)}
-        )
-    except DomainException as e:
-        logger.warning(f"Reorder failed - validation error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"code": "VALIDATION_ERROR", "message": str(e)}
-        )
-    except Exception as e:
-        logger.error(f"Unexpected error reordering block: {e}", exc_info=True)
+    except DomainException as error:
+        logger.warning("Reorder failed: %s", error)
+        raise HTTPException(status_code=error.http_status, detail=error.to_dict())
+    except Exception as error:
+        logger.error("Unexpected error reordering block: %s", error, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"code": "OPERATION_ERROR", "message": "Failed to reorder block"}
@@ -387,6 +445,7 @@ async def reorder_blocks(
 )
 async def delete_block(
     block_id: UUID,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """删除块（逻辑删除�?
@@ -403,36 +462,47 @@ async def delete_block(
     """
     try:
         logger.info(f"Soft-deleting block: block_id={block_id}")
-        request = DeleteBlockRequest(block_id=block_id)
+
+        # Fetch book_id before delete for Chronicle fact.
+        book_id: Optional[UUID] = None
+        try:
+            get_uc = di.get_get_block_use_case()
+            existing = await get_uc.execute(
+                GetBlockRequest(
+                    block_id=block_id,
+                    actor_user_id=actor.user_id,
+                    enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+                )
+            )
+            book_id = getattr(existing, "book_id", None)
+        except Exception:
+            book_id = None
+
+        request = DeleteBlockRequest(
+            block_id=block_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+        )
         use_case = di.get_delete_block_use_case()
         await use_case.execute(request)
+
+        if book_id is not None:
+            try:
+                chronicle = di.get_chronicle_recorder_service()
+                await chronicle.record_block_soft_deleted(
+                    book_id=book_id,
+                    block_id=block_id,
+                    actor_id=actor.user_id,
+                )
+            except Exception:
+                logger.warning("Chronicle record_block_soft_deleted failed", exc_info=True)
+
         logger.info(f"Block soft-deleted successfully: block_id={block_id}")
-    except BlockModuleNotFoundError as e:
-        logger.warning(f"Block not found: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=e.to_dict(),
-        )
-    except BlockModuleDomainException as e:
-        logger.warning(f"Block delete failed: {e}")
-        raise HTTPException(
-            status_code=e.http_status_code,
-            detail=e.to_dict(),
-        )
-    except BlockNotFoundError as e:
-        logger.warning(f"Block not found: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "BLOCK_NOT_FOUND", "message": str(e)}
-        )
-    except DomainException as e:
-        logger.warning(f"Delete failed - validation error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"code": "VALIDATION_ERROR", "message": str(e)}
-        )
-    except Exception as e:
-        logger.error(f"Unexpected error deleting block: {e}", exc_info=True)
+    except DomainException as error:
+        logger.warning("Delete failed: %s", error)
+        raise HTTPException(status_code=error.http_status, detail=error.to_dict())
+    except Exception as error:
+        logger.error("Unexpected error deleting block: %s", error, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"code": "OPERATION_ERROR", "message": "Failed to delete block"}
@@ -452,6 +522,7 @@ async def delete_block(
 )
 async def restore_block(
     block_id: UUID,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """恢复已删除的�?
@@ -469,25 +540,33 @@ async def restore_block(
     """
     try:
         logger.info(f"Restoring block from Paperballs: block_id={block_id}")
-        request = RestoreBlockRequest(block_id=block_id)
+        request = RestoreBlockRequest(
+            block_id=block_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+        )
         use_case = di.get_restore_block_use_case()
-        response: BlockResponse = await use_case.execute(request)
+        restored_block = await use_case.execute(request)
+
+        # Chronicle: record stable fact for timeline/audit.
+        try:
+            chronicle = di.get_chronicle_recorder_service()
+            await chronicle.record_block_restored(
+                book_id=getattr(restored_block, "book_id", None),
+                block_id=block_id,
+                actor_id=actor.user_id,
+            )
+        except Exception:
+            logger.warning("Chronicle record_block_restored failed", exc_info=True)
+
+        response: BlockResponse = BlockResponse.from_domain(restored_block)
         logger.info(f"Block restored successfully: block_id={block_id}")
         return asdict(response)
-    except BlockNotFoundError as e:
-        logger.warning(f"Block not found or not in Paperballs: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "BLOCK_NOT_FOUND", "message": str(e)}
-        )
-    except DomainException as e:
-        logger.warning(f"Restore failed - validation error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"code": "VALIDATION_ERROR", "message": str(e)}
-        )
-    except Exception as e:
-        logger.error(f"Unexpected error restoring block: {e}", exc_info=True)
+    except DomainException as error:
+        logger.warning("Restore failed: %s", error)
+        raise HTTPException(status_code=error.http_status, detail=error.to_dict())
+    except Exception as error:
+        logger.error("Unexpected error restoring block: %s", error, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"code": "OPERATION_ERROR", "message": "Failed to restore block"}
@@ -508,6 +587,7 @@ async def list_deleted_blocks(
     book_id: UUID = Query(..., description="Book ID (required)"),
     skip: int = Query(0, ge=0, description="Pagination skip"),
     limit: int = Query(50, ge=1, le=100, description="Pagination limit"),
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """列出已删除的块（Paperballs 视图�?
@@ -531,20 +611,19 @@ async def list_deleted_blocks(
         request = ListDeletedBlocksRequest(
             book_id=book_id,
             skip=skip,
-            limit=limit
+            limit=limit,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
         )
         use_case = di.get_list_deleted_blocks_use_case()
         response: BlockListResponse = await use_case.execute(request)
         logger.debug(f"Listed {len(response.items)} deleted blocks from book {book_id}")
         return asdict(response)
-    except DomainException as e:
-        logger.warning(f"List deleted blocks failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"code": "VALIDATION_ERROR", "message": str(e)}
-        )
-    except Exception as e:
-        logger.error(f"Unexpected error listing deleted blocks: {e}", exc_info=True)
+    except DomainException as error:
+        logger.warning("List deleted blocks failed: %s", error)
+        raise HTTPException(status_code=error.http_status, detail=error.to_dict())
+    except Exception as error:
+        logger.error("Unexpected error listing deleted blocks: %s", error, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"code": "OPERATION_ERROR", "message": "Failed to list deleted blocks"}

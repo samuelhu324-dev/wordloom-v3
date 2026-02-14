@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     # Development flags
     allow_dev_library_owner_override: bool = True
 
+    # Feature flags
+    enable_search_projection: bool = True
+
     model_config = SettingsConfigDict(
         env_file=str(Path(__file__).parent.parent.parent / ".env"),
         case_sensitive=False,

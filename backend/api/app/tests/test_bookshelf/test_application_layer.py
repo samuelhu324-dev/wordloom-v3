@@ -17,6 +17,8 @@ Coverage: 16 test cases
 
 import pytest
 from uuid import uuid4
+from types import SimpleNamespace
+from pydantic import ValidationError
 
 from api.app.modules.bookshelf.application.use_cases.create_bookshelf import CreateBookshelfUseCase
 from api.app.modules.bookshelf.application.use_cases.get_bookshelf import GetBookshelfUseCase
@@ -29,6 +31,23 @@ from api.app.modules.bookshelf.application.ports.input import (
     RenameBookshelfRequest,
 )
 from api.app.modules.bookshelf.domain import BookshelfType, BookshelfStatus
+from api.app.modules.bookshelf.exceptions import (
+    BasementOperationError,
+    BookshelfAlreadyExistsError,
+    BookshelfForbiddenError,
+    BookshelfNotFoundError,
+)
+
+
+class _StubLibraryRepository:
+    def __init__(self, owners_by_library_id):
+        self._owners_by_library_id = owners_by_library_id
+
+    async def get_by_id(self, library_id):
+        owner_id = self._owners_by_library_id.get(library_id)
+        if owner_id is None:
+            return None
+        return SimpleNamespace(id=library_id, user_id=owner_id)
 
 
 # ============================================================================
@@ -76,7 +95,7 @@ class TestCreateBookshelfUseCase:
         await use_case.execute(request1)
 
         # Second creation fails
-        with pytest.raises(ValueError, match="already exists"):
+        with pytest.raises(BookshelfAlreadyExistsError):
             await use_case.execute(request2)
 
     @pytest.mark.asyncio
@@ -85,14 +104,12 @@ class TestCreateBookshelfUseCase:
         use_case = CreateBookshelfUseCase(mock_repository)
 
         # Too long (> 255 chars)
-        request_too_long = CreateBookshelfRequest(
-            library_id=library_id,
-            name="A" * 256,
-            description="Too long name",
-        )
-
-        with pytest.raises(ValueError):
-            await use_case.execute(request_too_long)
+        with pytest.raises(ValidationError):
+            CreateBookshelfRequest(
+                library_id=library_id,
+                name="A" * 256,
+                description="Too long name",
+            )
 
     @pytest.mark.asyncio
     async def test_create_bookshelf_with_optional_description(self, mock_repository, library_id):
@@ -139,7 +156,26 @@ class TestGetBookshelfUseCase:
         use_case = GetBookshelfUseCase(mock_repository)
         request = GetBookshelfRequest(bookshelf_id=uuid4())
 
-        with pytest.raises(ValueError, match="not found"):
+        with pytest.raises(BookshelfNotFoundError):
+            await use_case.execute(request)
+
+    @pytest.mark.asyncio
+    async def test_get_bookshelf_forbidden_when_actor_not_owner(self, mock_repository, bookshelf_domain_object):
+        """✗ GetBookshelfUseCase: Forbidden when actor does not own library."""
+        await mock_repository.save(bookshelf_domain_object)
+
+        owner_id = uuid4()
+        other_user_id = uuid4()
+        library_repo = _StubLibraryRepository({bookshelf_domain_object.library_id: owner_id})
+        use_case = GetBookshelfUseCase(mock_repository, library_repository=library_repo)
+
+        request = GetBookshelfRequest(
+            bookshelf_id=bookshelf_domain_object.id,
+            actor_user_id=other_user_id,
+            enforce_owner_check=True,
+        )
+
+        with pytest.raises(BookshelfForbiddenError):
             await use_case.execute(request)
 
 
@@ -173,7 +209,7 @@ class TestDeleteBookshelfUseCase:
         use_case = DeleteBookshelfUseCase(mock_repository)
         request = DeleteBookshelfRequest(bookshelf_id=basement_bookshelf_domain_object.id)
 
-        with pytest.raises(ValueError, match="Cannot delete Basement"):
+        with pytest.raises(BasementOperationError):
             await use_case.execute(request)
 
     @pytest.mark.asyncio
@@ -182,7 +218,26 @@ class TestDeleteBookshelfUseCase:
         use_case = DeleteBookshelfUseCase(mock_repository)
         request = DeleteBookshelfRequest(bookshelf_id=uuid4())
 
-        with pytest.raises(ValueError, match="not found"):
+        with pytest.raises(BookshelfNotFoundError):
+            await use_case.execute(request)
+
+    @pytest.mark.asyncio
+    async def test_delete_bookshelf_forbidden_when_actor_not_owner(self, mock_repository, bookshelf_domain_object):
+        """✗ DeleteBookshelfUseCase: Forbidden when actor does not own library."""
+        await mock_repository.save(bookshelf_domain_object)
+
+        owner_id = uuid4()
+        other_user_id = uuid4()
+        library_repo = _StubLibraryRepository({bookshelf_domain_object.library_id: owner_id})
+        use_case = DeleteBookshelfUseCase(mock_repository, library_repository=library_repo)
+
+        request = DeleteBookshelfRequest(
+            bookshelf_id=bookshelf_domain_object.id,
+            actor_user_id=other_user_id,
+            enforce_owner_check=True,
+        )
+
+        with pytest.raises(BookshelfForbiddenError):
             await use_case.execute(request)
 
 
@@ -244,13 +299,11 @@ class TestRenameBookshelfUseCase:
         await mock_repository.save(bookshelf_domain_object)
 
         use_case = RenameBookshelfUseCase(mock_repository)
-        request = RenameBookshelfRequest(
-            bookshelf_id=bookshelf_domain_object.id,
-            new_name="A" * 256,  # Too long
-        )
-
-        with pytest.raises(ValueError):
-            await use_case.execute(request)
+        with pytest.raises(ValidationError):
+            RenameBookshelfRequest(
+                bookshelf_id=bookshelf_domain_object.id,
+                new_name="A" * 256,  # Too long
+            )
 
     @pytest.mark.asyncio
     async def test_rename_bookshelf_not_found(self, mock_repository):

@@ -33,7 +33,13 @@ from api.app.modules.bookshelf.application.ports.input import (
     BookshelfDashboardRequest,
     BookshelfDashboardSort,
 )
+from api.app.modules.bookshelf.exceptions import (
+    BookshelfForbiddenError,
+    BookshelfLibraryAssociationError,
+    BookshelfOperationError,
+)
 from api.app.modules.bookshelf.domain import BookshelfStatus
+from api.app.modules.library.application.ports.output import ILibraryRepository
 from infra.database.models.book_models import BookModel
 from infra.database.models.bookshelf_models import BookshelfModel
 from infra.database.models.library_models import LibraryModel
@@ -115,10 +121,18 @@ class GetBookshelfDashboardUseCase:
     HEALTH_SLOWING_THRESHOLD_DAYS = 21
     HEALTH_COOLING_THRESHOLD_DAYS = 60
 
-    def __init__(self, session: AsyncSession):
+    def __init__(
+        self,
+        session: AsyncSession,
+        *,
+        library_repository: ILibraryRepository | None = None,
+    ):
         self.session = session
+        self.library_repository = library_repository
 
     async def execute(self, request: BookshelfDashboardRequest) -> BookshelfDashboardResult:
+        await self._enforce_library_owner(request)
+
         # 1. 拉取基础书架列表（排除 Basement / Deleted）
         shelves = await self._fetch_bookshelves(request.library_id)
         if not shelves:
@@ -218,6 +232,30 @@ class GetBookshelfDashboardUseCase:
         )
 
         return BookshelfDashboardResult(items=paginated, total=total, snapshot=snapshot)
+
+    async def _enforce_library_owner(self, request: BookshelfDashboardRequest) -> None:
+        if not request.enforce_owner_check or request.actor_user_id is None:
+            return
+        if self.library_repository is None:
+            raise BookshelfOperationError(
+                bookshelf_id="<unknown>",
+                operation="authorize",
+                reason="library_repository is required when enforcing owner checks",
+            )
+
+        library = await self.library_repository.get_by_id(request.library_id)
+        if not library:
+            raise BookshelfLibraryAssociationError(
+                bookshelf_id="<unknown>",
+                library_id=str(request.library_id),
+                reason="Library not found",
+            )
+        if getattr(library, "user_id", None) != request.actor_user_id:
+            raise BookshelfForbiddenError(
+                library_id=str(request.library_id),
+                actor_user_id=str(request.actor_user_id),
+                reason="Actor does not own this library",
+            )
 
     async def _fetch_tag_snapshots(self, shelf_ids: List[UUID]) -> Dict[UUID, List[BookshelfTagSnapshot]]:
         if not shelf_ids:

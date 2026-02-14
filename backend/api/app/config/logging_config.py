@@ -9,6 +9,7 @@ Provides:
 import logging
 import json
 from datetime import datetime, timezone
+import os
 from .setting import get_settings
 
 
@@ -75,6 +76,48 @@ class JsonLineFormatter(logging.Formatter):
         return json.dumps(payload, ensure_ascii=False)
 
 
+def _truthy(raw: str | None) -> bool:
+    return str(raw or "").strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _is_tracing_enabled() -> bool:
+    # Keep this local to avoid importing infra in the API config layer.
+    if _truthy(os.getenv("OTEL_SDK_DISABLED")):
+        return False
+    return _truthy(os.getenv("WORDLOOM_TRACING_ENABLED"))
+
+
+class _TraceContextFilter(logging.Filter):
+    """Best-effort inject trace/span ids into log records.
+
+    When tracing is disabled, this filter is effectively a no-op.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:  # noqa: A003
+        if not _is_tracing_enabled():
+            return True
+
+        # Avoid overriding explicit fields.
+        if hasattr(record, "trace_id") and hasattr(record, "span_id"):
+            return True
+
+        try:
+            from opentelemetry import trace
+
+            span = trace.get_current_span()
+            ctx = span.get_span_context() if span is not None else None
+            if ctx is not None and getattr(ctx, "is_valid", False):
+                if not hasattr(record, "trace_id"):
+                    record.trace_id = f"{ctx.trace_id:032x}"
+                if not hasattr(record, "span_id"):
+                    record.span_id = f"{ctx.span_id:016x}"
+        except Exception:
+            # Never break logging.
+            return True
+
+        return True
+
+
 def _json_safe(value):
     try:
         json.dumps(value)
@@ -102,6 +145,7 @@ def setup_logging():
         handler = logging.StreamHandler()
         handler.setLevel(level)
         handler.setFormatter(JsonLineFormatter())
+        handler.addFilter(_TraceContextFilter())
 
         root = logging.getLogger()
         root.setLevel(level)

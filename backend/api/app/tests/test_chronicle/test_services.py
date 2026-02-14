@@ -13,6 +13,19 @@ from modules.chronicle.application.services import (
 from modules.chronicle.domain import ChronicleEventType, ChronicleEvent
 
 
+def assert_payload_contains(payload: dict, expected: dict) -> None:
+    for key, value in expected.items():
+        assert payload.get(key) == value
+
+
+def assert_payload_has_default_envelope(payload: dict) -> None:
+    assert payload.get("schema_version") == 1
+    assert payload.get("provenance") == "live"
+    # Tests run without request context by default.
+    assert payload.get("source") == "unknown"
+    assert payload.get("actor_kind") == "unknown"
+
+
 class InMemoryChronicleRepo:
     """Minimal repository stub that captures saved events."""
 
@@ -55,7 +68,8 @@ async def test_record_book_created_tracks_bookshelf_payload():
     )
 
     assert event.event_type == ChronicleEventType.BOOK_CREATED
-    assert event.payload == {"bookshelf_id": str(shelf_id)}
+    assert_payload_has_default_envelope(event.payload)
+    assert_payload_contains(event.payload, {"bookshelf_id": str(shelf_id)})
     assert repo.saved_events[-1] == event
 
 
@@ -76,10 +90,14 @@ async def test_record_book_moved_persists_payload():
     )
 
     assert event.event_type == ChronicleEventType.BOOK_MOVED
-    assert event.payload == {
-        "from_bookshelf_id": str(from_id),
-        "to_bookshelf_id": str(to_id),
-    }
+    assert_payload_has_default_envelope(event.payload)
+    assert_payload_contains(
+        event.payload,
+        {
+            "from_bookshelf_id": str(from_id),
+            "to_bookshelf_id": str(to_id),
+        },
+    )
     assert repo.saved_events[-1] == event
 
 
@@ -100,10 +118,14 @@ async def test_record_book_moved_to_basement_sets_expected_fields():
     )
 
     assert event.event_type == ChronicleEventType.BOOK_SOFT_DELETED
-    assert event.payload == {
-        "from_bookshelf_id": str(from_id),
-        "basement_bookshelf_id": str(basement_id),
-    }
+    assert_payload_has_default_envelope(event.payload)
+    assert_payload_contains(
+        event.payload,
+        {
+            "from_bookshelf_id": str(from_id),
+            "basement_bookshelf_id": str(basement_id),
+        },
+    )
     assert repo.saved_events[-1] == event
 
 
@@ -122,6 +144,7 @@ async def test_record_content_snapshot_taken_payload_normalized():
     )
 
     assert event.event_type == ChronicleEventType.CONTENT_SNAPSHOT_TAKEN
+    assert_payload_has_default_envelope(event.payload)
     assert event.payload["block_count"] == 12
     assert event.payload["block_type_counts"] == {"text": 10, "heading": 2}
     assert event.payload["total_word_count"] == 3456
@@ -142,11 +165,15 @@ async def test_record_wordcount_milestone_reached_contains_totals():
     )
 
     assert event.event_type == ChronicleEventType.WORDCOUNT_MILESTONE_REACHED
-    assert event.payload == {
-        "milestone": 5000,
-        "total_word_count": 5123,
-        "previous_word_count": 4100,
-    }
+    assert_payload_has_default_envelope(event.payload)
+    assert_payload_contains(
+        event.payload,
+        {
+            "milestone": 5000,
+            "total_word_count": 5123,
+            "previous_word_count": 4100,
+        },
+    )
     assert repo.saved_events[-1] == event
 
 
@@ -175,13 +202,18 @@ async def test_record_book_restored_and_deleted_cover_payloads():
     )
 
     assert restored_event.event_type == ChronicleEventType.BOOK_RESTORED
-    assert restored_event.payload == {
-        "basement_bookshelf_id": str(basement_id),
-        "restored_to_bookshelf_id": str(restored_to),
-    }
+    assert_payload_has_default_envelope(restored_event.payload)
+    assert_payload_contains(
+        restored_event.payload,
+        {
+            "basement_bookshelf_id": str(basement_id),
+            "restored_to_bookshelf_id": str(restored_to),
+        },
+    )
 
     assert deleted_event.event_type == ChronicleEventType.BOOK_DELETED
-    assert deleted_event.payload == {"bookshelf_id": str(bookshelf_id)}
+    assert_payload_has_default_envelope(deleted_event.payload)
+    assert_payload_contains(deleted_event.payload, {"bookshelf_id": str(bookshelf_id)})
     # Ensure both events are stored
     assert repo.saved_events[-2:] == [restored_event, deleted_event]
 
@@ -203,14 +235,18 @@ async def test_record_book_maturity_recomputed_payload_contains_delta():
     )
 
     assert event.event_type == ChronicleEventType.BOOK_MATURITY_RECOMPUTED
-    assert event.payload == {
-        "previous_score": 40,
-        "new_score": 55,
-        "delta": 15,
-        "stage": "growing",
-        "trigger": "recalculate",
-        "initial": False,
-    }
+    assert_payload_has_default_envelope(event.payload)
+    assert_payload_contains(
+        event.payload,
+        {
+            "previous_score": 40,
+            "new_score": 55,
+            "delta": 15,
+            "stage": "growing",
+            "trigger": "recalculate",
+            "initial": False,
+        },
+    )
     assert repo.saved_events[-1] == event
 
 
@@ -230,13 +266,17 @@ async def test_record_structure_task_completed_payload():
     )
 
     assert event.event_type == ChronicleEventType.STRUCTURE_TASK_COMPLETED
-    assert event.payload == {
-        "task_id": "add_summary",
-        "title": "写摘要",
-        "points": 15,
-        "stage": "seed",
-        "trigger": "recalculate",
-    }
+    assert_payload_has_default_envelope(event.payload)
+    assert_payload_contains(
+        event.payload,
+        {
+            "task_id": "add_summary",
+            "title": "写摘要",
+            "points": 15,
+            "stage": "seed",
+            "trigger": "recalculate",
+        },
+    )
     assert repo.saved_events[-1] == event
 
 
@@ -256,13 +296,17 @@ async def test_record_structure_task_regressed_payload_points_negative():
     )
 
     assert event.event_type == ChronicleEventType.STRUCTURE_TASK_REGRESSED
-    assert event.payload == {
-        "task_id": "add_summary",
-        "title": "写摘要",
-        "points": -15,
-        "stage": "seed",
-        "trigger": "recalculate",
-    }
+    assert_payload_has_default_envelope(event.payload)
+    assert_payload_contains(
+        event.payload,
+        {
+            "task_id": "add_summary",
+            "title": "写摘要",
+            "points": -15,
+            "stage": "seed",
+            "trigger": "recalculate",
+        },
+    )
     assert repo.saved_events[-1] == event
 
 

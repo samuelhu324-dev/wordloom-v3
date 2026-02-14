@@ -14,6 +14,26 @@ from api.app.modules.chronicle.application.services import (
 from api.app.modules.book.domain.services import BookMaturityScoreService
 
 
+class InMemoryLibraryRepository:
+    """Minimal in-memory Library repository.
+
+    Used by authorization checks when enforce_owner_check is enabled.
+    """
+
+    def __init__(self):
+        self.storage: Dict[UUID, object] = {}
+
+    async def save(self, library):
+        self.storage[library.id] = library
+        return library
+
+    async def get_by_id(self, library_id: UUID):
+        return self.storage.get(library_id)
+
+    async def exists(self, library_id: UUID):
+        return library_id in self.storage
+
+
 class InMemoryBookshelfRepository:
     """In-Memory Bookshelf Repository"""
     def __init__(self):
@@ -77,7 +97,37 @@ class InMemoryBlockRepository:
         return block
 
     async def get_by_id(self, block_id: UUID):
+        block = self.storage.get(block_id)
+        if block is None:
+            return None
+        if getattr(block, "soft_deleted_at", None) is not None:
+            return None
+        return block
+
+    async def get_any_by_id(self, block_id: UUID):
         return self.storage.get(block_id)
+
+    async def list_paginated(
+        self,
+        book_id: UUID,
+        page: int = 1,
+        page_size: int = 20,
+        include_deleted: bool = False,
+    ):
+        all_blocks = [b for b in self.storage.values() if getattr(b, "book_id", None) == book_id]
+        if not include_deleted:
+            all_blocks = [b for b in all_blocks if getattr(b, "soft_deleted_at", None) is None]
+        total = len(all_blocks)
+        start = max(0, (page - 1) * page_size)
+        end = start + page_size
+        return all_blocks[start:end], total
+
+    async def get_deleted_blocks(self, book_id: UUID):
+        return [
+            b
+            for b in self.storage.values()
+            if getattr(b, "book_id", None) == book_id and getattr(b, "soft_deleted_at", None) is not None
+        ]
 
     async def list_by_book(self, book_id: UUID, limit=100, offset=0):
         return [b for b in self.storage.values() if b.book_id == book_id]
@@ -92,6 +142,36 @@ class InMemoryBlockRepository:
         blocks = [b for b in self.storage.values() if getattr(b, "book_id", None) == book_id]
         block_types = {getattr(b, "type", None) for b in blocks if getattr(b, "type", None)}
         return len(blocks), len(block_types)
+
+    async def get_prev_sibling(self, block_id: UUID, book_id: UUID):
+        return None
+
+    async def get_next_sibling(self, block_id: UUID, book_id: UUID):
+        return None
+
+    def new_key_between(self, prev_sort_key, next_sort_key):
+        # Minimal implementation for in-memory: no real fractional indexing.
+        return 1
+
+    async def restore_from_paperballs(
+        self,
+        block_id: UUID,
+        book_id: UUID,
+        deleted_prev_id,
+        deleted_next_id,
+        deleted_section_path,
+    ):
+        block = self.storage.get(block_id)
+        if block is None:
+            raise ValueError("Block not found")
+        if getattr(block, "book_id", None) != book_id:
+            raise ValueError("Book mismatch")
+        setattr(block, "soft_deleted_at", None)
+        setattr(block, "deleted_prev_id", None)
+        setattr(block, "deleted_next_id", None)
+        setattr(block, "deleted_section_path", None)
+        self.storage[block_id] = block
+        return block
 
 
 class InMemoryChronicleRepository:
@@ -148,6 +228,7 @@ class DIContainerInMem:
     def __init__(self, session=None):
         """session is ignored, using in-memory storage"""
         self.session = session
+        self.library_repo = InMemoryLibraryRepository()
         self.bookshelf_repo = InMemoryBookshelfRepository()
         self.book_repo = InMemoryBookRepository()
         self.block_repo = InMemoryBlockRepository()
@@ -170,6 +251,10 @@ class DIContainerInMem:
     def get_get_bookshelf_use_case(self):
         from api.app.modules.bookshelf.application.use_cases.get_bookshelf import GetBookshelfUseCase
         return GetBookshelfUseCase(self.bookshelf_repo)
+
+    def get_get_basement_use_case(self):
+        from api.app.modules.bookshelf.application.use_cases.get_basement import GetBasementUseCase
+        return GetBasementUseCase(self.bookshelf_repo)
 
     def get_delete_bookshelf_use_case(self):
         from api.app.modules.bookshelf.application.use_cases.delete_bookshelf import DeleteBookshelfUseCase
@@ -202,15 +287,15 @@ class DIContainerInMem:
 
     def get_delete_book_use_case(self):
         from api.app.modules.book.application.use_cases.delete_book import DeleteBookUseCase
-        return DeleteBookUseCase(self.book_repo)
+        return DeleteBookUseCase(self.book_repo, self.bookshelf_repo)
 
     def get_move_book_use_case(self):
         from api.app.modules.book.application.use_cases.move_book import MoveBookUseCase
-        return MoveBookUseCase(self.book_repo)
+        return MoveBookUseCase(self.book_repo, bookshelf_repository=self.bookshelf_repo)
 
     def get_restore_book_use_case(self):
         from api.app.modules.book.application.use_cases.restore_book import RestoreBookUseCase
-        return RestoreBookUseCase(self.book_repo)
+        return RestoreBookUseCase(self.book_repo, bookshelf_repository=self.bookshelf_repo)
 
     def get_calculate_book_maturity_use_case(self):
         from api.app.modules.maturity.application.adapters import BookAggregateMaturityDataProvider
@@ -248,35 +333,67 @@ class DIContainerInMem:
     # ========== Block UseCases ==========
     def get_create_block_use_case(self):
         from api.app.modules.block.application.use_cases.create_block import CreateBlockUseCase
-        return CreateBlockUseCase(self.block_repo)
+        return CreateBlockUseCase(
+            self.block_repo,
+            book_repository=self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_list_blocks_use_case(self):
         from api.app.modules.block.application.use_cases.list_blocks import ListBlocksUseCase
-        return ListBlocksUseCase(self.block_repo)
+        return ListBlocksUseCase(
+            self.block_repo,
+            book_repository=self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_get_block_use_case(self):
         from api.app.modules.block.application.use_cases.get_block import GetBlockUseCase
-        return GetBlockUseCase(self.block_repo)
+        return GetBlockUseCase(
+            self.block_repo,
+            book_repository=self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_update_block_use_case(self):
         from api.app.modules.block.application.use_cases.update_block import UpdateBlockUseCase
-        return UpdateBlockUseCase(self.block_repo)
+        return UpdateBlockUseCase(
+            self.block_repo,
+            book_repository=self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_reorder_blocks_use_case(self):
         from api.app.modules.block.application.use_cases.reorder_blocks import ReorderBlocksUseCase
-        return ReorderBlocksUseCase(self.block_repo)
+        return ReorderBlocksUseCase(
+            self.block_repo,
+            book_repository=self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_delete_block_use_case(self):
         from api.app.modules.block.application.use_cases.delete_block import DeleteBlockUseCase
-        return DeleteBlockUseCase(self.block_repo)
+        return DeleteBlockUseCase(
+            self.block_repo,
+            book_repository=self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_restore_block_use_case(self):
         from api.app.modules.block.application.use_cases.restore_block import RestoreBlockUseCase
-        return RestoreBlockUseCase(self.block_repo)
+        return RestoreBlockUseCase(
+            self.block_repo,
+            book_repository=self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     def get_list_deleted_blocks_use_case(self):
         from api.app.modules.block.application.use_cases.list_deleted_blocks import ListDeletedBlocksUseCase
-        return ListDeletedBlocksUseCase(self.block_repo)
+        return ListDeletedBlocksUseCase(
+            self.block_repo,
+            book_repository=self.book_repo,
+            library_repository=self.library_repo,
+        )
 
     # ========== Chronicle Services ==========
     def get_chronicle_recorder_service(self):

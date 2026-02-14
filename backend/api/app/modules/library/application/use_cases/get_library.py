@@ -15,7 +15,7 @@ from uuid import UUID
 import logging
 
 from api.app.modules.library.domain import Library
-from api.app.modules.library.exceptions import LibraryNotFoundError
+from api.app.modules.library.exceptions import LibraryNotFoundError, LibraryForbiddenError
 from api.app.modules.library.application.ports.input import (
     GetLibraryRequest,
     GetLibraryResponse,
@@ -91,6 +91,16 @@ class GetLibraryUseCase(IGetLibraryUseCase):
             raise LibraryNotFoundError(
                 f"Library not found (library_id={request.library_id}, user_id={request.user_id})"
             )
+
+        # ================================================================
+        # Step 2.5: Authorization (skeleton)
+        # ================================================================
+        if request.enforce_owner_check and request.actor_user_id is not None:
+            if library.user_id != request.actor_user_id:
+                raise LibraryForbiddenError(
+                    library_id=str(getattr(library, "id", request.library_id)),
+                    actor_user_id=str(request.actor_user_id),
+                )
 
         # ================================================================
         # Step 3: Convert to Response DTO

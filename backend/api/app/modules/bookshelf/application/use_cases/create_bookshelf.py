@@ -27,7 +27,14 @@ from api.app.modules.bookshelf.application.ports.input import (
 )
 from api.app.modules.bookshelf.application.ports.output import IBookshelfRepository
 from api.app.modules.bookshelf.domain import Bookshelf
-from api.app.modules.bookshelf.exceptions import BookshelfTagSyncError
+from api.app.modules.bookshelf.exceptions import (
+    BookshelfAlreadyExistsError,
+    BookshelfForbiddenError,
+    BookshelfLibraryAssociationError,
+    BookshelfOperationError,
+    BookshelfTagSyncError,
+)
+from api.app.modules.library.application.ports.output import ILibraryRepository
 from api.app.modules.tag.application.ports.output import TagRepository
 from api.app.modules.tag.domain import EntityType
 from api.app.modules.tag.exceptions import TagNotFoundError, TagOperationError
@@ -50,6 +57,8 @@ class CreateBookshelfUseCase:
         self,
         repository: IBookshelfRepository,
         tag_repository: Optional[TagRepository] = None,
+        *,
+        library_repository: Optional[ILibraryRepository] = None,
     ):
         """
         Initialize CreateBookshelfUseCase
@@ -59,6 +68,7 @@ class CreateBookshelfUseCase:
         """
         self.repository = repository
         self.tag_repository = tag_repository
+        self.library_repository = library_repository
 
     async def execute(self, request: CreateBookshelfRequest) -> CreateBookshelfResponse:
         """
@@ -76,13 +86,16 @@ class CreateBookshelfUseCase:
             Exception: On unexpected repository errors
         """
 
+        await self._enforce_library_owner(request)
+
         # Step 1: Validate name uniqueness per library (business rule RULE-006)
         name_exists = await self.repository.exists_by_name(
             request.library_id, request.name
         )
         if name_exists:
-            raise ValueError(
-                f"Bookshelf name '{request.name}' already exists in library {request.library_id}"
+            raise BookshelfAlreadyExistsError(
+                library_id=str(request.library_id),
+                name=request.name,
             )
 
         # Step 2: Create Bookshelf aggregate via factory method
@@ -107,6 +120,30 @@ class CreateBookshelfUseCase:
             tag_ids=tag_ids,
             tags_summary=tag_names,
         )
+
+    async def _enforce_library_owner(self, request: CreateBookshelfRequest) -> None:
+        if not request.enforce_owner_check or request.actor_user_id is None:
+            return
+        if self.library_repository is None:
+            raise BookshelfOperationError(
+                bookshelf_id="<unknown>",
+                operation="authorize",
+                reason="library_repository is required when enforcing owner checks",
+            )
+
+        library = await self.library_repository.get_by_id(request.library_id)
+        if not library:
+            raise BookshelfLibraryAssociationError(
+                bookshelf_id="<unknown>",
+                library_id=str(request.library_id),
+                reason="Library not found",
+            )
+        if getattr(library, "user_id", None) != request.actor_user_id:
+            raise BookshelfForbiddenError(
+                library_id=str(request.library_id),
+                actor_user_id=str(request.actor_user_id),
+                reason="Actor does not own this library",
+            )
 
     async def _apply_initial_tags(
         self,

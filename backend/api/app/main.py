@@ -9,6 +9,18 @@ before this module is imported!
 import sys
 import os
 
+# ---------------------------------------------------------------------------
+# Windows async event loop compatibility
+# ---------------------------------------------------------------------------
+# psycopg async cannot run on ProactorEventLoop. Force Selector policy.
+if sys.platform.startswith("win"):
+    try:
+        import asyncio
+
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except Exception:
+        pass
+
 # ============================================================================
 # NOW safe to do regular imports
 # ============================================================================
@@ -40,6 +52,22 @@ app_root = Path(__file__).parent  # app/
 sys.path.insert(0, str(backend_root))  # For infra imports
 sys.path.insert(0, str(api_root))  # For app imports
 sys.path.insert(0, str(app_root))  # For modules imports
+
+# =========================================================================
+# Tracing (OpenTelemetry) - opt-in
+# =========================================================================
+
+try:
+    from infra.observability.tracing import setup_tracing, instrument_httpx
+
+    _tracing_enabled = setup_tracing(default_service_name="wordloom-api")
+    if _tracing_enabled:
+        instrument_httpx()
+        logger.info({"event": "tracing.enabled", "layer": "startup"})
+    else:
+        logger.info({"event": "tracing.disabled", "layer": "startup"})
+except Exception as _tracing_exc:  # noqa: BLE001
+    logger.warning({"event": "tracing.setup_failed", "error": str(_tracing_exc)})
 
 # ============================================================================
 # Import hook for backward compatibility: redirect 'modules' to 'api.app.modules'
@@ -209,6 +237,13 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+try:
+    from infra.observability.tracing import instrument_fastapi
+
+    instrument_fastapi(app)
+except Exception as _instr_exc:  # noqa: BLE001
+    logger.warning({"event": "tracing.fastapi_instrument_failed", "error": str(_instr_exc)})
 
 # =========================================================================
 # Observability Middleware
@@ -408,10 +443,23 @@ async def request_validation_exception_handler(request: Request, exc: RequestVal
 async def general_exception_handler(request: Request, exc: Exception):
     """Handle general exceptions"""
     logger.exception(f"Unhandled exception: {exc}")
+
+    trace_id = None
+    try:
+        from opentelemetry import trace as _otel_trace
+
+        _span = _otel_trace.get_current_span()
+        _ctx = _span.get_span_context() if _span is not None else None
+        if _ctx is not None and getattr(_ctx, "is_valid", False):
+            trace_id = f"{_ctx.trace_id:032x}"
+    except Exception:
+        trace_id = None
+
     return JSONResponse(
         status_code=500,
         content={
             "detail": "Internal server error",
             "type": type(exc).__name__,
+            "trace_id": trace_id,
         },
     )

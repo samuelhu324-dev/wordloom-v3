@@ -49,15 +49,15 @@ from api.app.modules.book.application.ports.input import (
     MoveBookRequest,
 )
 from api.app.modules.book.domain.book import Book as BookAggregate, BookMaturity
-from api.app.modules.book.domain.exceptions import (
+from api.app.modules.book.exceptions import (
     BookNotFoundError,
     BookAlreadyExistsError,
     DomainException,
     InvalidBookMoveError,
     BookNotInBasementError,
-    InvalidBookMaturityTransitionError,
-    InvalidBookDataError,
+    BookForbiddenError,
 )
+from api.app.modules.book.domain.exceptions import InvalidBookMaturityTransitionError, InvalidBookDataError
 from api.app.modules.book.schemas import BookUpdate
 from api.app.modules.book.application.ports.input import (
     RecalculateBookMaturityRequest as RecalcReq,
@@ -74,9 +74,15 @@ from api.app.modules.media.exceptions import (
 from infra.storage.storage_manager import LocalStorageStrategy, StorageManager
 from infra.database.models.library_models import LibraryModel
 
+from api.app.config.security import get_current_actor
+from api.app.shared.actor import Actor
+from api.app.config.setting import get_settings
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["books"])
+
+_settings = get_settings()
 
 _BACKEND_ROOT = FilePath(__file__).resolve().parents[5]
 _STORAGE_ROOT = FilePath(os.getenv("WORDLOOM_STORAGE_ROOT", _BACKEND_ROOT / "storage"))
@@ -295,6 +301,7 @@ def _domain_error_payload(error: Exception, fallback_code: str) -> dict:
 )
 async def create_book(
     request: CreateBookRequest,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     try:
@@ -310,6 +317,8 @@ async def create_book(
             title=request.title,
             description=request.summary,
             cover_icon=request.cover_icon,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=not _settings.allow_dev_library_owner_override,
         )
         logger.info("Book created successfully: book_id=%s", getattr(book, "id", None))
         return await _serialize_book_with_theme(book, di)
@@ -349,6 +358,7 @@ async def list_books(
     include_deleted: bool = Query(False, description="Include soft-deleted books (RULE-012)"),
     skip: int = Query(0, ge=0, description="Pagination skip"),
     limit: int = Query(50, ge=1, le=100, description="Pagination limit"),
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """列出书籍 (RULE-012: 默认排除软删除的书籍)
@@ -374,7 +384,9 @@ async def list_books(
             library_id=library_id,
             skip=skip,
             limit=limit,
-            include_deleted=include_deleted
+            include_deleted=include_deleted,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=not _settings.allow_dev_library_owner_override,
         )
         use_case = di.get_list_books_use_case()
         response = await use_case.execute(request)
@@ -406,6 +418,7 @@ async def list_books(
 )
 async def get_book(
     book_id: UUID,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """获取书籍详情
@@ -422,9 +435,25 @@ async def get_book(
     """
     try:
         logger.debug(f"Getting book: book_id={book_id}")
-        request = GetBookRequest(book_id=book_id)
+        request = GetBookRequest(
+            book_id=book_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=not _settings.allow_dev_library_owner_override,
+        )
         use_case = di.get_get_book_use_case()
         book = await use_case.execute(request)
+
+        # Chronicle: record a view on successful read.
+        try:
+            chronicle = di.get_chronicle_recorder_service()
+            await chronicle.record_book_viewed(
+                book_id=book_id,
+                actor_id=actor.user_id,
+                source="api.book.get",
+            )
+        except Exception:
+            logger.warning("Chronicle record_book_viewed failed", exc_info=True)
+
         logger.debug("Retrieved book: %s", getattr(book, "id", None))
         return await _serialize_book_with_theme(book, di)
     except BookNotFoundError as error:
@@ -460,6 +489,7 @@ async def get_book(
 async def update_book(
     book_id: UUID,
     payload: BookUpdate,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     try:
@@ -479,14 +509,55 @@ async def update_book(
             cover_icon_provided=cover_icon_provided,
             cover_media_id=payload.cover_media_id if cover_media_provided else None,
             cover_media_id_provided=cover_media_provided,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=not _settings.allow_dev_library_owner_override,
         )
         use_case = di.get_update_book_use_case()
         updated_book = await use_case.execute(update_request)
 
+        # Chronicle: record stable fact for timeline/audit.
+        try:
+            changed = sorted(
+                [
+                    field
+                    for field in getattr(payload, "model_fields_set", set())
+                    if field not in {"tag_ids"}
+                ]
+            )
+            fields = {"changed": changed}
+            if "tag_ids" in getattr(payload, "model_fields_set", set()):
+                fields["tag_ids_changed"] = True
+                fields["tag_count"] = len(payload.tag_ids or [])
+
+            chronicle = di.get_chronicle_recorder_service()
+            await chronicle.record_book_updated(
+                book_id=book_id,
+                fields=fields,
+                trigger="api.book.patch",
+                actor_id=actor.user_id,
+            )
+
+            if cover_icon_provided or cover_media_provided:
+                await chronicle.record_cover_changed(
+                    book_id=book_id,
+                    to_icon=payload.cover_icon if cover_icon_provided else None,
+                    media_id=payload.cover_media_id if cover_media_provided else None,
+                    trigger="api.book.patch",
+                    actor_id=actor.user_id,
+                )
+        except Exception:  # pragma: no cover - keep write path resilient
+            logger.warning("Chronicle record_book_updated failed for book %s", book_id, exc_info=True)
+
         # Auto-refresh maturity score after metadata updates that may affect scoring
         try:
             recalc_uc = di.get_recalculate_book_maturity_use_case()
-            await recalc_uc.execute(RecalcReq(book_id=book_id, trigger="update_book"))
+            await recalc_uc.execute(
+                RecalcReq(
+                    book_id=book_id,
+                    trigger="update_book",
+                    actor_id=actor.user_id,
+                )
+            )
         except Exception:  # pragma: no cover - keep write path resilient
             # Non-blocking: keep update response even if recalc fails
             logger.warning("Maturity recalc after update failed for book %s", book_id)
@@ -534,6 +605,7 @@ async def upload_book_cover(
     book_id: UUID,
     request: Request,
     file: UploadFile = File(..., description="封面图片 (JPEG/PNG/WEBP/GIF, ≤10MB)"),
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container),
 ):
     correlation_id = getattr(getattr(request, "state", None), "correlation_id", None)
@@ -563,7 +635,13 @@ async def upload_book_cover(
     logger.info("Uploading cover for book_id=%s", book_id)
     get_use_case = di.get_get_book_use_case()
     try:
-        book = await get_use_case.execute(GetReq(book_id=book_id))
+        book = await get_use_case.execute(
+            GetReq(
+                book_id=book_id,
+                actor_user_id=actor.user_id,
+                enforce_owner_check=not _settings.allow_dev_library_owner_override,
+            )
+        )
     except BookNotFoundError as error:
         _emit_usecase_outcome(outcome="not_found", status_code=status.HTTP_404_NOT_FOUND, error=str(error))
         raise HTTPException(
@@ -677,6 +755,19 @@ async def upload_book_cover(
 
     _emit_usecase_outcome(outcome="success", status_code=status.HTTP_201_CREATED, media_id=getattr(media, "id", None))
 
+    # Chronicle: record stable fact for timeline/audit.
+    try:
+        chronicle = di.get_chronicle_recorder_service()
+        await chronicle.record_cover_changed(
+            book_id=book_id,
+            to_icon=getattr(updated_book, "cover_icon", None),
+            media_id=getattr(media, "id", None),
+            trigger="api.book.cover.upload",
+            actor_id=actor.user_id,
+        )
+    except Exception:  # pragma: no cover
+        logger.warning("Chronicle record_cover_changed failed for book %s", book_id, exc_info=True)
+
     return await _serialize_book_with_theme(updated_book, di)
 
 
@@ -693,6 +784,7 @@ async def upload_book_cover(
 async def delete_book(
     book_id: UUID,
     basement_bookshelf_id: UUID = Query(..., description="Basement bookshelf ID for soft delete"),
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """删除书籍（逻辑删除�?
@@ -716,7 +808,9 @@ async def delete_book(
         logger.info(f"Soft-deleting book: book_id={book_id} to basement_id={basement_bookshelf_id}")
         request = DeleteBookRequest(
             book_id=book_id,
-            basement_bookshelf_id=basement_bookshelf_id
+            basement_bookshelf_id=basement_bookshelf_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=not _settings.allow_dev_library_owner_override,
         )
         use_case = di.get_delete_book_use_case()
         await use_case.execute(request)
@@ -755,6 +849,7 @@ async def delete_book(
 async def move_book(
     book_id: UUID,
     request: MoveBookRequest,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """移动书籍到另一个书�?(RULE-011)
@@ -779,6 +874,8 @@ async def move_book(
     try:
         logger.info(f"Moving book: book_id={book_id} to bookshelf={request.target_bookshelf_id}")
         request.book_id = book_id
+        request.actor_user_id = actor.user_id
+        request.enforce_owner_check = not _settings.allow_dev_library_owner_override
         use_case = di.get_move_book_use_case()
         updated_book = await use_case.execute(request)
         logger.info(
@@ -827,6 +924,7 @@ async def move_book(
 async def restore_book(
     book_id: UUID,
     request: RestoreBookRequest,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """恢复已删除的书籍 (RULE-013)
@@ -850,6 +948,8 @@ async def restore_book(
     try:
         logger.info(f"Restoring book from Basement: book_id={book_id} to bookshelf={request.target_bookshelf_id}")
         request.book_id = book_id
+        request.actor_user_id = actor.user_id
+        request.enforce_owner_check = not _settings.allow_dev_library_owner_override
         use_case = di.get_restore_book_use_case()
         restored_book = await use_case.execute(request)
         logger.info("Book restored successfully: book_id=%s", book_id)
@@ -901,6 +1001,7 @@ async def list_deleted_books(
     library_id: Optional[UUID] = Query(None, description="Filter by library_id (permission context)"),
     skip: int = Query(0, ge=0, description="Pagination skip"),
     limit: int = Query(50, ge=1, le=100, description="Pagination limit"),
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """列出已删除的书籍 (RULE-012: Basement 视图)
@@ -927,7 +1028,9 @@ async def list_deleted_books(
             bookshelf_id=bookshelf_id,
             library_id=library_id,
             skip=skip,
-            limit=limit
+            limit=limit,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=not _settings.allow_dev_library_owner_override,
         )
         use_case = di.get_list_deleted_books_use_case()
         response = await use_case.execute(request)
@@ -966,6 +1069,7 @@ __all__ = ["router"]
 async def recalculate_book_maturity(
     book_id: UUID,
     payload: dict = Body(default={}),
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container),
 ):
     try:
@@ -979,6 +1083,7 @@ async def recalculate_book_maturity(
             operations_bonus=payload.get("operations_bonus"),
             cover_icon=payload.get("cover_icon"),
             trigger=str(payload.get("trigger") or "recalculate"),
+            actor_id=actor.user_id,
         )
 
         use_case = di.get_recalculate_book_maturity_use_case()
@@ -986,7 +1091,13 @@ async def recalculate_book_maturity(
 
         # Fetch updated book for a consistent response shape (same as GET /books/{id})
         get_use_case = di.get_get_book_use_case()
-        book = await get_use_case.execute(GetReq(book_id=book_id))
+        book = await get_use_case.execute(
+            GetReq(
+                book_id=book_id,
+                actor_user_id=actor.user_id,
+                enforce_owner_check=not _settings.allow_dev_library_owner_override,
+            )
+        )
         return await _serialize_book_with_theme(book, di)
 
     except DomainException as error:

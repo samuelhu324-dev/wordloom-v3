@@ -212,13 +212,13 @@ class LibraryUserAssociationError(LibraryException):
 
 
 class LibraryOperationError(LibraryException):
-    """
-    Raised when a generic Library operation fails.
+    """Raised when a generic Library operation fails.
 
     Used for unexpected operation failures that don't fit other specific exception types.
 
     HTTP Status: 500 Internal Server Error
     """
+
     code = "LIBRARY_OPERATION_ERROR"
     http_status = 500
 
@@ -242,6 +242,34 @@ class LibraryOperationError(LibraryException):
                 "library_id": str(library_id) if library_id else None,
                 "reason": reason,
             }
+        )
+
+
+class LibraryForbiddenError(LibraryException):
+    """Raised when actor is not allowed to access/modify the library.
+
+    HTTP Status: 403 Forbidden
+    """
+
+    code = "LIBRARY_FORBIDDEN"
+    http_status = 403
+
+    def __init__(
+        self,
+        *,
+        library_id: Optional[str] = None,
+        actor_user_id: Optional[str] = None,
+        reason: str = "Permission denied",
+    ):
+        super().__init__(
+            message=reason,
+            code=self.code,
+            http_status=self.http_status,
+            details={
+                "library_id": str(library_id) if library_id else None,
+                "actor_user_id": str(actor_user_id) if actor_user_id else None,
+                "reason": reason,
+            },
         )
 
 
