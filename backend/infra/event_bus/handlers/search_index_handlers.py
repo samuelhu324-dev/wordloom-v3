@@ -21,6 +21,7 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.app.modules.block.domain.events import BlockCreated, BlockUpdated, BlockDeleted
+from api.app.modules.book.domain.events import BookCreated, BookRenamed, BookDeleted
 from api.app.modules.tag.domain.events import TagCreated, TagRenamed, TagDeleted
 
 from infra.event_bus.event_handler_registry import EventHandlerRegistry
@@ -141,6 +142,29 @@ async def on_tag_deleted(event: TagDeleted, db: AsyncSession) -> None:
     await indexer.delete_tag(tag_id=event.tag_id)
 
 
+# ============================================================================
+# Book Event Handlers (3个)
+# ============================================================================
+
+
+@EventHandlerRegistry.register(BookCreated)
+async def on_book_created(event: BookCreated, db: AsyncSession) -> None:
+    indexer = get_search_indexer(db)
+    await indexer.index_book_created(event)
+
+
+@EventHandlerRegistry.register(BookRenamed)
+async def on_book_renamed(event: BookRenamed, db: AsyncSession) -> None:
+    indexer = get_search_indexer(db)
+    await indexer.index_book_renamed(event)
+
+
+@EventHandlerRegistry.register(BookDeleted)
+async def on_book_deleted(event: BookDeleted, db: AsyncSession) -> None:
+    indexer = get_search_indexer(db)
+    await indexer.delete_book(book_id=event.book_id)
+
+
 __all__ = [
     "on_block_created",
     "on_block_updated",
@@ -148,4 +172,7 @@ __all__ = [
     "on_tag_created",
     "on_tag_renamed",
     "on_tag_deleted",
+    "on_book_created",
+    "on_book_renamed",
+    "on_book_deleted",
 ]

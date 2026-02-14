@@ -15,6 +15,7 @@ from api.app.modules.book.domain.events import (
     BookDeleted,
     BookMovedToBasement,
     BookMovedToBookshelf,
+    BookRenamed,
     BookRestoredFromBasement,
 )
 from api.app.modules.chronicle.application.services import ChronicleRecorderService
@@ -53,6 +54,21 @@ async def chronicle_book_created(event: BookCreated) -> None:
             occurred_at=event.occurred_at,
         ),
         event_name="BookCreated",
+    )
+
+
+@EventHandlerRegistry.register(BookRenamed)
+async def chronicle_book_renamed(event: BookRenamed) -> None:
+    """将 BookRenamed 写入 chronicle_events 表。"""
+
+    await _record(
+        lambda service: service.record_book_renamed(
+            book_id=event.book_id,
+            from_title=event.old_title,
+            to_title=event.new_title,
+            occurred_at=event.occurred_at,
+        ),
+        event_name="BookRenamed",
     )
 
 
