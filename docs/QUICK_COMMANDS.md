@@ -20,12 +20,15 @@ cd /mnt/d/Project/wordloom-v3
 
 # 如果第一次跑提示 Permission denied：
 # chmod +x scripts/*.sh backend/scripts/*.sh
-
+z
 # dev（API:30001 / worker metrics:9108 / ES index: wordloom-dev-search-index）
 ./scripts/up.sh dev
 
 # test（API:30011 / worker metrics:9109 / ES index: wordloom-test-search-index）
 ./scripts/up.sh test
+
+# 只启动 API+UI（不启动 worker；用于先排查 ES/Jaeger/DB 等环境）
+./scripts/up.sh test --no-worker
 ```
 
 只拉起 app 进程（不动 infra/db）也可以：
@@ -75,7 +78,7 @@ cd /mnt/d/Project/wordloom-v3/backend
 
 export DATABASE_URL="postgresql://wordloom:wordloom@localhost:5435/wordloom_dev"
 export SEARCH_STAGE1_PROVIDER=elastic
-export ELASTIC_URL=http://localhost:9200
+export ELASTIC_URL=http://localhost:19200
 export ELASTIC_INDEX=wordloom-dev-search-index
 
 uvicorn api.app.main:app --host 0.0.0.0 --port 30001 --reload 2>&1 | tee server.log
@@ -87,20 +90,30 @@ uvicorn api.app.main:app --host 0.0.0.0 --port 30001 --reload 2>&1 | tee server.
 
 ```bash
 # dev
-./backend/scripts/run_worker.sh .env.dev
+./backend/scripts/ops/run_worker.sh .env.dev
 
 # test
-./backend/scripts/run_worker.sh .env.test
+./backend/scripts/ops/run_worker.sh .env.test
 ```
+
+常见报错速查（ES 明明在跑但 worker 仍报协议/断连类错误）：
+
+- 先用 curl 验证 ES 是 HTTP 还是 HTTPS：
+	- `curl -sv http://localhost:19200/ | head -n 20`
+	- 若你误用 `https://localhost:19200` 连接一个纯 HTTP 的 ES，会看到类似 `wrong version number`。
+- 确认 `ELASTIC_URL/ELASTIC_INDEX` 没有被设置成空字符串（空字符串会覆盖默认值）：
+	- `echo "ELASTIC_URL=$ELASTIC_URL"`
+	- `echo "ELASTIC_INDEX=$ELASTIC_INDEX"`
 
 ```bash
 cd /mnt/d/Project/wordloom-v3/backend
 source .venv_linux/bin/activate  # 如有
 
 export DATABASE_URL='postgresql+psycopg://wordloom:wordloom@localhost:5435/wordloom_dev'
-export ELASTIC_URL='http://localhost:9200'
+export ELASTIC_URL='http://localhost:19200'
 export ELASTIC_INDEX='wordloom-dev-search-index'
 
+# 兼容入口（稳定路径）：backend/scripts/search_outbox_worker.py
 python3 scripts/search_outbox_worker.py
 ```
 
@@ -234,7 +247,7 @@ curl -s http://localhost:9108/metrics | grep outbox_
 推荐（少手敲变量，且带防混库校验）：
 
 ```bash
-./backend/scripts/run_api.sh .env.test
+./backend/scripts/ops/run_api.sh .env.test
 ```
 
 ```bash
@@ -248,7 +261,7 @@ uvicorn api.app.main:app --host 0.0.0.0 --port 30011 --reload 2>&1 | tee server_
 ```bash
 cd /mnt/d/Project/wordloom-v3/backend
 export DATABASE_URL='postgresql+psycopg://wordloom:wordloom@localhost:5435/wordloom_test'
-export ELASTIC_URL='http://localhost:9200'
+export ELASTIC_URL='http://localhost:19200'
 export ELASTIC_INDEX='wordloom-test-search-index'
 export OUTBOX_METRICS_PORT=9109
 

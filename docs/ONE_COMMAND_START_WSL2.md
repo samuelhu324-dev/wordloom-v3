@@ -55,11 +55,11 @@ bash scripts/up.sh dev
 
 这个命令会按顺序完成：
 1) 起 ES（`docker-compose.infra.yml`）
-2) 起 dev/test DB（localhost:5435，使用 `backend/scripts/devtest_db_5435_start.ps1`）
+2) 起 dev/test DB（localhost:5435，使用 `backend/scripts/ops/devtest_db_5435_start.ps1`）
 3) migrate 对应数据库（dev→`wordloom_dev`，test→`wordloom_test`）
 4) 用 honcho 启动 app 层三进程（`Procfile.dev` / `Procfile.test`）：
-   - `api: bash ./backend/scripts/run_api.sh .env.(dev|test)`
-   - `worker_search: bash ./backend/scripts/run_worker.sh .env.(dev|test)`
+  - `api: bash ./backend/scripts/ops/run_api.sh .env.(dev|test)`
+  - `worker_search: bash ./backend/scripts/ops/run_worker.sh .env.(dev|test)`
    - `ui: cd frontend && npm run dev:(dev|test)`
 
 ---
@@ -69,7 +69,7 @@ bash scripts/up.sh dev
 - UI（Next）：http://localhost:30002
 - API（dev）：http://localhost:30001
 - API（test）：http://localhost:30011
-- ES：http://localhost:9200
+- ES：http://localhost:19200
 
 ---
 
@@ -157,8 +157,8 @@ rm -rf .next .next-dev .turbo
 ## 7) 后端虚拟环境（重要）
 
 `Procfile.dev/test` 会调用：
-- `backend/scripts/run_api.sh`
-- `backend/scripts/run_worker.sh`
+- `backend/scripts/ops/run_api.sh`
+- `backend/scripts/ops/run_worker.sh`
 
 这两个脚本会自动选择 Python 运行环境：
 - 若已在虚拟环境中（`VIRTUAL_ENV` 存在）→ 直接使用

@@ -20,14 +20,14 @@
 
 - dev/test 数据库：根目录 `docker-compose.devtest-db.yml`（host 端口 **5435**）
 - sandbox 全栈：根目录 `docker-compose.yml`（DB host 端口 **5434**，后端 **31001**，前端 **31002**）
-- Elasticsearch：现在推荐由 infra-only compose 统一管理：根目录 [../../../docker-compose.infra.yml](../../../docker-compose.infra.yml)（host 端口 **9200**）
+- Elasticsearch：现在推荐由 infra-only compose 统一管理：根目录 `docker-compose.infra.yml`（host 端口 **19200**）
 
 建议的端口约定（你已经在 QUICK_COMMANDS 里基本按这个在跑）：
 
 | 环境 | Postgres host 端口 | DB 名 | API 端口 | worker metrics 端口 | Elasticsearch |
 | --- | --- | --- | --- | --- | --- |
-| dev | 5435 | wordloom_dev | 30001 | 9108 | http://localhost:9200 |
-| test | 5435 | wordloom_test | 30011 | 9109 | http://localhost:9200 |
+| dev | 5435 | wordloom_dev | 30001 | 9108 | http://localhost:19200 |
+| test | 5435 | wordloom_test | 30011 | 9109 | http://localhost:19200 |
 | sandbox | 5434 | wordloom | 31001 | （不建议） | （未纳入） |
 
 > 说明：目前 dev/test 共用同一个 Postgres 容器，但用不同 DB 名隔离；如果你后续要进一步“物理隔离”，可以再拆成两个 compose/profile（见第 4 节计划）。
@@ -41,7 +41,7 @@
 - **PostgreSQL（devtest-db-5435）**
 	- 存储业务数据 + `search_index` + `search_outbox_events`。
 	- dev/test 推荐使用它；sandbox 自带的 DB 端口不同（5434）。
-- **Elasticsearch（9200）**
+- **Elasticsearch（19200）**
 	- two-stage 的 stage1 recall 以及 outbox worker 的投影目标。
 - **API（FastAPI/Uvicorn）**
 	- 负责写入（创建 blocks/tags 等）并产生 outbox。
@@ -74,7 +74,8 @@
 这里不把所有命令堆在一页（那会变成新的 QUICK_COMMANDS）。
 命令细节请参考：
 
-- [../docs_legacy/QUICK_COMMANDS.md](../docs_legacy/QUICK_COMMANDS.md)
+- [ONE_COMMAND_START_WSL2.md](ONE_COMMAND_START_WSL2.md)
+- [QUICK_COMMANDS.md](QUICK_COMMANDS.md)
 
 下面只给“最小闭环”的顺序与关键变量。
 
@@ -89,7 +90,7 @@
 
 检查：
 
-- `curl http://localhost:9200/_cluster/health?pretty` 返回 `green/yellow`
+- `curl http://localhost:19200/_cluster/health?pretty` 返回 `green/yellow`
 - Prometheus（可选）：`http://localhost:9090`
 - Grafana（可选，默认账号密码 admin/admin）：`http://localhost:3000`
 
@@ -97,7 +98,7 @@
 
 1）启动 Postgres（Windows PowerShell）
 
-- 推荐走脚本：`backend/scripts/devtest_db_5435_start.ps1`
+- 推荐走脚本：`backend/scripts/ops/devtest_db_5435_start.ps1`
 
 2）启动 Elasticsearch（Windows PowerShell）
 
@@ -112,7 +113,7 @@
 至少需要：
 
 - `DATABASE_URL`（指向 `wordloom_dev@5435`）
-- `ELASTIC_URL=http://localhost:9200`
+- `ELASTIC_URL=http://localhost:19200`
 - `ELASTIC_INDEX=wordloom-dev-search-index`
 
 4）启动 worker（WSL2 / bash，metrics 9108）
@@ -120,6 +121,10 @@
 - `DATABASE_URL` 同上
 - `ELASTIC_URL/ELASTIC_INDEX` 同上
 - `OUTBOX_METRICS_PORT=9108`
+
+推荐使用稳定入口（避免脚本搬家导致命令失效）：
+
+- `./backend/scripts/ops/run_worker.sh .env.dev`
 
 ### 3.2 test（测试库：wordloom_test@5435，造流/压测）
 
@@ -133,6 +138,11 @@
 
 - `DATABASE_URL` 同上
 - `OUTBOX_METRICS_PORT=9109`
+
+推荐使用稳定入口（避免脚本搬家导致命令失效）：
+
+- `./backend/scripts/ops/run_worker.sh .env.test`
+
 
 3）跑造流脚本（WSL2 / bash）
 
@@ -274,7 +284,7 @@ chmod +x scripts/*.sh backend/scripts/*.sh
 
 ## 5) 常见故障快速判断（节省时间）
 
-- ES `curl localhost:9200` 偶发 reset：通常是“容器已启动但还没 ready”，等到 `/_cluster/health` 有响应再继续。
+- ES `curl localhost:19200` 偶发 reset：通常是“容器已启动但还没 ready”，等到 `/_cluster/health` 有响应再继续。
 - worker 不动：先看 worker exporter 的 `outbox_lag_events`；再查 DB 的 `search_outbox_events processed_at is null`。
 - loadgen 超时：调大 `REQUEST_TIMEOUT_S`，并确认 `API_BASE` 指向正确端口（dev 30001 / test 30011）。
 
