@@ -20,18 +20,21 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        "environment_sentinel",
-        sa.Column("id", sa.Integer(), primary_key=True, nullable=False),
-        sa.Column("project", sa.Text(), nullable=False),
-        sa.Column("env", sa.Text(), nullable=False),
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            nullable=False,
-            server_default=sa.text("CURRENT_TIMESTAMP"),
-        ),
-    )
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if not inspector.has_table("environment_sentinel"):
+        op.create_table(
+            "environment_sentinel",
+            sa.Column("id", sa.Integer(), primary_key=True, nullable=False),
+            sa.Column("project", sa.Text(), nullable=False),
+            sa.Column("env", sa.Text(), nullable=False),
+            sa.Column(
+                "created_at",
+                sa.DateTime(timezone=True),
+                nullable=False,
+                server_default=sa.text("CURRENT_TIMESTAMP"),
+            ),
+        )
 
     # Insert a deterministic default based on current database name.
     # This makes the guard work even if you run migrations before inserting metadata manually.
@@ -50,4 +53,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_table("environment_sentinel")
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if inspector.has_table("environment_sentinel"):
+        op.drop_table("environment_sentinel")
