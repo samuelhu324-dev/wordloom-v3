@@ -1,0 +1,10 @@
+{
+  "worker1": {
+    "metrics_port": 19132,
+    "http_port": 19152
+  },
+  "worker2": {
+    "metrics_port": 19133,
+    "http_port": 19153
+  }
+}

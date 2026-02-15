@@ -1,0 +1,60 @@
+{
+  "data": [
+    {
+      "name": "POST",
+      "spanKind": "client"
+    },
+    {
+      "name": "SELECT wordloom_test",
+      "spanKind": "client"
+    },
+    {
+      "name": "UPDATE wordloom_test",
+      "spanKind": "client"
+    },
+    {
+      "name": "outbox_worker.loop",
+      "spanKind": "internal"
+    },
+    {
+      "name": "outbox.claim_batch",
+      "spanKind": "internal"
+    },
+    {
+      "name": "GET /metrics",
+      "spanKind": "server"
+    },
+    {
+      "name": "projection.process_batch",
+      "spanKind": "internal"
+    },
+    {
+      "name": "DELETE",
+      "spanKind": "client"
+    },
+    {
+      "name": "PUT",
+      "spanKind": "client"
+    },
+    {
+      "name": "connect",
+      "spanKind": "client"
+    },
+    {
+      "name": "select wordloom_test",
+      "spanKind": "client"
+    },
+    {
+      "name": "GET /metrics http send",
+      "spanKind": "internal"
+    },
+    {
+      "name": "outbox.process",
+      "spanKind": "internal"
+    }
+  ],
+  "total": 13,
+  "limit": 0,
+  "offset": 0,
+  "errors": null
+}

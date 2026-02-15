@@ -1,0 +1,23 @@
+{
+  "lab_id": "S3A-2A-3A",
+  "scenario": "es_429_inject",
+  "run_id": "smoke-es-429-inject-20260214T222547",
+  "created_at": "2026-02-14 22:25:47",
+  "env_file": ".env.test",
+  "service": "wordloom-search-outbox-worker",
+  "inject": {
+    "kind": "es_429",
+    "mode": "every_n",
+    "every_n": 1,
+    "ratio": 0.0,
+    "ops": "upsert",
+    "seed": 1
+  },
+  "worker": {
+    "duration_s": 12,
+    "metrics_port": 19142
+  },
+  "trigger": {
+    "op": "upsert"
+  }
+}

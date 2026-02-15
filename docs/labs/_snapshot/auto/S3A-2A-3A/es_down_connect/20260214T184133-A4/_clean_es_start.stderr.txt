@@ -1,0 +1,2 @@
+ Container wordloom-v3-es-1  Starting
+ Container wordloom-v3-es-1  Started

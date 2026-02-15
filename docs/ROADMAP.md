@@ -1,35 +1,58 @@
-# ROADMAP
+路线 B：把 Worker/Daemon 做到“抗坏 + 自愈”
+目标：不靠人盯着。
+stuck 处理：lease 过期 reclaim 的策略细化（阈值、最大处理时长、强制回收）
+retry 策略：429 backoff+jitter、5xx 有上限、4xx 直接 failed（你已理解，但可以产品化）
+死信/隔离：failed 进 DLQ（或者 failed 状态可检索 + 可重放）
+runbook：怎么排障、怎么降级、怎么 rebuild、怎么开关 feature flag
+这条路线让你“像生产系统那样思考”，非常值钱。
 
-## Current focus
-Chronicle：Phase C 收口（server_default + 去重/TTL 策略 + 投影 runbook 对齐）
+<!--1--> worker(last 30%) -> daemon 🚧
+  - phase 1: [self-care] stuck ✅
+    - reclaim strategy：claimed_at / max_processing_seconds -> add a cap
+    - ack guard 
+  - phase 2: retry ✅
+    - exponential backoff + jitter
+    - basic failure management before DLQ -> 429/5xx/4xx
+  - phase 3: [catalog] DLQ + replay 🚧
+    - failure management + human intervention(replay)
+./
+    <!--2--> chronicle projection 🚧
+             - phase 1: [stanch] envelope ✅
+               - new traceable payloads 
+             - phase 2: [healing] facts + event catalog ✅
+             - phase 3: [productisation] columns + indexes + dual-write 🚧
+               - payloads/semantic controls
+    ./
+        <!--3--> docs management ✅
+                 - phase 1: GitHub Issues + Projects ✅
+                   - issues/status
+                   - Epic/subissues
+    /.
+             - phase 4: [hardening] events governance + TTL/archive/parition 🚧
+               - dedupe events with high frequency and low value
+               - regular prune job
+/.
+  - phase 4: [operable] chains 🚧
+    - graceful termination/health check/Configuration/alarm threshold
+    - runbook + feature flag + rebuild
 
-## Done
-- Phase A：payload envelope 自动注入（correlation_id/source/actor_kind/…）
-- Phase B：关键 facts 补齐（block/tag/book/todo/view/open 等）
-- Phase C：envelope 升列 + 索引；server_default（暂不 NOT NULL）
-- 高频写入治理：block_updated 多实例一致去重（DB 级）
-- 前端修复：ChronicleTimelineList 缺失 icon import；global-tag-catalog queryFn 不返回 undefined
 
-## Now（最多 5 条）
-1. [Chronicle] Visit logs（book_viewed/book_opened）治理：DB 去重 + TTL/prune 策略落地 → [docs/chronicle/STATUS.md#v4](chronicle/STATUS.md#v4)
-2. [Chronicle] Timeline 稳定排序与分页：ORDER BY occurred_at DESC, created_at DESC, id DESC（runbook 对齐）→ [docs/chronicle/STATUS.md#timeline-order](chronicle/STATUS.md#timeline-order)
-3. [Chronicle] payload/index control 观测：提供“单 book 最近事件”统计 SQL + 指标口径 → [docs/chronicle/STATUS.md#payload-index-control](chronicle/STATUS.md#payload-index-control)
-4. [Chronicle] Projection runbook（Labs-005）与当前实现保持一致并能复现 → [docs/chronicle/STATUS.md#runbook](chronicle/STATUS.md#runbook)
-5. [Chronicle] ADR 补齐：envelope 升列、DB 去重窗口、visit TTL → [docs/chronicle/STATUS.md#adr](chronicle/STATUS.md#adr)
 
-## Next（最多 10 条）
-- [Chronicle] 将 visit logs 默认从主 Timeline 隐藏（仅“Show visit logs”展示）→ [docs/chronicle/STATUS.md#v4](chronicle/STATUS.md#v4)
-- [Chronicle] 增加“写入路径覆盖率”观测（新列空值率趋势、按 source/actor_kind 分布）→ [docs/chronicle/STATUS.md#observability](chronicle/STATUS.md#observability)
-- [Chronicle] 规划是否需要表分区（仅当写入量已证明不可控）→ [docs/chronicle/STATUS.md#partitioning](chronicle/STATUS.md#partitioning)
-- [Chronicle] 统一命名：event_type 枚举 & Event Catalog 更新节奏 → [docs/chronicle/STATUS.md#catalog](chronicle/STATUS.md#catalog)
-- [Chronicle] 历史数据 backfill 策略整理（只补可证明事实）→ [docs/chronicle/STATUS.md#backfill](chronicle/STATUS.md#backfill)
+路线 A：把 Projection 体系抽象成“可复制框架”
+目标：以后新增投影不再是手工堆代码，而是填配置/复制模板。
+统一 event schema（事件名、版本、payload、scope key）
+统一 consumer 模板（claim/lease/ack、retry 分类、metrics、日志字段）
+统一 rebuild 模板（启动/耗时/成功/失败/幂等）
+这条路线会让你从“做出一个 search 投影”升级成“我拥有投影平台”。
 
-## Blocked / Risks（最多 5 条）
-- 历史数据字段缺失：NOT NULL 暂缓；避免伪精确回填
-- 高频事件索引过多会拖慢写入：谨慎加索引，优先治理事件量
-- 多入口写入（api/worker/cron/backfill）覆盖不全会导致数据语义不一致
 
-## Links
-- Chronicle Event Catalog：[docs/architecture/modules/chronicle-projection.md](architecture/modules/chronicle-projection.md)
-- Labs-005 runbook：[docs/architecture/runbook/labs/labs-005-chronicle-projection-chronicle-events-to-entries.md](architecture/runbook/labs/labs-005-chronicle-projection-chronicle-events-to-entries.md)
-- logs/others：[docs/logs/others/](logs/others/)
+
+
+路线 C：安全/多租户/审计做成“统一骨架”
+你已经从 Library→Bookshelf→Book 做 owner check 了，这是对的。
+下一步架构化，而不是继续手搓：
+Actor 模型（user_id、library_id、roles、request_id）
+Policy/Authorization 层（规则集中表达，避免散落 if-else）
+审计日志（谁在什么时候对什么资源做了什么）
+数据备份/脱敏策略（产品化时必经之路）
+这条路线会把 Wordloom 从“个人项目”推向“可公开服务”的形态。

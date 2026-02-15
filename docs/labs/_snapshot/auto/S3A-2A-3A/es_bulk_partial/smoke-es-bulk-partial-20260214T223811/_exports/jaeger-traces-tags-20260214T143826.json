@@ -1,0 +1,3971 @@
+{
+  "data": [
+    {
+      "traceID": "d3d2b8d1fba3476763205c006c0ed04e",
+      "spans": [
+        {
+          "traceID": "d3d2b8d1fba3476763205c006c0ed04e",
+          "spanID": "0985d712498641f6",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "d3d2b8d1fba3476763205c006c0ed04e",
+              "spanID": "7894464423ce464a"
+            }
+          ],
+          "startTime": 1771079168053952,
+          "duration": 535,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at <= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "d3d2b8d1fba3476763205c006c0ed04e",
+          "spanID": "7894464423ce464a",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1771079168053720,
+          "duration": 984,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "450f9593-d23f-4cad-8f6d-3b493cc492af"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:8864"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "16a78c43ae28aea983e4cbbafb94cb64",
+      "spans": [
+        {
+          "traceID": "16a78c43ae28aea983e4cbbafb94cb64",
+          "spanID": "0804f8537a204c06",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "16a78c43ae28aea983e4cbbafb94cb64",
+              "spanID": "9ce292cce2ead3b3"
+            }
+          ],
+          "startTime": 1771079169068041,
+          "duration": 534,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at <= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "16a78c43ae28aea983e4cbbafb94cb64",
+          "spanID": "9ce292cce2ead3b3",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1771079169067802,
+          "duration": 990,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "533ef2ef-ebc0-44ec-ab6d-3fcb90a4660b"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:8864"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "4f913a4b15d0974c12fac9e17c6a1323",
+      "spans": [
+        {
+          "traceID": "4f913a4b15d0974c12fac9e17c6a1323",
+          "spanID": "109fa20b0ac33cc4",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1771079170084001,
+          "duration": 1174,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "6ad82b19-d977-47ec-8188-416e65a515ba"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:8864"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "4f913a4b15d0974c12fac9e17c6a1323",
+          "spanID": "85306bea81e27ef6",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "4f913a4b15d0974c12fac9e17c6a1323",
+              "spanID": "109fa20b0ac33cc4"
+            }
+          ],
+          "startTime": 1771079170084303,
+          "duration": 639,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at <= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "02ac1218b18482b1403f98ee3db6e6b6",
+      "spans": [
+        {
+          "traceID": "02ac1218b18482b1403f98ee3db6e6b6",
+          "spanID": "c32f7888dbc1359f",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1771079171099290,
+          "duration": 1187,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "fd33eb21-212f-4cb9-80e9-fbb354e82829"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:8864"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "02ac1218b18482b1403f98ee3db6e6b6",
+          "spanID": "cb4eb710e1852bdd",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "02ac1218b18482b1403f98ee3db6e6b6",
+              "spanID": "c32f7888dbc1359f"
+            }
+          ],
+          "startTime": 1771079171099643,
+          "duration": 612,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at <= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "05ab10ea7339d17bd26ec062cabeb731",
+      "spans": [
+        {
+          "traceID": "05ab10ea7339d17bd26ec062cabeb731",
+          "spanID": "ae667dbe02aa7d90",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1771079172120402,
+          "duration": 6610,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 1
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "37d43149-cfa1-406d-ba15-f1cd6c328c07"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:8864"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "05ab10ea7339d17bd26ec062cabeb731",
+          "spanID": "a9efb59f7ef7197c",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "05ab10ea7339d17bd26ec062cabeb731",
+              "spanID": "ae667dbe02aa7d90"
+            }
+          ],
+          "startTime": 1771079172120645,
+          "duration": 517,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at <= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "05ab10ea7339d17bd26ec062cabeb731",
+          "spanID": "3f46f030734f2d69",
+          "operationName": "UPDATE wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "05ab10ea7339d17bd26ec062cabeb731",
+              "spanID": "ae667dbe02aa7d90"
+            }
+          ],
+          "startTime": 1771079172121573,
+          "duration": 468,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "UPDATE search_outbox_events SET status=%(status)s::VARCHAR, owner=%(owner)s::VARCHAR, lease_until=%(lease_until)s::TIMESTAMP WITH TIME ZONE, updated_at=%(updated_at)s::TIMESTAMP WITH TIME ZONE, processing_started_at=%(processing_started_at)s::TIMESTAMP WITH TIME ZONE, error_reason=%(error_reason)s::VARCHAR, error=%(error)s::VARCHAR WHERE search_outbox_events.id IN (%(id_1_1)s::UUID)"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "dc1312d390cebb4bef7584d2c33a3ba0",
+      "spans": [
+        {
+          "traceID": "dc1312d390cebb4bef7584d2c33a3ba0",
+          "spanID": "c182b9fc957c9cca",
+          "operationName": "outbox.process",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "dc1312d390cebb4bef7584d2c33a3ba0",
+              "spanID": "7da46121e480a0d0"
+            }
+          ],
+          "startTime": 1771079172127222,
+          "duration": 270552,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "37d43149-cfa1-406d-ba15-f1cd6c328c07"
+            },
+            {
+              "key": "wordloom.entity_id",
+              "type": "string",
+              "value": "ec95371c-90bd-4ff8-9643-d6dd998676b6"
+            },
+            {
+              "key": "wordloom.entity_type",
+              "type": "string",
+              "value": "book"
+            },
+            {
+              "key": "wordloom.es_index",
+              "type": "string",
+              "value": "wordloom-test-search-index"
+            },
+            {
+              "key": "wordloom.labs.es_429.every_n",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "wordloom.labs.es_429.mode",
+              "type": "string",
+              "value": "disabled"
+            },
+            {
+              "key": "wordloom.labs.es_429.ratio",
+              "type": "float64",
+              "value": 0
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.outbox_attempts",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "wordloom.outbox_event_id",
+              "type": "string",
+              "value": "f0938244-fb2a-4196-8fa4-42051e976a7a"
+            },
+            {
+              "key": "wordloom.outbox_event_version",
+              "type": "int64",
+              "value": 1771079171097162
+            },
+            {
+              "key": "wordloom.outbox_op",
+              "type": "string",
+              "value": "upsert"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker_id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:8864"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "dc1312d390cebb4bef7584d2c33a3ba0",
+          "spanID": "7da46121e480a0d0",
+          "operationName": "projection.process_batch",
+          "references": [],
+          "startTime": 1771079172127152,
+          "duration": 270775,
+          "tags": [
+            {
+              "key": "attempt",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 1
+            },
+            {
+              "key": "entity_type",
+              "type": "string",
+              "value": "book"
+            },
+            {
+              "key": "error",
+              "type": "bool",
+              "value": true
+            },
+            {
+              "key": "failed_count",
+              "type": "int64",
+              "value": 1
+            },
+            {
+              "key": "ok_count",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "op",
+              "type": "string",
+              "value": "upsert"
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "otel.status_code",
+              "type": "string",
+              "value": "ERROR"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "reason",
+              "type": "string",
+              "value": "es_4xx"
+            },
+            {
+              "key": "result",
+              "type": "string",
+              "value": "failed"
+            },
+            {
+              "key": "retry_count",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "37d43149-cfa1-406d-ba15-f1cd6c328c07"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker_id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:8864"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "dc1312d390cebb4bef7584d2c33a3ba0",
+          "spanID": "5e37658b854be71e",
+          "operationName": "connect",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "dc1312d390cebb4bef7584d2c33a3ba0",
+              "spanID": "c182b9fc957c9cca"
+            }
+          ],
+          "startTime": 1771079172127370,
+          "duration": 437,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "dc1312d390cebb4bef7584d2c33a3ba0",
+          "spanID": "ed5720de5dcacbb4",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "dc1312d390cebb4bef7584d2c33a3ba0",
+              "spanID": "c182b9fc957c9cca"
+            }
+          ],
+          "startTime": 1771079172127911,
+          "duration": 987,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.id = %(id_1)s::UUID"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "dc1312d390cebb4bef7584d2c33a3ba0",
+          "spanID": "fbf3fc57a07059d0",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "dc1312d390cebb4bef7584d2c33a3ba0",
+              "spanID": "c182b9fc957c9cca"
+            }
+          ],
+          "startTime": 1771079172129269,
+          "duration": 763,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_index.id, search_index.entity_type, search_index.library_id, search_index.entity_id, search_index.text, search_index.snippet, search_index.rank_score, search_index.created_at, search_index.updated_at, search_index.event_version \nFROM search_index \nWHERE search_index.entity_type = %(entity_type_1)s::VARCHAR AND search_index.entity_id = %(entity_id_1)s::UUID"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "dc1312d390cebb4bef7584d2c33a3ba0",
+          "spanID": "381d7d694c04f94c",
+          "operationName": "UPDATE wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "dc1312d390cebb4bef7584d2c33a3ba0",
+              "spanID": "c182b9fc957c9cca"
+            }
+          ],
+          "startTime": 1771079172395327,
+          "duration": 997,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "UPDATE search_outbox_events SET status=%(status)s::VARCHAR, owner=%(owner)s::VARCHAR, lease_until=%(lease_until)s::TIMESTAMP WITH TIME ZONE, attempts=%(attempts)s::INTEGER, next_retry_at=%(next_retry_at)s::TIMESTAMP WITH TIME ZONE, updated_at=%(updated_at)s::TIMESTAMP WITH TIME ZONE, processing_started_at=%(processing_started_at)s::TIMESTAMP WITH TIME ZONE, error_reason=%(error_reason)s::VARCHAR, error=%(error)s::VARCHAR WHERE search_outbox_events.id = %(id_1)s::UUID AND search_outbox_events.owner = %(owner_1)s::VARCHAR AND search_outbox_events.status = %(status_1)s::VARCHAR AND search_outbox_events.lease_until > %(lease_until_1)s::TIMESTAMP WITH TIME ZONE"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "dc1312d390cebb4bef7584d2c33a3ba0",
+          "spanID": "e56962eb15dc8b0c",
+          "operationName": "PUT",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "dc1312d390cebb4bef7584d2c33a3ba0",
+              "spanID": "c182b9fc957c9cca"
+            }
+          ],
+          "startTime": 1771079172130505,
+          "duration": 261158,
+          "tags": [
+            {
+              "key": "error",
+              "type": "bool",
+              "value": true
+            },
+            {
+              "key": "http.method",
+              "type": "string",
+              "value": "PUT"
+            },
+            {
+              "key": "http.status_code",
+              "type": "int64",
+              "value": 403
+            },
+            {
+              "key": "http.url",
+              "type": "string",
+              "value": "http://localhost:19200/wordloom-test-search-index/_doc/book:ec95371c-90bd-4ff8-9643-d6dd998676b6"
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.httpx"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "otel.status_code",
+              "type": "string",
+              "value": "ERROR"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "a3b3ede33a3bd557ef23c7dc8653ce35",
+      "spans": [
+        {
+          "traceID": "a3b3ede33a3bd557ef23c7dc8653ce35",
+          "spanID": "08a8551b299daa0a",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1771079172403489,
+          "duration": 1485,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "b5310db8-a696-4dee-bd73-45bef047266f"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:8864"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "a3b3ede33a3bd557ef23c7dc8653ce35",
+          "spanID": "854c8dd905b614f4",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "a3b3ede33a3bd557ef23c7dc8653ce35",
+              "spanID": "08a8551b299daa0a"
+            }
+          ],
+          "startTime": 1771079172403813,
+          "duration": 822,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at <= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "dcfc78a825a1f9749e1569b01a932f09",
+      "spans": [
+        {
+          "traceID": "dcfc78a825a1f9749e1569b01a932f09",
+          "spanID": "3e009aaa963d0042",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1771079173415564,
+          "duration": 1116,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "a6dec296-3f19-4fb6-82d2-a25d857d8d9a"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:8864"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "dcfc78a825a1f9749e1569b01a932f09",
+          "spanID": "ba276d20c64e4e61",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "dcfc78a825a1f9749e1569b01a932f09",
+              "spanID": "3e009aaa963d0042"
+            }
+          ],
+          "startTime": 1771079173415831,
+          "duration": 586,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at <= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "92273abcbb8f35a7bdb783753d0c4e02",
+      "spans": [
+        {
+          "traceID": "92273abcbb8f35a7bdb783753d0c4e02",
+          "spanID": "a5739bd90d1a2631",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1771079174439207,
+          "duration": 2295,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "4add1ed9-2680-4841-8bba-1c280b8d9b5f"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:8864"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "92273abcbb8f35a7bdb783753d0c4e02",
+          "spanID": "ab393cdc60d192d8",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "92273abcbb8f35a7bdb783753d0c4e02",
+              "spanID": "a5739bd90d1a2631"
+            }
+          ],
+          "startTime": 1771079174439646,
+          "duration": 1175,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at <= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "d6f7f2e3f12d9344619ed6f2a8052c28",
+      "spans": [
+        {
+          "traceID": "d6f7f2e3f12d9344619ed6f2a8052c28",
+          "spanID": "da64721eb4471d78",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1771079175463239,
+          "duration": 1962,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "42efc808-ce8a-48e5-a49e-39364f03bb2e"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:8864"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "d6f7f2e3f12d9344619ed6f2a8052c28",
+          "spanID": "104d57f271c6beee",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "d6f7f2e3f12d9344619ed6f2a8052c28",
+              "spanID": "da64721eb4471d78"
+            }
+          ],
+          "startTime": 1771079175463823,
+          "duration": 1046,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at <= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "7846eeec217da107a25f6c4d00708e85",
+      "spans": [
+        {
+          "traceID": "7846eeec217da107a25f6c4d00708e85",
+          "spanID": "9f9f99836676a309",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "7846eeec217da107a25f6c4d00708e85",
+              "spanID": "49ee094743821d40"
+            }
+          ],
+          "startTime": 1771079184449326,
+          "duration": 2158,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at <= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "7846eeec217da107a25f6c4d00708e85",
+          "spanID": "49ee094743821d40",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1771079184448178,
+          "duration": 3736,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 10
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "4804a15e-7ccc-4dbf-8324-0a475b32a213"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:22344"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "5042223de1252a934c83efdb6bdab810",
+      "spans": [
+        {
+          "traceID": "5042223de1252a934c83efdb6bdab810",
+          "spanID": "11d5c3b811cfd78c",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1771079189487060,
+          "duration": 7151,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 10
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 2
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "7912c61e-6f0f-45e1-bbf1-058054fd7550"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:22344"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "5042223de1252a934c83efdb6bdab810",
+          "spanID": "07e412e517a9aa0f",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "5042223de1252a934c83efdb6bdab810",
+              "spanID": "11d5c3b811cfd78c"
+            }
+          ],
+          "startTime": 1771079189487309,
+          "duration": 548,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at <= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "5042223de1252a934c83efdb6bdab810",
+          "spanID": "bee71d83a3eda22c",
+          "operationName": "UPDATE wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "5042223de1252a934c83efdb6bdab810",
+              "spanID": "11d5c3b811cfd78c"
+            }
+          ],
+          "startTime": 1771079189488576,
+          "duration": 733,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "UPDATE search_outbox_events SET status=%(status)s::VARCHAR, owner=%(owner)s::VARCHAR, lease_until=%(lease_until)s::TIMESTAMP WITH TIME ZONE, updated_at=%(updated_at)s::TIMESTAMP WITH TIME ZONE, processing_started_at=%(processing_started_at)s::TIMESTAMP WITH TIME ZONE, error_reason=%(error_reason)s::VARCHAR, error=%(error)s::VARCHAR WHERE search_outbox_events.id IN (%(id_1_1)s::UUID, %(id_1_2)s::UUID)"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "fa1c6efaec73163670ce8cdfde56f3c9",
+      "spans": [
+        {
+          "traceID": "fa1c6efaec73163670ce8cdfde56f3c9",
+          "spanID": "918b376e609f80df",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "fa1c6efaec73163670ce8cdfde56f3c9",
+              "spanID": "a3c61d9522420e07"
+            }
+          ],
+          "startTime": 1771079189497282,
+          "duration": 472,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_index.id, search_index.entity_type, search_index.library_id, search_index.entity_id, search_index.text, search_index.snippet, search_index.rank_score, search_index.created_at, search_index.updated_at, search_index.event_version \nFROM search_index \nWHERE search_index.entity_type = %(entity_type_1)s::VARCHAR AND search_index.entity_id = %(entity_id_1)s::UUID"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "fa1c6efaec73163670ce8cdfde56f3c9",
+          "spanID": "a3c61d9522420e07",
+          "operationName": "projection.process_batch",
+          "references": [],
+          "startTime": 1771079189494380,
+          "duration": 3834,
+          "tags": [
+            {
+              "key": "attempt",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 2
+            },
+            {
+              "key": "bulk_ops",
+              "type": "int64",
+              "value": 2
+            },
+            {
+              "key": "entity_type",
+              "type": "string",
+              "value": "book"
+            },
+            {
+              "key": "mode",
+              "type": "string",
+              "value": "es_bulk_prepare"
+            },
+            {
+              "key": "op",
+              "type": "string",
+              "value": "upsert"
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "result",
+              "type": "string",
+              "value": "prepared"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "7912c61e-6f0f-45e1-bbf1-058054fd7550"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker_id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:22344"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "fa1c6efaec73163670ce8cdfde56f3c9",
+          "spanID": "c836a14ee2f65556",
+          "operationName": "connect",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "fa1c6efaec73163670ce8cdfde56f3c9",
+              "spanID": "a3c61d9522420e07"
+            }
+          ],
+          "startTime": 1771079189494640,
+          "duration": 413,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "fa1c6efaec73163670ce8cdfde56f3c9",
+          "spanID": "354b15502e3aec62",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "fa1c6efaec73163670ce8cdfde56f3c9",
+              "spanID": "a3c61d9522420e07"
+            }
+          ],
+          "startTime": 1771079189495679,
+          "duration": 1259,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_index.id, search_index.entity_type, search_index.library_id, search_index.entity_id, search_index.text, search_index.snippet, search_index.rank_score, search_index.created_at, search_index.updated_at, search_index.event_version \nFROM search_index \nWHERE search_index.entity_type = %(entity_type_1)s::VARCHAR AND search_index.entity_id = %(entity_id_1)s::UUID"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "314ca031946ecdd559792f6e0c745581",
+      "spans": [
+        {
+          "traceID": "314ca031946ecdd559792f6e0c745581",
+          "spanID": "1b69f60af3c06aef",
+          "operationName": "projection.process_batch",
+          "references": [],
+          "startTime": 1771079189502069,
+          "duration": 285493,
+          "tags": [
+            {
+              "key": "attempt",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 2
+            },
+            {
+              "key": "entity_type",
+              "type": "string",
+              "value": "book"
+            },
+            {
+              "key": "mode",
+              "type": "string",
+              "value": "es_bulk"
+            },
+            {
+              "key": "op",
+              "type": "string",
+              "value": "upsert"
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "result",
+              "type": "string",
+              "value": "ok"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "7912c61e-6f0f-45e1-bbf1-058054fd7550"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker_id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:22344"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "314ca031946ecdd559792f6e0c745581",
+          "spanID": "fc75f3c700d9cf70",
+          "operationName": "POST",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "314ca031946ecdd559792f6e0c745581",
+              "spanID": "1b69f60af3c06aef"
+            }
+          ],
+          "startTime": 1771079189502347,
+          "duration": 283535,
+          "tags": [
+            {
+              "key": "http.method",
+              "type": "string",
+              "value": "POST"
+            },
+            {
+              "key": "http.status_code",
+              "type": "int64",
+              "value": 200
+            },
+            {
+              "key": "http.url",
+              "type": "string",
+              "value": "http://localhost:19200/_bulk"
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.httpx"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "1591a3dd32fe960777a5949166130597",
+      "spans": [
+        {
+          "traceID": "1591a3dd32fe960777a5949166130597",
+          "spanID": "b77cacfad0fe84f1",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1771079189798620,
+          "duration": 888,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 10
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "517a0d0e-537e-4663-86b0-8f5f6a3f5ebe"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:22344"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "1591a3dd32fe960777a5949166130597",
+          "spanID": "2ee5eb32897a0728",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "1591a3dd32fe960777a5949166130597",
+              "spanID": "b77cacfad0fe84f1"
+            }
+          ],
+          "startTime": 1771079189798868,
+          "duration": 535,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at <= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "6e1d590e2c06aa9be15d6fb567dff282",
+      "spans": [
+        {
+          "traceID": "6e1d590e2c06aa9be15d6fb567dff282",
+          "spanID": "2d47f4b844fa5d20",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "6e1d590e2c06aa9be15d6fb567dff282",
+              "spanID": "83c6c89187341654"
+            }
+          ],
+          "startTime": 1771079892998360,
+          "duration": 1826,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at <= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "6e1d590e2c06aa9be15d6fb567dff282",
+          "spanID": "83c6c89187341654",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1771079892997032,
+          "duration": 3384,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 10
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "f1f8dcc0-35f3-4893-9b4d-9d3f9ffe3e46"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:11284"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "9e5c251f1da6370da9b59477bd215161",
+      "spans": [
+        {
+          "traceID": "9e5c251f1da6370da9b59477bd215161",
+          "spanID": "6652971f28095605",
+          "operationName": "UPDATE wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "9e5c251f1da6370da9b59477bd215161",
+              "spanID": "c5ec562fd63d5104"
+            }
+          ],
+          "startTime": 1771079898028110,
+          "duration": 1111,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "UPDATE search_outbox_events SET status=%(status)s::VARCHAR, owner=%(owner)s::VARCHAR, lease_until=%(lease_until)s::TIMESTAMP WITH TIME ZONE, updated_at=%(updated_at)s::TIMESTAMP WITH TIME ZONE, processing_started_at=%(processing_started_at)s::TIMESTAMP WITH TIME ZONE, error_reason=%(error_reason)s::VARCHAR, error=%(error)s::VARCHAR WHERE search_outbox_events.id IN (%(id_1_1)s::UUID, %(id_1_2)s::UUID)"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "9e5c251f1da6370da9b59477bd215161",
+          "spanID": "c5ec562fd63d5104",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1771079898026249,
+          "duration": 5065,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 10
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 2
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "bcdec279-4ffe-4f25-97ba-c77421f2183e"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:11284"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "9e5c251f1da6370da9b59477bd215161",
+          "spanID": "01c7227475422666",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "9e5c251f1da6370da9b59477bd215161",
+              "spanID": "c5ec562fd63d5104"
+            }
+          ],
+          "startTime": 1771079898026572,
+          "duration": 655,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at <= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "940ca6032b05d43ca463c22e24cd1355",
+      "spans": [
+        {
+          "traceID": "940ca6032b05d43ca463c22e24cd1355",
+          "spanID": "b5f89b137dd50921",
+          "operationName": "projection.process_batch",
+          "references": [],
+          "startTime": 1771079898031488,
+          "duration": 5655,
+          "tags": [
+            {
+              "key": "attempt",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 2
+            },
+            {
+              "key": "bulk_ops",
+              "type": "int64",
+              "value": 2
+            },
+            {
+              "key": "entity_type",
+              "type": "string",
+              "value": "book"
+            },
+            {
+              "key": "mode",
+              "type": "string",
+              "value": "es_bulk_prepare"
+            },
+            {
+              "key": "op",
+              "type": "string",
+              "value": "upsert"
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "result",
+              "type": "string",
+              "value": "prepared"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "bcdec279-4ffe-4f25-97ba-c77421f2183e"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker_id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:11284"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "940ca6032b05d43ca463c22e24cd1355",
+          "spanID": "53f332003827349c",
+          "operationName": "connect",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "940ca6032b05d43ca463c22e24cd1355",
+              "spanID": "b5f89b137dd50921"
+            }
+          ],
+          "startTime": 1771079898031781,
+          "duration": 498,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "940ca6032b05d43ca463c22e24cd1355",
+          "spanID": "f9b0b0bbc10e1018",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "940ca6032b05d43ca463c22e24cd1355",
+              "spanID": "b5f89b137dd50921"
+            }
+          ],
+          "startTime": 1771079898033064,
+          "duration": 1851,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_index.id, search_index.entity_type, search_index.library_id, search_index.entity_id, search_index.text, search_index.snippet, search_index.rank_score, search_index.created_at, search_index.updated_at, search_index.event_version \nFROM search_index \nWHERE search_index.entity_type = %(entity_type_1)s::VARCHAR AND search_index.entity_id = %(entity_id_1)s::UUID"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "940ca6032b05d43ca463c22e24cd1355",
+          "spanID": "5901fb8a66f5db33",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "940ca6032b05d43ca463c22e24cd1355",
+              "spanID": "b5f89b137dd50921"
+            }
+          ],
+          "startTime": 1771079898035426,
+          "duration": 618,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_index.id, search_index.entity_type, search_index.library_id, search_index.entity_id, search_index.text, search_index.snippet, search_index.rank_score, search_index.created_at, search_index.updated_at, search_index.event_version \nFROM search_index \nWHERE search_index.entity_type = %(entity_type_1)s::VARCHAR AND search_index.entity_id = %(entity_id_1)s::UUID"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "05525f7d7df3b0ec82e79ceb2019b44d",
+      "spans": [
+        {
+          "traceID": "05525f7d7df3b0ec82e79ceb2019b44d",
+          "spanID": "76563d870f7774a1",
+          "operationName": "projection.process_batch",
+          "references": [],
+          "startTime": 1771079898041154,
+          "duration": 284688,
+          "tags": [
+            {
+              "key": "attempt",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 2
+            },
+            {
+              "key": "entity_type",
+              "type": "string",
+              "value": "book"
+            },
+            {
+              "key": "mode",
+              "type": "string",
+              "value": "es_bulk"
+            },
+            {
+              "key": "op",
+              "type": "string",
+              "value": "upsert"
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "result",
+              "type": "string",
+              "value": "ok"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "bcdec279-4ffe-4f25-97ba-c77421f2183e"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker_id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:11284"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "05525f7d7df3b0ec82e79ceb2019b44d",
+          "spanID": "d386bb22039ad5d7",
+          "operationName": "POST",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "05525f7d7df3b0ec82e79ceb2019b44d",
+              "spanID": "76563d870f7774a1"
+            }
+          ],
+          "startTime": 1771079898041449,
+          "duration": 282499,
+          "tags": [
+            {
+              "key": "http.method",
+              "type": "string",
+              "value": "POST"
+            },
+            {
+              "key": "http.status_code",
+              "type": "int64",
+              "value": 200
+            },
+            {
+              "key": "http.url",
+              "type": "string",
+              "value": "http://localhost:19200/_bulk"
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.httpx"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "608767c57989bbdae66482d7768ed1e8",
+      "spans": [
+        {
+          "traceID": "608767c57989bbdae66482d7768ed1e8",
+          "spanID": "b27b418c02bc99d6",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1771079898343829,
+          "duration": 1358,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 10
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "f796b6c5-91c3-4fb5-bee8-d167432ffd5f"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:11284"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "608767c57989bbdae66482d7768ed1e8",
+          "spanID": "68e6d61e9fa7c7ac",
+          "operationName": "SELECT wordloom_test",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "608767c57989bbdae66482d7768ed1e8",
+              "spanID": "b27b418c02bc99d6"
+            }
+          ],
+          "startTime": 1771079898344231,
+          "duration": 822,
+          "tags": [
+            {
+              "key": "db.name",
+              "type": "string",
+              "value": "wordloom_test"
+            },
+            {
+              "key": "db.statement",
+              "type": "string",
+              "value": "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at <= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "postgresql"
+            },
+            {
+              "key": "db.user",
+              "type": "string",
+              "value": "wordloom"
+            },
+            {
+              "key": "net.peer.name",
+              "type": "string",
+              "value": "localhost"
+            },
+            {
+              "key": "net.peer.port",
+              "type": "int64",
+              "value": 5435
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opentelemetry.instrumentation.sqlalchemy"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.60b1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    }
+  ],
+  "total": 0,
+  "limit": 0,
+  "offset": 0,
+  "errors": null
+}

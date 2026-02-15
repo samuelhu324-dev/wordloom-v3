@@ -1,0 +1,30 @@
+{
+  "scenario": "duplicate_delivery",
+  "run_dir": "D:\\Project\\wordloom-v3\\docs\\labs\\_snapshot\\auto\\S3A-2A-3A\\duplicate_delivery\\smoke-duplicate-delivery-20260214T224157",
+  "checks": {
+    "min_processed_delta": 3.0,
+    "max_failed_delta": 0.0,
+    "min_noop_delta": 1.0,
+    "min_noop_logs": 1
+  },
+  "observed": {
+    "metrics_available": true,
+    "outbox_processed_total": {
+      "before": 0.0,
+      "after": 3.0,
+      "delta": 3.0
+    },
+    "outbox_failed_total": {
+      "before": 0.0,
+      "after": 0.0,
+      "delta": 0.0
+    },
+    "outbox_idempotent_noop_total": {
+      "before": 0.0,
+      "after": 1.0,
+      "delta": 1.0
+    },
+    "noop_log_count": 0
+  },
+  "ok": true
+}

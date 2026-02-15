@@ -1,0 +1,1578 @@
+{
+  "data": [
+    {
+      "traceID": "71131181a04471682aedc01363e202f6",
+      "spans": [
+        {
+          "traceID": "71131181a04471682aedc01363e202f6",
+          "spanID": "eb3f87775c1e3dbe",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1770641404543518,
+          "duration": 1758,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "45b7d8a9-c698-4894-a62a-c8bbb93244dc"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "f9d5f22fb862532b9fb4adece6d24596",
+      "spans": [
+        {
+          "traceID": "f9d5f22fb862532b9fb4adece6d24596",
+          "spanID": "9ba9071267e78b84",
+          "operationName": "outbox_worker.loop",
+          "references": [],
+          "startTime": 1770641405547084,
+          "duration": 24,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "16807163e0a2339b0cfe9f4c2ce8621c",
+      "spans": [
+        {
+          "traceID": "16807163e0a2339b0cfe9f4c2ce8621c",
+          "spanID": "76ff0b7d5a813b65",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1770641405555402,
+          "duration": 1264,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "c10a68f4-fee4-4bcf-95b5-43facf897651"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "3478a9ca99f307fcae0a31fc5fd0f3a3",
+      "spans": [
+        {
+          "traceID": "3478a9ca99f307fcae0a31fc5fd0f3a3",
+          "spanID": "a9f0542f4bfd303c",
+          "operationName": "outbox_worker.loop",
+          "references": [],
+          "startTime": 1770641406558399,
+          "duration": 46,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "6e4ba09e7ecc9615655880a00db77678",
+      "spans": [
+        {
+          "traceID": "6e4ba09e7ecc9615655880a00db77678",
+          "spanID": "7bc11331896ba197",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1770641406575500,
+          "duration": 1379,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "71d67d99-6620-458f-b022-c7df1a334471"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "ea2051c0919ed64b414ee394c03005ea",
+      "spans": [
+        {
+          "traceID": "ea2051c0919ed64b414ee394c03005ea",
+          "spanID": "72d75c6e989d4c56",
+          "operationName": "outbox_worker.loop",
+          "references": [],
+          "startTime": 1770641407578791,
+          "duration": 30,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "5a9a04ea2e4a635af658f4378aafab11",
+      "spans": [
+        {
+          "traceID": "5a9a04ea2e4a635af658f4378aafab11",
+          "spanID": "55136f04e6fffaac",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1770641407585637,
+          "duration": 949,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "953fcc0f-8a23-4d97-acad-a50d593fa62d"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "b7f8c00803ce62a34594c7ea722ac92f",
+      "spans": [
+        {
+          "traceID": "b7f8c00803ce62a34594c7ea722ac92f",
+          "spanID": "896ac28204ce07f4",
+          "operationName": "outbox_worker.loop",
+          "references": [],
+          "startTime": 1770641408588202,
+          "duration": 26,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "0de4cd5b3c17f46f988b4b846855f0f4",
+      "spans": [
+        {
+          "traceID": "0de4cd5b3c17f46f988b4b846855f0f4",
+          "spanID": "234c88f0e3edf6db",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1770641408594816,
+          "duration": 956,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "7b5848de-bab4-4ce9-92bf-1f3baed5a6b9"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "9252dc3b08f5fa06972f373a3dbaf13e",
+      "spans": [
+        {
+          "traceID": "9252dc3b08f5fa06972f373a3dbaf13e",
+          "spanID": "e743a7e5e0f6e044",
+          "operationName": "outbox_worker.loop",
+          "references": [],
+          "startTime": 1770641409596853,
+          "duration": 28,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "632bd16cdad0a40832104e9d2f7d94e4",
+      "spans": [
+        {
+          "traceID": "632bd16cdad0a40832104e9d2f7d94e4",
+          "spanID": "8b761611ba36ea32",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1770641409603747,
+          "duration": 846,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "a43faa32-b4b9-4fbd-bf6e-622b50dd399d"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "2153a0cc1597f9c46155b8dbd3a83e46",
+      "spans": [
+        {
+          "traceID": "2153a0cc1597f9c46155b8dbd3a83e46",
+          "spanID": "8b2383b85ad44b4f",
+          "operationName": "outbox_worker.loop",
+          "references": [],
+          "startTime": 1770641410606868,
+          "duration": 24,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "a4d73017a83018c5ee8835040d56e21b",
+      "spans": [
+        {
+          "traceID": "a4d73017a83018c5ee8835040d56e21b",
+          "spanID": "14b5e7ca63c2e4a0",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1770641410615014,
+          "duration": 992,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "996334eb-73bf-4eed-81ba-82b05d323096"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "0656156f452e7ab34b25f7495728dda3",
+      "spans": [
+        {
+          "traceID": "0656156f452e7ab34b25f7495728dda3",
+          "spanID": "81d9170a645e52ed",
+          "operationName": "outbox_worker.loop",
+          "references": [],
+          "startTime": 1770641411617653,
+          "duration": 24,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "8d20eddaa07b9f4c0a6576fc6a16cfed",
+      "spans": [
+        {
+          "traceID": "8d20eddaa07b9f4c0a6576fc6a16cfed",
+          "spanID": "e9106cf5330acdc4",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1770641411633430,
+          "duration": 803,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "ee5fcb56-75ed-4918-9a50-8a7021683570"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "3093fb8ba01b9420af794edddcc78ea3",
+      "spans": [
+        {
+          "traceID": "3093fb8ba01b9420af794edddcc78ea3",
+          "spanID": "a21c22c77d5adbd5",
+          "operationName": "outbox_worker.loop",
+          "references": [],
+          "startTime": 1770641412636484,
+          "duration": 28,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "d9098465cc360b896ae9670b8669dd40",
+      "spans": [
+        {
+          "traceID": "d9098465cc360b896ae9670b8669dd40",
+          "spanID": "7143aa882255468b",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1770641412643965,
+          "duration": 884,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "824bde02-fda3-41ce-bf55-c31440fb9900"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "7ff6cc252095fdd5eebdb2c4dd054175",
+      "spans": [
+        {
+          "traceID": "7ff6cc252095fdd5eebdb2c4dd054175",
+          "spanID": "ba1d2bd1fdf9a949",
+          "operationName": "outbox_worker.loop",
+          "references": [],
+          "startTime": 1770641413646512,
+          "duration": 31,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "beedf1d4a658c6d1bd3af061f183997b",
+      "spans": [
+        {
+          "traceID": "beedf1d4a658c6d1bd3af061f183997b",
+          "spanID": "94c63b8deca24c8c",
+          "operationName": "outbox.claim_batch",
+          "references": [],
+          "startTime": 1770641413653236,
+          "duration": 826,
+          "tags": [
+            {
+              "key": "batch_size",
+              "type": "int64",
+              "value": 100
+            },
+            {
+              "key": "claim_mode",
+              "type": "string",
+              "value": "atomic"
+            },
+            {
+              "key": "claimed",
+              "type": "int64",
+              "value": 0
+            },
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.claim_batch_id",
+              "type": "string",
+              "value": "cb2855fa-f46b-476b-a9a2-df8fb02839a9"
+            },
+            {
+              "key": "wordloom.obs_schema",
+              "type": "string",
+              "value": "labs-009-v2"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    },
+    {
+      "traceID": "666f5a4368462acd977f21bb068ed550",
+      "spans": [
+        {
+          "traceID": "666f5a4368462acd977f21bb068ed550",
+          "spanID": "57e26b1a4a102ed0",
+          "operationName": "outbox_worker.loop",
+          "references": [],
+          "startTime": 1770641414656573,
+          "duration": 34,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "wordloom.search_outbox_worker"
+            },
+            {
+              "key": "projection",
+              "type": "string",
+              "value": "search"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "internal"
+            },
+            {
+              "key": "wordloom.projection",
+              "type": "string",
+              "value": "search_index_to_elastic"
+            },
+            {
+              "key": "wordloom.worker.id",
+              "type": "string",
+              "value": "DESKTOP-8ITAL7O:2921"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "wordloom-search-outbox-worker",
+          "tags": [
+            {
+              "key": "telemetry.sdk.language",
+              "type": "string",
+              "value": "python"
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "type": "string",
+              "value": "opentelemetry"
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "type": "string",
+              "value": "1.39.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    }
+  ],
+  "total": 0,
+  "limit": 0,
+  "offset": 0,
+  "errors": null
+}

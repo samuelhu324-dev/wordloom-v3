@@ -1,0 +1,23 @@
+{
+  "lab_id": "S3A-2A-3A",
+  "scenario": "es_bulk_partial",
+  "run_id": "smoke-es-bulk-partial-20260214T222622",
+  "created_at": "2026-02-14 22:26:23",
+  "env_file": ".env.test",
+  "service": "wordloom-search-outbox-worker",
+  "inject": {
+    "kind": "es_bulk_partial",
+    "enabled": true,
+    "status": 400
+  },
+  "worker": {
+    "duration_s": 12,
+    "metrics_port": 19144,
+    "use_es_bulk": true,
+    "bulk_size": 10
+  },
+  "trigger": {
+    "op": "upsert",
+    "count": 2
+  }
+}

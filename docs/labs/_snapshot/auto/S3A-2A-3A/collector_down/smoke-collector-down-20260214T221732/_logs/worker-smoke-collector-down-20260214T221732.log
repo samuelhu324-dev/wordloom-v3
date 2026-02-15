@@ -1,0 +1,6 @@
+D:\Project\wordloom-v3\backend\scripts\legacy\search_outbox_worker.py:52: DeprecationWarning: 'asyncio.WindowsSelectorEventLoopPolicy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+D:\Project\wordloom-v3\backend\scripts\legacy\search_outbox_worker.py:52: DeprecationWarning: 'asyncio.set_event_loop_policy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+[OK] Database: postgresql+psycopg://wordloom:wordloom@localhost:5435/wordloom_test
+{"ts": "2026-02-14T14:17:35.726826+00:00", "level": "WARNING", "logger": "infra.observability.tracing", "event": "tracing.exporter_unreachable", "enabled": true, "otlp_protocol": "http/protobuf", "otlp_target": "http://localhost:4318/v1/traces", "hint": "Start Jaeger/OTel Collector or unset WORDLOOM_TRACING_ENABLED.", "message": "tracing.exporter_unreachable", "taskName": null}

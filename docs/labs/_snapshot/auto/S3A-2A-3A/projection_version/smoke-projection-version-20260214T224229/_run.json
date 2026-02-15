@@ -1,0 +1,25 @@
+{
+  "scenario": "projection_version",
+  "run_id": "smoke-projection-version-20260214T224229",
+  "chronicle_event_id": "d844ea1c-4c05-4460-bb7c-0e58a5152403",
+  "outbox_event_ids": {
+    "v1": "1a6c9f32-594e-4b5f-9c52-5ecffcc56941",
+    "v2": "558122b8-e3ab-426d-961d-d8e6f7241759"
+  },
+  "worker_logs": {
+    "v1": "docs\\labs\\_snapshot\\auto\\S3A-2A-3A\\projection_version\\smoke-projection-version-20260214T224229\\_logs\\worker-v1-smoke-projection-version-20260214T224229.log",
+    "v2": "docs\\labs\\_snapshot\\auto\\S3A-2A-3A\\projection_version\\smoke-projection-version-20260214T224229\\_logs\\worker-v2-smoke-projection-version-20260214T224229.log"
+  },
+  "probe": {
+    "v1": {
+      "chronicle_event_id": "d844ea1c-4c05-4460-bb7c-0e58a5152403",
+      "found": true,
+      "projection_version": 1
+    },
+    "v2": {
+      "chronicle_event_id": "d844ea1c-4c05-4460-bb7c-0e58a5152403",
+      "found": true,
+      "projection_version": 2
+    }
+  }
+}

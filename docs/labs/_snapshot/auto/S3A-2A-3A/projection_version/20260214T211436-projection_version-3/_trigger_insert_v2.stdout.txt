@@ -1,0 +1,1 @@
+{"chronicle_event_id": "362c6d56-e2e7-4b19-a807-be615c14141b", "outbox_event_id": "0f14ee04-4d18-4596-a4a6-053b9f697d03", "library_id": null, "bookshelf_id": null, "book_id": null, "event_type": "labs-009.projection_version", "op": "upsert", "event_version": 1771075425136908}

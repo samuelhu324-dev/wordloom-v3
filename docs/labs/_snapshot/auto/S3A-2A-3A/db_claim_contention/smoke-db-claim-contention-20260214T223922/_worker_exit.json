@@ -1,0 +1,8 @@
+{
+  "worker1": {
+    "returncode": 1
+  },
+  "worker2": {
+    "returncode": 1
+  }
+}

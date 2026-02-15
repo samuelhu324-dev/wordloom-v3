@@ -1,0 +1,136 @@
+# HELP python_gc_objects_collected_total Objects collected during gc
+# TYPE python_gc_objects_collected_total counter
+python_gc_objects_collected_total{generation="0"} 0.0
+python_gc_objects_collected_total{generation="1"} 430.0
+python_gc_objects_collected_total{generation="2"} 0.0
+# HELP python_gc_objects_uncollectable_total Uncollectable objects found during GC
+# TYPE python_gc_objects_uncollectable_total counter
+python_gc_objects_uncollectable_total{generation="0"} 0.0
+python_gc_objects_uncollectable_total{generation="1"} 0.0
+python_gc_objects_uncollectable_total{generation="2"} 0.0
+# HELP python_gc_collections_total Number of times this generation was collected
+# TYPE python_gc_collections_total counter
+python_gc_collections_total{generation="0"} 0.0
+python_gc_collections_total{generation="1"} 110.0
+python_gc_collections_total{generation="2"} 0.0
+# HELP python_info Python platform information
+# TYPE python_info gauge
+python_info{implementation="CPython",major="3",minor="14",patchlevel="0",version="3.14.0"} 1.0
+# HELP outbox_produced_total Total number of outbox rows successfully enqueued.
+# TYPE outbox_produced_total counter
+# HELP outbox_processed_total Total number of outbox rows successfully processed by the projection worker.
+# TYPE outbox_processed_total counter
+outbox_processed_total{op="upsert",projection="search_index_to_elastic"} 0.0
+outbox_processed_total{op="delete",projection="search_index_to_elastic"} 0.0
+# HELP outbox_processed_created Total number of outbox rows successfully processed by the projection worker.
+# TYPE outbox_processed_created gauge
+outbox_processed_created{op="upsert",projection="search_index_to_elastic"} 1.7710658963592799e+09
+outbox_processed_created{op="delete",projection="search_index_to_elastic"} 1.7710658963593016e+09
+# HELP outbox_failed_total Total number of outbox rows that failed processing in the projection worker.
+# TYPE outbox_failed_total counter
+outbox_failed_total{op="upsert",projection="search_index_to_elastic",reason="none"} 0.0
+outbox_failed_total{op="delete",projection="search_index_to_elastic",reason="none"} 0.0
+outbox_failed_total{op="upsert",projection="search_index_to_elastic",reason="es_429"} 1.0
+# HELP outbox_failed_created Total number of outbox rows that failed processing in the projection worker.
+# TYPE outbox_failed_created gauge
+outbox_failed_created{op="upsert",projection="search_index_to_elastic",reason="none"} 1.7710658963593204e+09
+outbox_failed_created{op="delete",projection="search_index_to_elastic",reason="none"} 1.7710658963593264e+09
+outbox_failed_created{op="upsert",projection="search_index_to_elastic",reason="es_429"} 1.7710658969731405e+09
+# HELP outbox_retry_scheduled_total Total number of outbox rows that were scheduled for retry (pending + next_retry_at set).
+# TYPE outbox_retry_scheduled_total counter
+outbox_retry_scheduled_total{op="upsert",projection="search_index_to_elastic",reason="none"} 0.0
+outbox_retry_scheduled_total{op="delete",projection="search_index_to_elastic",reason="none"} 0.0
+outbox_retry_scheduled_total{op="upsert",projection="search_index_to_elastic",reason="es_429"} 1.0
+# HELP outbox_retry_scheduled_created Total number of outbox rows that were scheduled for retry (pending + next_retry_at set).
+# TYPE outbox_retry_scheduled_created gauge
+outbox_retry_scheduled_created{op="upsert",projection="search_index_to_elastic",reason="none"} 1.7710658963593328e+09
+outbox_retry_scheduled_created{op="delete",projection="search_index_to_elastic",reason="none"} 1.771065896359338e+09
+outbox_retry_scheduled_created{op="upsert",projection="search_index_to_elastic",reason="es_429"} 1.7710658969731524e+09
+# HELP outbox_idempotent_noop_total Total number of outbox operations that were a safe no-op (idempotent), e.g. delete on a missing doc.
+# TYPE outbox_idempotent_noop_total counter
+outbox_idempotent_noop_total{op="delete",projection="search_index_to_elastic",reason="es_404"} 0.0
+# HELP outbox_idempotent_noop_created Total number of outbox operations that were a safe no-op (idempotent), e.g. delete on a missing doc.
+# TYPE outbox_idempotent_noop_created gauge
+outbox_idempotent_noop_created{op="delete",projection="search_index_to_elastic",reason="es_404"} 1.7710658963593125e+09
+# HELP outbox_terminal_failed_total Total number of outbox rows that transitioned into terminal failed state.
+# TYPE outbox_terminal_failed_total counter
+outbox_terminal_failed_total{op="upsert",projection="search_index_to_elastic",reason="none"} 0.0
+outbox_terminal_failed_total{op="delete",projection="search_index_to_elastic",reason="none"} 0.0
+# HELP outbox_terminal_failed_created Total number of outbox rows that transitioned into terminal failed state.
+# TYPE outbox_terminal_failed_created gauge
+outbox_terminal_failed_created{op="upsert",projection="search_index_to_elastic",reason="none"} 1.7710658963593435e+09
+outbox_terminal_failed_created{op="delete",projection="search_index_to_elastic",reason="none"} 1.7710658963593483e+09
+# HELP outbox_lag_events Current number of unprocessed outbox rows.
+# TYPE outbox_lag_events gauge
+outbox_lag_events{projection="search_index_to_elastic"} 9.0
+# HELP outbox_oldest_age_seconds Age of the oldest unprocessed outbox row (seconds).
+# TYPE outbox_oldest_age_seconds gauge
+outbox_oldest_age_seconds{projection="search_index_to_elastic"} 526344.888396
+# HELP outbox_inflight_events Current number of outbox rows in processing state (leased by some worker).
+# TYPE outbox_inflight_events gauge
+outbox_inflight_events{projection="search_index_to_elastic"} 0.0
+# HELP outbox_stuck_processing_events Current number of outbox rows in processing state that appear stuck (expired lease or exceeded max processing time).
+# TYPE outbox_stuck_processing_events gauge
+outbox_stuck_processing_events{projection="search_index_to_elastic"} 0.0
+# HELP outbox_last_success_timestamp_seconds Unix timestamp (seconds) of the last successfully processed outbox row.
+# TYPE outbox_last_success_timestamp_seconds gauge
+outbox_last_success_timestamp_seconds{projection="search_index_to_elastic"} 0.0
+# HELP projection_rebuild_duration_seconds Duration of the last rebuild run (seconds).
+# TYPE projection_rebuild_duration_seconds gauge
+projection_rebuild_duration_seconds{projection="search_index_to_elastic"} 0.0
+# HELP projection_rebuild_last_finished_timestamp_seconds Unix timestamp (seconds) when the last rebuild finished.
+# TYPE projection_rebuild_last_finished_timestamp_seconds gauge
+projection_rebuild_last_finished_timestamp_seconds{projection="search_index_to_elastic"} 0.0
+# HELP projection_rebuild_last_success Whether the last rebuild run succeeded (1) or failed (0).
+# TYPE projection_rebuild_last_success gauge
+projection_rebuild_last_success{projection="search_index_to_elastic"} 0.0
+# HELP outbox_es_bulk_requests_total Total number of Elasticsearch bulk requests made by the outbox worker.
+# TYPE outbox_es_bulk_requests_total counter
+outbox_es_bulk_requests_total{projection="search_index_to_elastic",result="success"} 0.0
+outbox_es_bulk_requests_total{projection="search_index_to_elastic",result="partial"} 0.0
+outbox_es_bulk_requests_total{projection="search_index_to_elastic",result="failed"} 0.0
+# HELP outbox_es_bulk_requests_created Total number of Elasticsearch bulk requests made by the outbox worker.
+# TYPE outbox_es_bulk_requests_created gauge
+outbox_es_bulk_requests_created{projection="search_index_to_elastic",result="success"} 1.7710658963594286e+09
+outbox_es_bulk_requests_created{projection="search_index_to_elastic",result="partial"} 1.77106589635944e+09
+outbox_es_bulk_requests_created{projection="search_index_to_elastic",result="failed"} 1.7710658963594506e+09
+# HELP outbox_es_bulk_items_total Total number of outbox items attempted via Elasticsearch bulk requests.
+# TYPE outbox_es_bulk_items_total counter
+outbox_es_bulk_items_total{op="index",projection="search_index_to_elastic",result="success"} 0.0
+outbox_es_bulk_items_total{op="index",projection="search_index_to_elastic",result="failed"} 0.0
+outbox_es_bulk_items_total{op="delete",projection="search_index_to_elastic",result="success"} 0.0
+outbox_es_bulk_items_total{op="delete",projection="search_index_to_elastic",result="failed"} 0.0
+# HELP outbox_es_bulk_items_created Total number of outbox items attempted via Elasticsearch bulk requests.
+# TYPE outbox_es_bulk_items_created gauge
+outbox_es_bulk_items_created{op="index",projection="search_index_to_elastic",result="success"} 1.7710658963594584e+09
+outbox_es_bulk_items_created{op="index",projection="search_index_to_elastic",result="failed"} 1.7710658963594644e+09
+outbox_es_bulk_items_created{op="delete",projection="search_index_to_elastic",result="success"} 1.7710658963594694e+09
+outbox_es_bulk_items_created{op="delete",projection="search_index_to_elastic",result="failed"} 1.771065896359474e+09
+# HELP outbox_es_bulk_item_failures_total Total number of failed Elasticsearch bulk items, bucketed by coarse failure class.
+# TYPE outbox_es_bulk_item_failures_total counter
+outbox_es_bulk_item_failures_total{failure_class="429",op="index",projection="search_index_to_elastic"} 0.0
+outbox_es_bulk_item_failures_total{failure_class="429",op="delete",projection="search_index_to_elastic"} 0.0
+outbox_es_bulk_item_failures_total{failure_class="4xx",op="index",projection="search_index_to_elastic"} 0.0
+outbox_es_bulk_item_failures_total{failure_class="4xx",op="delete",projection="search_index_to_elastic"} 0.0
+outbox_es_bulk_item_failures_total{failure_class="5xx",op="index",projection="search_index_to_elastic"} 0.0
+outbox_es_bulk_item_failures_total{failure_class="5xx",op="delete",projection="search_index_to_elastic"} 0.0
+outbox_es_bulk_item_failures_total{failure_class="unknown",op="index",projection="search_index_to_elastic"} 0.0
+outbox_es_bulk_item_failures_total{failure_class="unknown",op="delete",projection="search_index_to_elastic"} 0.0
+outbox_es_bulk_item_failures_total{failure_class="other",op="index",projection="search_index_to_elastic"} 0.0
+outbox_es_bulk_item_failures_total{failure_class="other",op="delete",projection="search_index_to_elastic"} 0.0
+# HELP outbox_es_bulk_item_failures_created Total number of failed Elasticsearch bulk items, bucketed by coarse failure class.
+# TYPE outbox_es_bulk_item_failures_created gauge
+outbox_es_bulk_item_failures_created{failure_class="429",op="index",projection="search_index_to_elastic"} 1.77106589635948e+09
+outbox_es_bulk_item_failures_created{failure_class="429",op="delete",projection="search_index_to_elastic"} 1.7710658963594842e+09
+outbox_es_bulk_item_failures_created{failure_class="4xx",op="index",projection="search_index_to_elastic"} 1.7710658963594892e+09
+outbox_es_bulk_item_failures_created{failure_class="4xx",op="delete",projection="search_index_to_elastic"} 1.7710658963594935e+09
+outbox_es_bulk_item_failures_created{failure_class="5xx",op="index",projection="search_index_to_elastic"} 1.7710658963594978e+09
+outbox_es_bulk_item_failures_created{failure_class="5xx",op="delete",projection="search_index_to_elastic"} 1.7710658963595018e+09
+outbox_es_bulk_item_failures_created{failure_class="unknown",op="index",projection="search_index_to_elastic"} 1.7710658963595064e+09
+outbox_es_bulk_item_failures_created{failure_class="unknown",op="delete",projection="search_index_to_elastic"} 1.7710658963595111e+09
+outbox_es_bulk_item_failures_created{failure_class="other",op="index",projection="search_index_to_elastic"} 1.7710658963595152e+09
+outbox_es_bulk_item_failures_created{failure_class="other",op="delete",projection="search_index_to_elastic"} 1.771065896359519e+09
+# HELP outbox_es_bulk_request_duration_seconds Duration of Elasticsearch bulk requests (seconds).
+# TYPE outbox_es_bulk_request_duration_seconds histogram
+# HELP outbox_owner_mismatch_skips_total Count of outbox events skipped because owner != this worker (race / lost claim)
+# TYPE outbox_owner_mismatch_skips_total counter

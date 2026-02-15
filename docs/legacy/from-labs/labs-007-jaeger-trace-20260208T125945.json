@@ -1,0 +1,137 @@
+﻿{
+    "data":  [
+                 {
+                     "traceID":  "078ced2c400989a565752b2f186f9ec6",
+                     "spans":  [
+                                   {
+                                       "traceID":  "078ced2c400989a565752b2f186f9ec6",
+                                       "spanID":  "3271cd64087c172b",
+                                       "operationName":  "connect",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770526474547220,
+                                       "duration":  11873,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "error",
+                                                        "type":  "bool",
+                                                        "value":  true
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "otel.status_code",
+                                                        "type":  "string",
+                                                        "value":  "ERROR"
+                                                    },
+                                                    {
+                                                        "key":  "otel.status_description",
+                                                        "type":  "string",
+                                                        "value":  "InterfaceError: (psycopg.InterfaceError) Psycopg cannot use the \u0027ProactorEventLoop\u0027 to run in async mode. Please use a compatible event loop, for instance by running \u0027asyncio.run(..., loop_factory=asyncio.SelectorEventLoop(selectors.SelectSelector()))\u0027\n(Background on this error at: https://sqlalche.me/e/20/rvf5)"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+                                                    {
+                                                        "timestamp":  1770526474559069,
+                                                        "fields":  [
+                                                                       {
+                                                                           "key":  "event",
+                                                                           "type":  "string",
+                                                                           "value":  "exception"
+                                                                       },
+                                                                       {
+                                                                           "key":  "exception.escaped",
+                                                                           "type":  "string",
+                                                                           "value":  "False"
+                                                                       },
+                                                                       {
+                                                                           "key":  "exception.message",
+                                                                           "type":  "string",
+                                                                           "value":  "(psycopg.InterfaceError) Psycopg cannot use the \u0027ProactorEventLoop\u0027 to run in async mode. Please use a compatible event loop, for instance by running \u0027asyncio.run(..., loop_factory=asyncio.SelectorEventLoop(selectors.SelectSelector()))\u0027\n(Background on this error at: https://sqlalche.me/e/20/rvf5)"
+                                                                       },
+                                                                       {
+                                                                           "key":  "exception.stacktrace",
+                                                                           "type":  "string",
+                                                                           "value":  "Traceback (most recent call last):\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\engine\\base.py\", line 143, in __init__\n    self._dbapi_connection = engine.raw_connection()\n                             ~~~~~~~~~~~~~~~~~~~~~^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\engine\\base.py\", line 3309, in raw_connection\n    return self.pool.connect()\n           ~~~~~~~~~~~~~~~~~^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\base.py\", line 447, in connect\n    return _ConnectionFairy._checkout(self)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\base.py\", line 1264, in _checkout\n    fairy = _ConnectionRecord.checkout(pool)\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\base.py\", line 711, in checkout\n    rec = pool._do_get()\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\impl.py\", line 177, in _do_get\n    with util.safe_reraise():\n         ~~~~~~~~~~~~~~~~~^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\util\\langhelpers.py\", line 224, in __exit__\n    raise exc_value.with_traceback(exc_tb)\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\impl.py\", line 175, in _do_get\n    return self._create_connection()\n           ~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\base.py\", line 388, in _create_connection\n    return _ConnectionRecord(self)\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\base.py\", line 673, in __init__\n    self.__connect()\n    ~~~~~~~~~~~~~~^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\base.py\", line 899, in __connect\n    with util.safe_reraise():\n         ~~~~~~~~~~~~~~~~~^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\util\\langhelpers.py\", line 224, in __exit__\n    raise exc_value.with_traceback(exc_tb)\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\base.py\", line 895, in __connect\n    self.dbapi_connection = connection = pool._invoke_creator(self)\n                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\engine\\create.py\", line 661, in connect\n    return dialect.connect(*cargs, **cparams)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\engine\\default.py\", line 630, in connect\n    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501\n           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\dialects\\postgresql\\psycopg.py\", line 812, in connect\n    await_only(creator_fn(*arg, **kw))\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\util\\_concurrency_py3k.py\", line 132, in await_only\n    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501\n           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\util\\_concurrency_py3k.py\", line 196, in greenlet_spawn\n    value = await result\n            ^^^^^^^^^^^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\psycopg\\connection_async.py\", line 107, in connect\n    raise e.InterfaceError(\n    ...\u003c3 lines\u003e...\n    )\npsycopg.InterfaceError: Psycopg cannot use the \u0027ProactorEventLoop\u0027 to run in async mode. Please use a compatible event loop, for instance by running \u0027asyncio.run(..., loop_factory=asyncio.SelectorEventLoop(selectors.SelectSelector()))\u0027\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\opentelemetry\\trace\\__init__.py\", line 589, in use_span\n    yield span\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\opentelemetry\\sdk\\trace\\__init__.py\", line 1105, in start_as_current_span\n    yield span\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\opentelemetry\\instrumentation\\sqlalchemy\\engine.py\", line 120, in _wrap_connect_internal\n    return func(*args, **kwargs)\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\engine\\base.py\", line 3285, in connect\n    return self._connection_cls(self)\n           ~~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\engine\\base.py\", line 145, in __init__\n    Connection._handle_dbapi_exception_noconnection(\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        err, dialect, engine\n        ^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\engine\\base.py\", line 2448, in _handle_dbapi_exception_noconnection\n    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\engine\\base.py\", line 143, in __init__\n    self._dbapi_connection = engine.raw_connection()\n                             ~~~~~~~~~~~~~~~~~~~~~^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\engine\\base.py\", line 3309, in raw_connection\n    return self.pool.connect()\n           ~~~~~~~~~~~~~~~~~^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\base.py\", line 447, in connect\n    return _ConnectionFairy._checkout(self)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\base.py\", line 1264, in _checkout\n    fairy = _ConnectionRecord.checkout(pool)\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\base.py\", line 711, in checkout\n    rec = pool._do_get()\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\impl.py\", line 177, in _do_get\n    with util.safe_reraise():\n         ~~~~~~~~~~~~~~~~~^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\util\\langhelpers.py\", line 224, in __exit__\n    raise exc_value.with_traceback(exc_tb)\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\impl.py\", line 175, in _do_get\n    return self._create_connection()\n           ~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\base.py\", line 388, in _create_connection\n    return _ConnectionRecord(self)\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\base.py\", line 673, in __init__\n    self.__connect()\n    ~~~~~~~~~~~~~~^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\base.py\", line 899, in __connect\n    with util.safe_reraise():\n         ~~~~~~~~~~~~~~~~~^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\util\\langhelpers.py\", line 224, in __exit__\n    raise exc_value.with_traceback(exc_tb)\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\pool\\base.py\", line 895, in __connect\n    self.dbapi_connection = connection = pool._invoke_creator(self)\n                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\engine\\create.py\", line 661, in connect\n    return dialect.connect(*cargs, **cparams)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\engine\\default.py\", line 630, in connect\n    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501\n           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\dialects\\postgresql\\psycopg.py\", line 812, in connect\n    await_only(creator_fn(*arg, **kw))\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\util\\_concurrency_py3k.py\", line 132, in await_only\n    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501\n           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\sqlalchemy\\util\\_concurrency_py3k.py\", line 196, in greenlet_spawn\n    value = await result\n            ^^^^^^^^^^^^\n  File \"D:\\Project\\wordloom-v3\\.venv\\Lib\\site-packages\\psycopg\\connection_async.py\", line 107, in connect\n    raise e.InterfaceError(\n    ...\u003c3 lines\u003e...\n    )\nsqlalchemy.exc.InterfaceError: (psycopg.InterfaceError) Psycopg cannot use the \u0027ProactorEventLoop\u0027 to run in async mode. Please use a compatible event loop, for instance by running \u0027asyncio.run(..., loop_factory=asyncio.SelectorEventLoop(selectors.SelectSelector()))\u0027\n(Background on this error at: https://sqlalche.me/e/20/rvf5)\n"
+                                                                       },
+                                                                       {
+                                                                           "key":  "exception.type",
+                                                                           "type":  "string",
+                                                                           "value":  "sqlalchemy.exc.InterfaceError"
+                                                                       }
+                                                                   ]
+                                                    }
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-api",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 }
+             ],
+    "total":  0,
+    "limit":  0,
+    "offset":  0,
+    "errors":  null
+}

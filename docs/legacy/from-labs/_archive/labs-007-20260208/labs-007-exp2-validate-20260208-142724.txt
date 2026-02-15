@@ -1,0 +1,9 @@
+traceID=ff694bd603b249173b4e83eaa7c6d561
+span_count=1
+--- outbox_worker.loop
+MISSING
+--- outbox.claim_batch
+MISSING
+--- projection.process_batch
+MISSING
+overall=FAIL

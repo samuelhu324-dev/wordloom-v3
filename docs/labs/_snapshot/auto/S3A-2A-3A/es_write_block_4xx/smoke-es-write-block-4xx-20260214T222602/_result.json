@@ -1,0 +1,21 @@
+{
+  "scenario": "es_write_block_4xx",
+  "run_dir": "D:\\Project\\wordloom-v3\\docs\\labs\\_snapshot\\auto\\S3A-2A-3A\\es_write_block_4xx\\smoke-es-write-block-4xx-20260214T222602",
+  "checks": {
+    "failed_delta_ge": 1.0,
+    "retry_delta_le": 0.0
+  },
+  "observed": {
+    "outbox_failed_total_reason_es_4xx": {
+      "before": 0.0,
+      "after": 1.0,
+      "delta": 1.0
+    },
+    "outbox_retry_scheduled_total_reason_es_4xx": {
+      "before": 0.0,
+      "after": 0.0,
+      "delta": 0.0
+    }
+  },
+  "ok": true
+}

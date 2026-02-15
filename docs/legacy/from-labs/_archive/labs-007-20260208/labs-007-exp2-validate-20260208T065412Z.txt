@@ -1,0 +1,15 @@
+service=wordloom-search-outbox-worker
+required=outbox_worker.loop,outbox.claim_batch,projection.process_batch
+overall=FAIL
+--- outbox_worker.loop
+MISSING
+--- outbox.claim_batch
+traceID=6ddf8bf332a4112590a9bc9720bd7dfb
+tags_present=projection,batch_size
+  projection=search
+  wordloom.projection=search_index_to_elastic
+  batch_size=100
+  claimed=0
+trace_snapshot=docs\architecture\runbook\labs\_snapshots\labs-007-exp2-jaeger-trace-outbox_claim_batch-20260208T065412Z.json
+--- projection.process_batch
+MISSING

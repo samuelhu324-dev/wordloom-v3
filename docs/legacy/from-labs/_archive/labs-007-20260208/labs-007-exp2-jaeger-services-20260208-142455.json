@@ -1,0 +1,11 @@
+﻿{
+    "data":  [
+                 "wordloom-search-outbox-worker",
+                 "wordloom-api",
+                 "jaeger-all-in-one"
+             ],
+    "total":  3,
+    "limit":  0,
+    "offset":  0,
+    "errors":  null
+}

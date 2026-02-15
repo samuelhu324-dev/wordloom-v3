@@ -152,6 +152,19 @@ class SQLAlchemyBlockRepository(BlockRepository):
             logger.error(f"Error fetching Block {block_id}: {e}")
             raise
 
+    async def get_any_by_id(self, block_id: UUID) -> Optional[Block]:
+        """Get Block by ID without filtering soft-deleted blocks."""
+        try:
+            stmt = select(BlockModel).where(BlockModel.id == block_id)
+            result = await self.session.execute(stmt)
+            model = result.scalar_one_or_none()
+            if not model:
+                return None
+            return self._to_domain(model)
+        except Exception as exc:
+            logger.error(f"Error fetching Block (any) {block_id}: {exc}")
+            raise
+
     async def get_by_book_id(self, book_id: UUID) -> List[Block]:
         """Get all Blocks in a Book, ordered by fractional index"""
         try:

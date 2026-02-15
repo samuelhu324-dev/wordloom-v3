@@ -1,0 +1,19 @@
+service=wordloom-search-outbox-worker
+required=outbox_worker.loop,outbox.claim_batch,projection.process_batch
+overall=FAIL
+--- outbox_worker.loop
+traceID=2fd27489d2251d5eb9a98bb52240cca1
+tags_present=projection
+  projection=search
+  wordloom.projection=search_index_to_elastic
+trace_snapshot=docs\architecture\runbook\labs\_snapshots\labs-007-exp2-jaeger-trace-outbox_worker_loop-20260208T065852Z.json
+--- outbox.claim_batch
+traceID=70ad0941406c2ed34ef563c573b45e29
+tags_present=projection,batch_size
+  projection=search
+  wordloom.projection=search_index_to_elastic
+  batch_size=100
+  claimed=0
+trace_snapshot=docs\architecture\runbook\labs\_snapshots\labs-007-exp2-jaeger-trace-outbox_claim_batch-20260208T065852Z.json
+--- projection.process_batch
+MISSING

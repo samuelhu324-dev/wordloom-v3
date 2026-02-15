@@ -233,6 +233,9 @@ class PostgresSearchAdapter(SearchPort):
         try:
             where_clauses = [SearchIndexModel.entity_type == entity_type]
 
+            if getattr(query, "library_id", None) is not None:
+                where_clauses.append(SearchIndexModel.library_id == query.library_id)
+
             if query.text:
                 where_clauses.append(
                     text(

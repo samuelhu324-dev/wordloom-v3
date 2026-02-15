@@ -1,0 +1,2 @@
+ Container wordloom-v3-es-1  Stopping
+ Container wordloom-v3-es-1  Stopped

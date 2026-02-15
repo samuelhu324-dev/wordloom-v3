@@ -1,0 +1,1586 @@
+# labs-005 experiment 6 (v4) chronicle worker runtime
+# started_at=2026-02-07T15:26:27+08:00
+# DATABASE_URL=postgresql+psycopg://wordloom:wordloom@localhost:5435/wordloom_test
+# OUTBOX_WORKER_ID=c-v4 OUTBOX_METRICS_PORT=9110 OUTBOX_HTTP_PORT=9112
+# OUTBOX_SHUTDOWN_GRACE_SECONDS=10 OUTBOX_DB_PING_FAILS_BEFORE_DRAINING=3
+
+## Phase A: normal deps (health/ready 200 + SIGTERM exit)
+
+[labs-005/e6] Starting chronicle_outbox_worker (metrics=:9110 http=:9112 grace=10s)
+INFO:__main__:[chronicle worker] metrics on :9110
+INFO:__main__:[chronicle worker] runtime endpoints on :9112 (/healthz,/readyz)
+[labs-005/e6] GET /healthz
+{"ok":true,"reason":null,"projection":"chronicle_events_to_entries","worker_id":"c-v4","state":"RUNNING","stop_requested":false,"stop_reason":null,"last_loop_ago_seconds":0.20738023100057035,"db":{"ok":true,"consecutive_failures":0,"last_error":null}}
+[labs-005/e6] GET /readyz
+{"ok":true,"reason":null,"projection":"chronicle_events_to_entries","worker_id":"c-v4","state":"RUNNING","stop_requested":false,"stop_reason":null,"last_loop_ago_seconds":0.003739048999705119,"db":{"ok":true,"consecutive_failures":0,"last_error":null}}
+[labs-005/e6] Attempting guardrail exercise by stopping DB briefly (best-effort)
+[labs-005/e6] Stopping DB container id=7dd6618fc9e4
+ERROR:__main__:[chronicle worker] loop error
+Traceback (most recent call last):
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1345, in _checkout
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1342, in _checkout
+    fairy._connection_record.get_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 836, in get_connection
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5435 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 557, in main_async
+    await _update_metrics(session)
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 351, in _update_metrics
+    await session.execute(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2239, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2108, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+  File "<string>", line 2, in _connection_for_bind
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1187, in _connection_for_bind
+    conn = bind.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3277, in connect
+    return self._connection_cls(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1345, in _checkout
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1342, in _checkout
+    fairy._connection_record.get_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 836, in get_connection
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+sqlalchemy.exc.OperationalError: (psycopg.OperationalError) connection failed: connection to server at "127.0.0.1", port 5435 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ERROR:__main__:[chronicle worker] loop error
+Traceback (most recent call last):
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 716, in checkout
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 714, in checkout
+    dbapi_connection = rec.get_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 836, in get_connection
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5435 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 557, in main_async
+    await _update_metrics(session)
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 351, in _update_metrics
+    await session.execute(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2239, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2108, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+  File "<string>", line 2, in _connection_for_bind
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1187, in _connection_for_bind
+    conn = bind.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3277, in connect
+    return self._connection_cls(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 716, in checkout
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 714, in checkout
+    dbapi_connection = rec.get_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 836, in get_connection
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+sqlalchemy.exc.OperationalError: (psycopg.OperationalError) connection failed: connection to server at "127.0.0.1", port 5435 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ERROR:__main__:[chronicle worker] loop error
+Traceback (most recent call last):
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 716, in checkout
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 714, in checkout
+    dbapi_connection = rec.get_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 836, in get_connection
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5435 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 557, in main_async
+    await _update_metrics(session)
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 351, in _update_metrics
+    await session.execute(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2239, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2108, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+  File "<string>", line 2, in _connection_for_bind
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1187, in _connection_for_bind
+    conn = bind.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3277, in connect
+    return self._connection_cls(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 716, in checkout
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 714, in checkout
+    dbapi_connection = rec.get_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 836, in get_connection
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+sqlalchemy.exc.OperationalError: (psycopg.OperationalError) connection failed: connection to server at "127.0.0.1", port 5435 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+[labs-005/e6] GET /readyz (expected 503 while DB down)
+curl: (22) The requested URL returned error: 503
+
+[labs-005/e6] Restarting DB container id=7dd6618fc9e4
+[labs-005/e6] GET /readyz (expected 200 after DB restored)
+{"ok":true,"reason":null,"projection":"chronicle_events_to_entries","worker_id":"c-v4","state":"RUNNING","stop_requested":false,"stop_reason":null,"last_loop_ago_seconds":0.07480596900131786,"db":{"ok":true,"consecutive_failures":0,"last_error":null}}
+[labs-005/e6] Sending SIGTERM
+INFO:__main__:[chronicle worker] stop requested; not claiming new work
+[OK] Database: postgresql+psycopg://wordloom:wordloom@localhost:5435/wordloom_test
+[labs-005/e6] OK: worker exited
+
+## Phase B: guardrails (unreachable DB => readyz=503 + stop claiming)
+# Note: this phase uses a deliberately bad DATABASE_URL to force db ping failures.
+
+[phase-b] starting chronicle_outbox_worker with bad DATABASE_URL=postgresql+psycopg://wordloom:wordloom@localhost:5999/wordloom_test
+INFO:__main__:[chronicle worker] metrics on :9120
+INFO:__main__:[chronicle worker] runtime endpoints on :9122 (/healthz,/readyz)
+ERROR:__main__:[chronicle worker] loop error
+Traceback (most recent call last):
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 549, in main_async
+    await _sanitize_terminal_rows(session)
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 136, in _sanitize_terminal_rows
+    await session.execute(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2239, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2108, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+  File "<string>", line 2, in _connection_for_bind
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1187, in _connection_for_bind
+    conn = bind.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3277, in connect
+    return self._connection_cls(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+sqlalchemy.exc.OperationalError: (psycopg.OperationalError) connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+[phase-b] GET /healthz (expect 200 if loop alive)
+{"ok":true,"reason":null,"projection":"chronicle_events_to_entries","worker_id":"c-v4-bad-db","state":"DRAINING","stop_requested":false,"stop_reason":null,"last_loop_ago_seconds":0.44633151599919074,"db":{"ok":false,"consecutive_failures":1,"last_error":"OperationalError: (psycopg.OperationalError) connection failed: connection to server at \"127.0.0.1\", port 5999 failed: Connection refused\n\tIs the server running on that host and accepting TCP/IP connections?\n(Background on this error at: https://sqlalche.me/e/20/e3q8)"}}
+[phase-b] Waiting for /readyz to flip to 503 (db_unhealthy) ...
+[phase-b] OK: /readyz returned 503
+[phase-b] Sending SIGTERM
+ERROR:__main__:[chronicle worker] loop error
+Traceback (most recent call last):
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 549, in main_async
+    await _sanitize_terminal_rows(session)
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 136, in _sanitize_terminal_rows
+    await session.execute(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2239, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2108, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+  File "<string>", line 2, in _connection_for_bind
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1187, in _connection_for_bind
+    conn = bind.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3277, in connect
+    return self._connection_cls(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+sqlalchemy.exc.OperationalError: (psycopg.OperationalError) connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ERROR:__main__:[chronicle worker] loop error
+Traceback (most recent call last):
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 549, in main_async
+    await _sanitize_terminal_rows(session)
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 136, in _sanitize_terminal_rows
+    await session.execute(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2239, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2108, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+  File "<string>", line 2, in _connection_for_bind
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1187, in _connection_for_bind
+    conn = bind.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3277, in connect
+    return self._connection_cls(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+sqlalchemy.exc.OperationalError: (psycopg.OperationalError) connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ERROR:__main__:[chronicle worker] loop error
+Traceback (most recent call last):
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 549, in main_async
+    await _sanitize_terminal_rows(session)
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 136, in _sanitize_terminal_rows
+    await session.execute(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2239, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2108, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+  File "<string>", line 2, in _connection_for_bind
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1187, in _connection_for_bind
+    conn = bind.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3277, in connect
+    return self._connection_cls(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+sqlalchemy.exc.OperationalError: (psycopg.OperationalError) connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ERROR:__main__:[chronicle worker] loop error
+Traceback (most recent call last):
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 549, in main_async
+    await _sanitize_terminal_rows(session)
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 136, in _sanitize_terminal_rows
+    await session.execute(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2239, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2108, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+  File "<string>", line 2, in _connection_for_bind
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1187, in _connection_for_bind
+    conn = bind.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3277, in connect
+    return self._connection_cls(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+sqlalchemy.exc.OperationalError: (psycopg.OperationalError) connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ERROR:__main__:[chronicle worker] loop error
+Traceback (most recent call last):
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 549, in main_async
+    await _sanitize_terminal_rows(session)
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 136, in _sanitize_terminal_rows
+    await session.execute(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2239, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2108, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+  File "<string>", line 2, in _connection_for_bind
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1187, in _connection_for_bind
+    conn = bind.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3277, in connect
+    return self._connection_cls(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+sqlalchemy.exc.OperationalError: (psycopg.OperationalError) connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ERROR:__main__:[chronicle worker] loop error
+Traceback (most recent call last):
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 549, in main_async
+    await _sanitize_terminal_rows(session)
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 136, in _sanitize_terminal_rows
+    await session.execute(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2239, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2108, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+  File "<string>", line 2, in _connection_for_bind
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1187, in _connection_for_bind
+    conn = bind.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3277, in connect
+    return self._connection_cls(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+sqlalchemy.exc.OperationalError: (psycopg.OperationalError) connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ERROR:__main__:[chronicle worker] loop error
+Traceback (most recent call last):
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 549, in main_async
+    await _sanitize_terminal_rows(session)
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 136, in _sanitize_terminal_rows
+    await session.execute(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2239, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2108, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+  File "<string>", line 2, in _connection_for_bind
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1187, in _connection_for_bind
+    conn = bind.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3277, in connect
+    return self._connection_cls(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+sqlalchemy.exc.OperationalError: (psycopg.OperationalError) connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ERROR:__main__:[chronicle worker] loop error
+Traceback (most recent call last):
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 549, in main_async
+    await _sanitize_terminal_rows(session)
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 136, in _sanitize_terminal_rows
+    await session.execute(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2239, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2108, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+  File "<string>", line 2, in _connection_for_bind
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1187, in _connection_for_bind
+    conn = bind.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3277, in connect
+    return self._connection_cls(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+sqlalchemy.exc.OperationalError: (psycopg.OperationalError) connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ERROR:__main__:[chronicle worker] loop error
+Traceback (most recent call last):
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 549, in main_async
+    await _sanitize_terminal_rows(session)
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 136, in _sanitize_terminal_rows
+    await session.execute(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2239, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2108, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+  File "<string>", line 2, in _connection_for_bind
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1187, in _connection_for_bind
+    conn = bind.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3277, in connect
+    return self._connection_cls(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+sqlalchemy.exc.OperationalError: (psycopg.OperationalError) connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ERROR:__main__:[chronicle worker] loop error
+Traceback (most recent call last):
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 549, in main_async
+    await _sanitize_terminal_rows(session)
+  File "/mnt/d/Project/wordloom-v3/backend/scripts/chronicle_outbox_worker.py", line 136, in _sanitize_terminal_rows
+    await session.execute(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/ext/asyncio/session.py", line 449, in execute
+    result = await greenlet_spawn(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2239, in _execute_internal
+    conn = self._connection_for_bind(bind)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 2108, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+  File "<string>", line 2, in _connection_for_bind
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1187, in _connection_for_bind
+    conn = bind.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3277, in connect
+    return self._connection_cls(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3301, in raw_connection
+    return self.pool.connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 447, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 711, in checkout
+    rec = pool._do_get()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 388, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 673, in __init__
+    self.__connect()
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 899, in __connect
+    with util.safe_reraise():
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 895, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 661, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 629, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/dialects/postgresql/psycopg.py", line 736, in connect
+    await_only(creator_fn(*arg, **kw))
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "/home/hsy2000324/.local/lib/python3.10/site-packages/psycopg/connection_async.py", line 140, in connect
+    raise last_ex.with_traceback(None)
+sqlalchemy.exc.OperationalError: (psycopg.OperationalError) connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+WARNING:__main__:[chronicle worker] shutdown grace exceeded (10.0s); exiting
+[OK] Database: postgresql+psycopg://wordloom:wordloom@localhost:5999/wordloom_test
+[phase-b] OK: worker exited
+
+SNAPSHOT=docs/architecture/runbook/labs/_snapshots/labs-005-chronicle-e6-runtime-20260207T152627.txt

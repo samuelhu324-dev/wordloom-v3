@@ -1,0 +1,29 @@
+{
+  "lab_id": "S3A-2A-3A",
+  "scenario": "stuck_reclaim",
+  "run_id": "20260214T211436-stuck_reclaim-4",
+  "created_at": "2026-02-14 21:18:57",
+  "env_file": ".env.test",
+  "service": "wordloom-search-outbox-worker",
+  "worker": {
+    "duration_s": 20,
+    "metrics_ports": [
+      19134,
+      19135
+    ],
+    "lease_seconds": 3,
+    "reclaim_interval_seconds": 1.0,
+    "max_processing_seconds": 60,
+    "poll_interval_seconds": 0.1,
+    "batch_size": 50
+  },
+  "trigger": {
+    "op": "upsert",
+    "count": 5
+  },
+  "crash": {
+    "kind": "process_kill",
+    "target": "worker1",
+    "claim_timeout_s": 8.0
+  }
+}

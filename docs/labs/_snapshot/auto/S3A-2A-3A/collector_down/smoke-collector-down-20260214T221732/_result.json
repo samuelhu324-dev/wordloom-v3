@@ -1,0 +1,23 @@
+{
+  "scenario": "collector_down",
+  "run_dir": "D:\\Project\\wordloom-v3\\docs\\labs\\_snapshot\\auto\\S3A-2A-3A\\collector_down\\smoke-collector-down-20260214T221732",
+  "checks": {
+    "inject_jaeger_stop_exitcode_eq": 0,
+    "min_processed_delta": 1.0,
+    "max_failed_delta": 0.0
+  },
+  "observed": {
+    "inject_jaeger_stop_exitcode": 0,
+    "outbox_processed_total": {
+      "before": 0.0,
+      "after": 1.0,
+      "delta": 1.0
+    },
+    "outbox_failed_total": {
+      "before": 0.0,
+      "after": 0.0,
+      "delta": 0.0
+    }
+  },
+  "ok": true
+}

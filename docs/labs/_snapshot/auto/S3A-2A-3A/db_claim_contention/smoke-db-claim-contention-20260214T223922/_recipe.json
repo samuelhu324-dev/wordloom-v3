@@ -1,0 +1,26 @@
+{
+  "lab_id": "S3A-2A-3A",
+  "scenario": "db_claim_contention",
+  "run_id": "smoke-db-claim-contention-20260214T223922",
+  "created_at": "2026-02-14 22:39:22",
+  "env_file": ".env.test",
+  "service": "wordloom-search-outbox-worker",
+  "inject": {
+    "kind": "break_claim_atomicity",
+    "enabled": true,
+    "sleep_seconds": 1.2
+  },
+  "worker": {
+    "duration_s": 20,
+    "metrics_ports": [
+      19146,
+      19147
+    ],
+    "poll_interval_seconds": 0.05,
+    "batch_size": 50
+  },
+  "trigger": {
+    "op": "upsert",
+    "count": 1
+  }
+}
