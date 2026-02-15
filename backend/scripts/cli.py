@@ -3583,48 +3583,90 @@ def build_parser() -> argparse.ArgumentParser:
     clean = labs_sub.add_parser("clean", help="Cleanup a scenario (revert injection / prune snapshots)")
     clean_sub = clean.add_subparsers(dest="scenario", required=True)
 
-    c_clean = clean_sub.add_parser(SCENARIO_ES_WRITE_BLOCK_4XX, help="Disable write block + optional snapshot pruning")
-    c_clean.add_argument("--env-file", default=".env.test")
+    clean_common = argparse.ArgumentParser(add_help=False)
+    clean_common.add_argument(
+        "--env-file",
+        default=".env.test",
+        help="Env file to load (repo-root relative by default). Only used by scenarios that revert external state.",
+    )
+
+    c_clean = clean_sub.add_parser(
+        SCENARIO_ES_WRITE_BLOCK_4XX,
+        help="Disable write block + optional snapshot pruning",
+        parents=[clean_common],
+    )
     c_clean.add_argument("--outdir")
     c_clean.add_argument("--keep-last", type=int, default=None)
     c_clean.set_defaults(func=_cmd_labs_clean_es_write_block_4xx)
 
-    b_clean = clean_sub.add_parser(SCENARIO_ES_429_INJECT, help="Noop cleanup + optional snapshot pruning")
+    b_clean = clean_sub.add_parser(
+        SCENARIO_ES_429_INJECT,
+        help="Noop cleanup + optional snapshot pruning",
+        parents=[clean_common],
+    )
     b_clean.add_argument("--outdir")
     b_clean.add_argument("--keep-last", type=int, default=None)
     b_clean.set_defaults(func=_cmd_labs_clean_es_429_inject)
 
-    a_clean = clean_sub.add_parser(SCENARIO_ES_DOWN_CONNECT, help="Start ES + optional snapshot pruning")
+    a_clean = clean_sub.add_parser(
+        SCENARIO_ES_DOWN_CONNECT,
+        help="Start ES + optional snapshot pruning",
+        parents=[clean_common],
+    )
     a_clean.add_argument("--outdir")
     a_clean.add_argument("--keep-last", type=int, default=None)
     a_clean.set_defaults(func=_cmd_labs_clean_es_down_connect)
 
-    cd_clean = clean_sub.add_parser(SCENARIO_COLLECTOR_DOWN, help="Start Jaeger + optional snapshot pruning")
+    cd_clean = clean_sub.add_parser(
+        SCENARIO_COLLECTOR_DOWN,
+        help="Start Jaeger + optional snapshot pruning",
+        parents=[clean_common],
+    )
     cd_clean.add_argument("--outdir")
     cd_clean.add_argument("--keep-last", type=int, default=None)
     cd_clean.set_defaults(func=_cmd_labs_clean_collector_down)
 
-    d_clean = clean_sub.add_parser(SCENARIO_ES_BULK_PARTIAL, help="Noop cleanup + optional snapshot pruning")
+    d_clean = clean_sub.add_parser(
+        SCENARIO_ES_BULK_PARTIAL,
+        help="Noop cleanup + optional snapshot pruning",
+        parents=[clean_common],
+    )
     d_clean.add_argument("--outdir")
     d_clean.add_argument("--keep-last", type=int, default=None)
     d_clean.set_defaults(func=_cmd_labs_clean_es_bulk_partial)
 
-    e_clean = clean_sub.add_parser(SCENARIO_DB_CLAIM_CONTENTION, help="Noop cleanup + optional snapshot pruning")
+    e_clean = clean_sub.add_parser(
+        SCENARIO_DB_CLAIM_CONTENTION,
+        help="Noop cleanup + optional snapshot pruning",
+        parents=[clean_common],
+    )
     e_clean.add_argument("--outdir")
     e_clean.add_argument("--keep-last", type=int, default=None)
     e_clean.set_defaults(func=_cmd_labs_clean_db_claim_contention)
 
-    f_clean = clean_sub.add_parser(SCENARIO_STUCK_RECLAIM, help="Noop cleanup + optional snapshot pruning")
+    f_clean = clean_sub.add_parser(
+        SCENARIO_STUCK_RECLAIM,
+        help="Noop cleanup + optional snapshot pruning",
+        parents=[clean_common],
+    )
     f_clean.add_argument("--outdir")
     f_clean.add_argument("--keep-last", type=int, default=None)
     f_clean.set_defaults(func=_cmd_labs_clean_stuck_reclaim)
 
-    g_clean = clean_sub.add_parser(SCENARIO_DUPLICATE_DELIVERY, help="Noop cleanup + optional snapshot pruning")
+    g_clean = clean_sub.add_parser(
+        SCENARIO_DUPLICATE_DELIVERY,
+        help="Noop cleanup + optional snapshot pruning",
+        parents=[clean_common],
+    )
     g_clean.add_argument("--outdir")
     g_clean.add_argument("--keep-last", type=int, default=None)
     g_clean.set_defaults(func=_cmd_labs_clean_duplicate_delivery)
 
-    h_clean = clean_sub.add_parser(SCENARIO_PROJECTION_VERSION, help="Noop cleanup + optional snapshot pruning")
+    h_clean = clean_sub.add_parser(
+        SCENARIO_PROJECTION_VERSION,
+        help="Noop cleanup + optional snapshot pruning",
+        parents=[clean_common],
+    )
     h_clean.add_argument("--outdir")
     h_clean.add_argument("--keep-last", type=int, default=None)
     h_clean.set_defaults(func=_cmd_labs_clean_projection_version)
