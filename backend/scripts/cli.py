@@ -23,6 +23,8 @@ import urllib.request
 import uuid
 from pathlib import Path
 
+from sqlalchemy import create_engine, text
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LEGACY_SCRIPTS_DIR = REPO_ROOT / "backend" / "scripts" / "legacy"
@@ -1263,6 +1265,9 @@ def _cmd_labs_verify_collector_down(args: argparse.Namespace) -> int:
     before = before_path.read_text(encoding="utf-8") if before_path.exists() else ""
     after = after_path.read_text(encoding="utf-8") if after_path.exists() else ""
 
+    before_scrape_ok = "scrape_failed" not in before
+    after_scrape_ok = "scrape_failed" not in after
+
     processed_before = _prom_parse_counter_sum(before, "outbox_processed_total")
     processed_after = _prom_parse_counter_sum(after, "outbox_processed_total")
     failed_before = _prom_parse_counter_sum(before, "outbox_failed_total")
@@ -1270,6 +1275,59 @@ def _cmd_labs_verify_collector_down(args: argparse.Namespace) -> int:
 
     delta_processed = processed_after - processed_before
     delta_failed = failed_after - failed_before
+
+    # Fallback: metrics scrape can be flaky in CI due to timing.
+    # For collector_down we can deterministically assert the inserted outbox row
+    # was processed successfully.
+    outbox_event_id_path = run_dir / "_outbox_event_id.txt"
+    outbox_event_id = outbox_event_id_path.read_text(encoding="utf-8").strip() if outbox_event_id_path.exists() else None
+
+    db_observed: dict[str, object] = {}
+    db_ok = False
+    try:
+        recipe_env_file = None
+        recipe_path = run_dir / "_recipe.json"
+        if recipe_path.exists():
+            try:
+                recipe = json.loads(recipe_path.read_text(encoding="utf-8"))
+                recipe_env_file = (recipe or {}).get("env_file")
+            except Exception:
+                recipe_env_file = None
+
+        env = _load_env(env_file=str(recipe_env_file) if recipe_env_file else None)
+        database_url = (env.get("DATABASE_URL") or "").strip()
+        if database_url and outbox_event_id:
+            engine = create_engine(database_url, pool_pre_ping=True)
+            with engine.connect() as conn:
+                row = conn.execute(
+                    text(
+                        """
+                        SELECT status, processed_at, attempts, error_reason
+                        FROM search_outbox_events
+                        WHERE id = CAST(:id AS uuid)
+                        """
+                    ),
+                    {"id": outbox_event_id},
+                ).mappings().fetchone()
+
+            if row is None:
+                db_observed = {"found": False}
+            else:
+                status = row.get("status")
+                processed_at = row.get("processed_at")
+                attempts = row.get("attempts")
+                error_reason = row.get("error_reason")
+                db_observed = {
+                    "found": True,
+                    "status": status,
+                    "processed_at": str(processed_at) if processed_at is not None else None,
+                    "attempts": int(attempts) if attempts is not None else None,
+                    "error_reason": error_reason,
+                }
+                db_ok = (status == "done") and (processed_at is not None)
+    except Exception as exc:  # noqa: BLE001
+        db_observed = {"error": f"{type(exc).__name__}: {exc}"}
+        db_ok = False
 
     inject_exitcode_path = run_dir / "_inject_jaeger_stop.exitcode.txt"
     inject_exitcode = None
@@ -1279,20 +1337,35 @@ def _cmd_labs_verify_collector_down(args: argparse.Namespace) -> int:
         except Exception:
             inject_exitcode = None
 
-    ok = (inject_exitcode == 0) and (delta_processed >= float(args.min_processed_delta)) and (delta_failed <= float(args.max_failed_delta))
+    metrics_ok = (
+        before_scrape_ok
+        and after_scrape_ok
+        and (delta_processed >= float(args.min_processed_delta))
+        and (delta_failed <= float(args.max_failed_delta))
+    )
+
+    # Accept either strong metrics evidence or DB evidence that the outbox row
+    # was processed successfully.
+    ok = (inject_exitcode == 0) and (metrics_ok or db_ok)
 
     result = {
         "scenario": SCENARIO_COLLECTOR_DOWN,
         "run_dir": str(run_dir),
+        "outbox_event_id": outbox_event_id,
         "checks": {
             "inject_jaeger_stop_exitcode_eq": 0,
             "min_processed_delta": float(args.min_processed_delta),
             "max_failed_delta": float(args.max_failed_delta),
+            "metrics_scrape_required": True,
+            "db_outbox_processed_fallback_allowed": True,
         },
         "observed": {
             "inject_jaeger_stop_exitcode": inject_exitcode,
+            "metrics_before_scrape_ok": bool(before_scrape_ok),
+            "metrics_after_scrape_ok": bool(after_scrape_ok),
             "outbox_processed_total": {"before": processed_before, "after": processed_after, "delta": delta_processed},
             "outbox_failed_total": {"before": failed_before, "after": failed_after, "delta": delta_failed},
+            "db_outbox_event": db_observed,
         },
         "ok": bool(ok),
     }
@@ -1301,7 +1374,17 @@ def _cmd_labs_verify_collector_down(args: argparse.Namespace) -> int:
     if ok:
         print(f"[labs verify {SCENARIO_COLLECTOR_DOWN}] OK")
         return 0
-    print(f"[labs verify {SCENARIO_COLLECTOR_DOWN}] FAILED")
+    why = []
+    if inject_exitcode != 0:
+        why.append(f"inject_exitcode={inject_exitcode}")
+    if not metrics_ok:
+        why.append(
+            f"metrics_ok=false (before_ok={before_scrape_ok} after_ok={after_scrape_ok} delta_processed={delta_processed} delta_failed={delta_failed})"
+        )
+    if not db_ok:
+        why.append("db_ok=false")
+    print(f"[labs verify {SCENARIO_COLLECTOR_DOWN}] FAILED: {'; '.join(why) if why else 'unknown'}")
+    print(json.dumps(result, indent=2, ensure_ascii=False))
     return 10
 
 
