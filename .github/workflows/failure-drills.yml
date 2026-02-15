@@ -43,6 +43,10 @@ jobs:
   drills:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -110,13 +114,66 @@ jobs:
           OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
           EOF
 
+      - name: Environment fingerprint (CI)
+        run: |
+          set -euo pipefail
+
+          {
+            echo "## Environment fingerprint"
+            echo
+            echo "### Repo"
+            echo "- PWD: $(pwd)"
+            echo "- SHA: ${GITHUB_SHA}"
+            echo "- Run: ${GITHUB_RUN_ID} (attempt ${GITHUB_RUN_ATTEMPT})"
+            echo
+            echo "### Versions"
+            echo "\`\`\`"
+            python --version
+            python -m pip --version
+            echo "\`\`\`"
+            echo
+            echo "### pip freeze (head)"
+            echo "\`\`\`"
+            python -m pip freeze | head -n 50 || true
+            echo "\`\`\`"
+            echo
+            echo "### Key env (masked)"
+            echo "\`\`\`"
+            (env | sort | grep -E '^(WORDLOOM_ENV|ENVIRONMENT|DEBUG|LOG_LEVEL|API_PORT|OUTBOX_METRICS_PORT|DATABASE_URL|SEARCH_STAGE1_PROVIDER|ELASTIC_URL|ELASTIC_INDEX|WORDLOOM_TRACING_ENABLED|OTEL_)=' \
+              | sed -E 's/(=).*/=***REDACTED***/') || true
+            echo "\`\`\`"
+            echo
+            echo "### .env.test (masked)"
+            echo "\`\`\`"
+            if [ -f .env.test ]; then
+              sed -E 's/(=).*/=***REDACTED***/' .env.test
+            else
+              echo ".env.test not found"
+            fi
+            echo "\`\`\`"
+            echo
+            echo "### Docker"
+            echo "\`\`\`"
+            docker ps || true
+            echo
+            docker compose -f docker-compose.infra.yml ps || true
+            echo
+            docker compose -f docker-compose.devtest-db.yml ps || true
+            echo "\`\`\`"
+            echo
+            echo "### Endpoints"
+            echo "\`\`\`"
+            curl -sS -o /dev/null -w 'ES http://localhost:19200 -> %{http_code}\n' http://localhost:19200 || true
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Migrate DB (alembic)
+        working-directory: backend
         run: |
           set -euo pipefail
           set -a
-          source .env.test
+          source ../.env.test
           set +a
-          cd backend
           python -m alembic -c alembic.ini upgrade head
 
       - name: Run → Verify → Export → Clean
@@ -132,6 +189,10 @@ jobs:
             echo "Expected a repo-relative path; using .env.test" >&2
             env_file=".env.test"
           fi
+
+          set -a
+          source "$env_file"
+          set +a
 
           if [ "${{ inputs.scenario }}" = "all" ]; then
             scenarios=(
