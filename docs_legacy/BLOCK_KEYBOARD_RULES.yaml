@@ -1,0 +1,309 @@
+block_keyboard_rules:
+  metadata:
+    summary: "Consolidated keyboard behaviors for the inline Block Editor after Plans 118/120/126/137."
+    last_reviewed: "2025-12-10"
+    owners:
+      - "BookEditor Guild"
+    references:
+      - label: "VISUAL_RULES.block_list_visual_rules"
+        path: "assets/docs/VISUAL_RULES.yaml"
+      - label: "VISUAL_RULES.block_editor_plan120_refinement"
+        path: "assets/docs/VISUAL_RULES.yaml"
+      - label: "VISUAL_RULES.block_editor_plan126_keyboard_visuals"
+        path: "assets/docs/VISUAL_RULES.yaml"
+      - label: "HEXAGONAL_RULES.block_editor_inline_decisions"
+        path: "assets/docs/HEXAGONAL_RULES.yaml"
+      - label: "HEXAGONAL_RULES.block_editor_plan118_inline_heading_controls"
+        path: "assets/docs/HEXAGONAL_RULES.yaml"
+      - label: "HEXAGONAL_RULES.block_editor_plan134_undo_contract"
+        path: "assets/docs/HEXAGONAL_RULES.yaml"
+      - label: "HEXAGONAL_RULES.block_editor_plan160_slash_anchor"
+        path: "assets/docs/HEXAGONAL_RULES.yaml"
+      - label: "DDD_RULES.phase2_inline_update"
+        path: "assets/docs/DDD_RULES.yaml"
+      - label: "DDD_RULES.policy_block_plan160_slash_anchor"
+        path: "assets/docs/DDD_RULES.yaml"
+      - label: "VISUAL_RULES.block_editor_plan160_slash_anchor"
+        path: "assets/docs/VISUAL_RULES.yaml"
+      - label: "VISUAL_RULES.block_editor_plan165a_base_paragraph_guard"
+        path: "assets/docs/VISUAL_RULES.yaml"
+      - label: "ADR-146-plan160-slash-anchor"
+        path: "assets/docs/ADR/ADR-146-plan160-slash-anchor.md"
+      - label: "DDD_RULES.POLICY-BLOCK-PLAN165A-BASE-PARAGRAPH"
+        path: "assets/docs/DDD_RULES.yaml"
+      - label: "HEXAGONAL_RULES.block_editor_plan165a_base_paragraph_guard"
+        path: "assets/docs/HEXAGONAL_RULES.yaml"
+      - label: "VISUAL_RULES.block_editor_plan165c_transform_contract"
+        path: "assets/docs/VISUAL_RULES.yaml"
+      - label: "DDD_RULES.POLICY-BLOCK-PLAN165C-TRANSFORM-GUARD"
+        path: "assets/docs/DDD_RULES.yaml"
+      - label: "HEXAGONAL_RULES.block_editor_plan165c_transform_guard"
+        path: "assets/docs/HEXAGONAL_RULES.yaml"
+      - label: "QuickLog.Plan_120_BlockModifications"
+        path: "assets/docs/QuickLog/D39-52- WordloomDev/archived/Plan_120_BlockModifications.md"
+  schema_notes:
+    - "combo: ordered list of key strings that appears in UI copy."
+    - "context: when the shortcut is listenable (block type, caret position, or focus state)."
+    - "behavior: primary effect executed by BookEditor or adapters."
+    - "notes: optional clarifications (debounce, parity across block kinds)."
+    - "sources: docs anchoring the rule; keep at least one Plan or RULE reference."
+  categories:
+    - id: "editing_and_persistence"
+      title: "Inline editing, save, and history"
+      shortcuts:
+        - combo:
+            - "Enter"
+          context: "Paragraph or heading caret at trailing boundary"
+          behavior: "Commits current block and spawns a blank paragraph below via CreateBlockUseCase, then focuses the new block."
+          notes:
+            - "Primary insertion path from Plan120; heading blocks also drop to paragraph to match document habits."
+            - "If caret is mid-line, Enter still saves current block before deferring to UI-specific handling (list rows inherit their own rules)."
+          sources:
+            - "QuickLog.Plan_120_BlockModifications §3.1"
+            - "HEXAGONAL_RULES.block_editor_inline_decisions"
+        - combo:
+            - "Shift+Enter"
+          context: "Paragraph, heading, list, or todo row"
+          behavior: "Inserts a soft line break inside the current editor without creating a new block or row."
+          notes:
+            - "Plan126 locks the visual spacing so the soft break never expands block margins."
+            - "Plan161A 把软换行当作文本里的 `\n`：BlockEditorCore 允许浏览器插入 `<br>`，保存时 `extractInlineTextFromEditable` 把它们序列化成 `\n` 并 `trimEnd`，刷新后仍按 `white-space: pre-wrap` 渲染。"
+          sources:
+            - "VISUAL_RULES.block_editor_plan126_keyboard_visuals"
+            - "VISUAL_RULES.block_list_visual_rules"
+            - "DDD_RULES.POLICY-BLOCK-PLAN161A-SOFT-BREAK"
+            - "HEXAGONAL_RULES.block_editor_plan161a_soft_break_contract"
+        - combo:
+            - "Ctrl+S"
+            - "Cmd+S"
+          context: "Any editable block"
+          behavior: "Bypasses debounce and forces UpdateBlockUseCase to persist the current content."
+          notes:
+            - "UI suppresses the browser save dialog via preventDefault."
+          sources:
+            - "HEXAGONAL_RULES.block_editor_inline_decisions"
+            - "VISUAL_RULES.paragraph_editor_rules"
+        - combo:
+            - "Esc"
+          context: "Active block editor with unsaved changes"
+          behavior: "Reverts to last saved snapshot and exits editing state."
+          sources:
+            - "HEXAGONAL_RULES.block_editor_inline_decisions"
+        - combo:
+            - "Backspace"
+          context: "Block shell when the editor reports empty content at caret start (paragraph/heading/list/todo/callout/quote/panel)"
+          behavior: "Invokes deleteBlockWithGuard so the Book document keeps at least one paragraph block: base blocks clear in place, special blocks downgrade into a paragraph unless a sibling exists to hand focus to."
+          notes:
+            - "Plan165A routes every keyboard deletion through deleteBlockWithGuard; downgrade payloads come from blockKindRules.ts so list/todo/callout text is preserved in the fallback paragraph."
+            - "Selection fallback continues to use selectionStore focus intents, preserving the Plan164 caret pipeline telemetry."
+          sources:
+            - "VISUAL_RULES.block_editor_plan165a_base_paragraph_guard"
+            - "HEXAGONAL_RULES.block_editor_plan165a_base_paragraph_guard"
+            - "DDD_RULES.POLICY-BLOCK-PLAN165A-BASE-PARAGRAPH"
+        - combo:
+            - "Ctrl+Z"
+            - "Cmd+Z"
+          context: "BookEditor with UndoManager attached"
+          behavior: "Restores the previous editor snapshot (blocks list plus selection)."
+          notes:
+            - "Keydown handler always preventDefault to avoid native contentEditable undo."
+          sources:
+            - "HEXAGONAL_RULES.block_editor_plan134_undo_contract"
+            - "VISUAL_RULES.undo_manager_notes"
+        - combo:
+            - "Ctrl+Shift+Z"
+            - "Cmd+Shift+Z"
+            - "Ctrl+Y"
+            - "Cmd+Y"
+          context: "BookEditor with redo stack available"
+          behavior: "Replays the next snapshot from redoStack and focuses the stored selection."
+          sources:
+            - "HEXAGONAL_RULES.block_editor_plan134_undo_contract"
+            - "VISUAL_RULES.undo_manager_notes"
+    - id: "structure_transformations"
+      title: "Block transforms and mode switches"
+      shortcuts:
+        - combo:
+            - "/"
+          context: "Paragraph editor when caret is at line start, text is empty, and the IME is not composing"
+          behavior: "Opens the Slash menu; selected entry either transforms the current block or inserts a new block anchored after the current one."
+          notes:
+            - "Plan160 把 caret anchoring 上移到 BlockList：ParagraphEditor 只触发 `onRequestSlashMenu(blockId)`，BlockList 利用 `getSlashMenuAnchor(editorRoot)` 计算相对坐标并在 shell 内渲染菜单。"
+            - "`event.nativeEvent.isComposing` 时直接放行按键，不进入 Slash 流程，避免中文输入法候选阶段误触发。"
+            - "SlashMenu state 仅在打开时计算一次 `{x,y,blockId}`；hover “+” 入口继续使用 QuickInsertMenu portal，两者禁止混用。"
+          sources:
+            - "VISUAL_RULES.block_editor_plan120_refinement"
+            - "HEXAGONAL_RULES.block_editor_plan132_heavy_block_contract"
+            - "HEXAGONAL_RULES.block_editor_plan160_slash_anchor"
+            - "VISUAL_RULES.block_editor_plan160_slash_anchor"
+            - "DDD_RULES.policy_block_plan160_slash_anchor"
+        - combo:
+            - "Ctrl+Alt+1"
+            - "Ctrl+Alt+2"
+            - "Ctrl+Alt+3"
+          context: "Paragraph or heading block with text focus"
+          behavior: "Transforms the active block into heading level 1/2/3 using UpdateBlockUseCase."
+          notes:
+            - "macOS mirrors use Cmd+Alt+1/2/3; adapters send headingLevel through BlockInsertOptions."
+          sources:
+            - "HEXAGONAL_RULES.block_editor_plan118_inline_heading_controls"
+            - "DDD_RULES.plan118_inline_heading_controls"
+        - combo:
+            - "Ctrl+0"
+          context: "Heading block"
+          behavior: "Demotes the heading back to paragraph while retaining text content."
+          sources:
+            - "HEXAGONAL_RULES.block_editor_plan118_inline_heading_controls"
+        - combo:
+            - "Alt+/"
+          context: "Focused block item without visible toolbar"
+          behavior: "Shows the inline toolbar (comment / promote / convert) for keyboard users without requiring hover."
+          sources:
+            - "VISUAL_RULES.block_editor_plan126_keyboard_visuals"
+        - combo:
+            - "Alt+ArrowUp"
+            - "Alt+ArrowDown"
+          context: "Any block item"
+          behavior: "Requests a fractional reorder to move the entire block up or down one slot."
+          notes:
+            - "UI throttles repeated commands and surfaces 409 BLOCK_REORDER_CONFLICT if the server cannot allocate a new order."
+          sources:
+            - "DDD_RULES.phase2_inline_update.keyboard_shortcuts"
+            - "VISUAL_RULES.block_editor_plan137_inline_list_contract"
+        - combo:
+            - "- then Space"
+            - "* then Space"
+          context: "Paragraph caret at line start"
+          behavior: "Immediately converts the active paragraph into a bulleted list block and seeds the first row."
+          notes:
+            - "Quick insert menu currently only lists Todo/Callout/Quote/Panel, so rely on this shortcut per the bullet clarification thread."
+          sources:
+            - "QuickLog.Plan_120_BlockModifications §3.4"
+            - "Clarifying bullet options in menu (2025-12-02)"
+    - id: "list_and_todo_rows"
+      title: "List row specific behaviors"
+      shortcuts:
+        - combo:
+            - "Enter"
+          context: "Todo/list row editor"
+          behavior: "Creates a new row beneath the current one; when整个 block 已空且 keyboardDecider 判定 *-exit，改由 block shell 触发 deleteGuard 并降级成单段落。"
+          notes:
+            - "Plan169B+170A：判断和防抖交由 keyboardDecider，第一次 Enter 仅插入占位行，确认全空后 shell 才会执行退场；ParagraphEditor 不再重复 submit/delete。"
+            - "退出时统一交给 block shell 调用 deleteBlockWithGuard，下一个段落由 guard 的 fallback 产生，而非行编辑器自行 CreateBlock。"
+          sources:
+            - "VISUAL_RULES.block_list_visual_rules"
+            - "VISUAL_RULES.plan156a_list_bridge"
+            - "HEXAGONAL_RULES.block_editor_plan156a_list_bridge"
+            - "QuickLog.Plan_170A_BlockTwoParaBackspaceIssue"
+        - combo:
+            - "Shift+Enter"
+          context: "Todo/list row editor"
+          behavior: "Adds a hard-wrapped line within the current row without splitting into a new item."
+          notes:
+            - "Plan161A 要求行内 `<br>` 永远序列化为 `items[index]` 字符串里的 `\n`，List/Todo 行不会额外插入 DOM 节点或触发新行；BlockItem 只需等待浏览器插入 `<br>` 即可。"
+          sources:
+            - "VISUAL_RULES.block_list_visual_rules"
+            - "VISUAL_RULES.block_editor_plan161a_soft_break_visuals"
+            - "HEXAGONAL_RULES.block_editor_plan161a_soft_break_contract"
+        - combo:
+            - "Backspace"
+          context: "Todo/list row when the row text is empty"
+          behavior: "Deletes the current row；若 keyboardDecider 判定 *-exit（首行或全空），block shell 只设置退出标志并交给 deleteBlockWithGuard 处理整块，避免重复生成段落。"
+          notes:
+            - "Plan170A：list/todo shell 返回 handled，BlockItem 跳过默认 submit/delete，deleteGuard 只跑一次，不会再留下两个段落。"
+          sources:
+            - "VISUAL_RULES.block_list_visual_rules"
+            - "QuickLog.Plan_170A_BlockTwoParaBackspaceIssue"
+        - combo:
+            - "ArrowUp"
+            - "ArrowDown"
+          context: "Todo/list rows"
+          behavior: "Moves caret focus between rows; when exiting the block the focus is handed off through onFocusPrev/onFocusNext."
+          sources:
+            - "VISUAL_RULES.block_list_visual_rules"
+        - combo:
+            - "Ctrl+Enter"
+          context: "Todo row"
+          behavior: "Marks the current todo item as completed (toggle checked)."
+          sources:
+            - "VISUAL_RULES.block_todo_visual_rules"
+    - id: "pointer_precision_guards"
+      title: "Pointer-to-caret 精度守卫"
+      shortcuts:
+        - combo:
+            - "MouseDown (any button=1)"
+          context: "Paragraph/List/Todo inline shell"
+          behavior: "在 `onMouseDownCapture` 中调用 `caretDomUtils.getOffsetFromPoint` 计算 offset，并触发 `announceFocusIntent('pointer', {blockId, offset, source})`；不直接操作 selection。"
+          notes:
+            - "Plan164C 要求 pointer intent 携带真实 offset，若计算失败可回落 edge，但必须记录 QuickLog 事件 `PLAN164C_POINTER_FALLBACK`。"
+            - "`selectionStore.announceFocusIntent` 同步发送 `BlockEditorCaretIntent` QuickLog 事件，`source` 需准确反映触发组件（如 block-item.pointer/list-shell.pointer-capture）。"
+          sources:
+            - "VISUAL_RULES.block_editor_plan164c_pointer_precision"
+            - "HEXAGONAL_RULES.block_editor_plan164c_caret_pipeline"
+        - combo:
+            - "MouseUp"
+          context: "BlockEditor shell"
+          behavior: "BlockEditorCore 通过 useBlockCaretController 消费 pointer intent，并在 `selectionStore` 推送 snapshot。其他组件只读 snapshot，不得在 MouseUp 阶段改写 selection。"
+          notes:
+            - "QA 若在 `grep window.getSelection()` 中发现额外写入点，必须引用 Plan164C 政策驳回。"
+            - "ESLint `wordloom-custom/caret-selection-owner` 已在 CI 中启用，除 caretDomUtils/useBlockCaretController 外的文件若直接访问 selection 将无法合并。"
+          sources:
+            - "DDD_RULES.POLICY-BLOCK-PLAN164C-CARET-PIPELINE"
+    - id: "markdown_and_patterns"
+      title: "Markdown style shorthands"
+      patterns:
+        - match: "# "
+          transform: "Heading level 1"
+          scope: "Paragraph caret at line start"
+          sources:
+            - "QuickLog.Plan_120_BlockModifications §3.4"
+        - match: "## "
+          transform: "Heading level 2"
+          scope: "Paragraph caret at line start"
+          sources:
+            - "QuickLog.Plan_120_BlockModifications §3.4"
+        - match: "### "
+          transform: "Heading level 3"
+          scope: "Paragraph caret at line start"
+          sources:
+            - "QuickLog.Plan_120_BlockModifications §3.4"
+        - match: "> "
+          transform: "Quote block"
+          scope: "Paragraph caret at line start"
+          sources:
+            - "QuickLog.Plan_120_BlockModifications §3.4"
+        - match: "- "
+          transform: "Bulleted list"
+          scope: "Paragraph caret at line start"
+          notes:
+            - "Equivalent to typing '-' followed by Space when the quick menu lacks a bullet entry."
+            - "Plan165C 通过 transformBlock 清空模式字符，生成的首行直接进入空列表行，不会再残留 '-'。"
+          sources:
+            - "QuickLog.Plan_120_BlockModifications §3.4"
+        - match: "* "
+          transform: "Bulleted list"
+          scope: "Paragraph caret at line start"
+          notes:
+            - "Equivalent to '*'+Space when the menu does not expose bullet conversion."
+            - "Plan165C 同样使用 transformBlock 在原位换皮，首行保持空白，caret intent 由 selectionStore 保证。"
+          sources:
+            - "QuickLog.Plan_120_BlockModifications §3.4"
+        - match: "1./1) + Space"
+          transform: "Numbered list"
+          scope: "Paragraph caret at line start"
+          notes:
+            - "Plan156A 扩展 markdown 检测，任意数字后接 '.' 或 ')' 都会触发该转换。"
+            - "Plan165C：转换逻辑直接 mutate block.kind，序列号不会被写入列表文本。"
+          sources:
+            - "VISUAL_RULES.plan156a_list_bridge"
+            - "HEXAGONAL_RULES.block_editor_plan156a_list_bridge"
+        - match: "- [ ] / - [x] + Space"
+          transform: "Todo list"
+          scope: "Paragraph caret at line start"
+          notes:
+            - "支持大小写 'x'；触发后立即清空输入文本并启动 todo 内联编辑。"
+            - "Plan165C：默认 payload 只含一条空 item，`[ ]` 标记不会出现在文本里。"
+          sources:
+            - "VISUAL_RULES.plan156a_list_bridge"
+            - "HEXAGONAL_RULES.block_editor_plan156a_list_bridge"
+  status: "Adopted"

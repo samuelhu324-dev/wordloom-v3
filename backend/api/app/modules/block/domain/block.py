@@ -154,7 +154,11 @@ class Block(AggregateRoot):
         self.deleted_section_path = deleted_section_path  # ← Paperballs Level 3
         self.created_at = created_at or datetime.now(timezone.utc)
         self.updated_at = updated_at or datetime.now(timezone.utc)
-        self.events: List[DomainEvent] = []
+        # Keep backwards compatible attribute name (`events`) while
+        # reusing the AggregateRoot event buffer (`_events`).
+        # This ensures `get_events()/clear_events()` work and infra side-effects
+        # (search_index + outbox) can be triggered.
+        self.events = self._events  # type: ignore[attr-defined]
 
         # Type-specific validation
         if self.type == BlockType.HEADING and self.heading_level is None:

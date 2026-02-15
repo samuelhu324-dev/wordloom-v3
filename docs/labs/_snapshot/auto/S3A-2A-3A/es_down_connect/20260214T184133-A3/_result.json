@@ -1,0 +1,31 @@
+{
+  "scenario": "es_down_connect",
+  "run_dir": "D:\\Project\\wordloom-v3\\docs\\labs\\_snapshot\\auto\\S3A-2A-3A\\es_down_connect\\20260214T184133-A3",
+  "checks": {
+    "reasons": [
+      "es_connect",
+      "es_unreachable"
+    ],
+    "retry_delta_ge": 1.0,
+    "failed_delta_ge": 1.0,
+    "terminal_delta_le": 0.0
+  },
+  "observed": {
+    "outbox_retry_scheduled_total_reason_es_connect_or_unreachable": {
+      "before": 0.0,
+      "after": 4.0,
+      "delta": 4.0
+    },
+    "outbox_failed_total_reason_es_connect_or_unreachable": {
+      "before": 0.0,
+      "after": 4.0,
+      "delta": 4.0
+    },
+    "outbox_terminal_failed_total_reason_es_connect_or_unreachable": {
+      "before": 0.0,
+      "after": 0.0,
+      "delta": 0.0
+    }
+  },
+  "ok": true
+}

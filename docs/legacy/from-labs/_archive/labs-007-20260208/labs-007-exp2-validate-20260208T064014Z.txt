@@ -1,0 +1,5 @@
+service=wordloom-search-outbox-worker
+required=outbox_worker.loop,outbox.claim_batch,projection.process_batch
+traceID=825922ee693567cabbb20dadcbf7d11c
+overall=FAIL
+reason=no trace in lookback window contained all required spans + key tags

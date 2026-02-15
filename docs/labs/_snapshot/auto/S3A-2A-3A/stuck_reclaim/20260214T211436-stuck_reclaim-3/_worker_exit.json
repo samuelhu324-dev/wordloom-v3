@@ -1,0 +1,12 @@
+{
+  "worker1": {
+    "returncode": 1,
+    "killed_by_controller": true,
+    "observed_claim": false
+  },
+  "worker2": {
+    "returncode": 1,
+    "exited_early": false,
+    "terminated_by_controller": true
+  }
+}

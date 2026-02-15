@@ -1,0 +1,84 @@
+=== labs-005 snapshot ===
+ts=20260207T041220Z
+mode=outbox
+CHRONICLE_PROJECTION_VERSION=
+
+-- outbox status distribution
+ status | count 
+--------+-------
+ done   |   489
+(1 row)
+
+
+-- entries count
+ count 
+-------
+   489
+(1 row)
+
+
+-- recent entries (stable ordering: occurred_at, id)
+                  id                  |        event_type        |               book_id                |               block_id               |               actor_id               |          occurred_at          | projection_version 
+--------------------------------------+--------------------------+--------------------------------------+--------------------------------------+--------------------------------------+-------------------------------+--------------------
+ c877854a-7c5c-4a83-b946-93f09fdd2778 | book_opened              | c8fd88ce-84fb-4e91-928b-39b8f72b700e |                                      | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 08:47:49.041203+00 |                  1
+ e37cbe14-a0c6-4191-8fe8-386187ddcee4 | block_type_changed       | c8fd88ce-84fb-4e91-928b-39b8f72b700e | 5fd6f74f-d652-4bca-9932-5e0ba18f3c59 | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:51.548658+00 |                  1
+ 1c5ac444-837d-4a6b-ad3c-1008da126049 | block_type_changed       | c8fd88ce-84fb-4e91-928b-39b8f72b700e | 5fd6f74f-d652-4bca-9932-5e0ba18f3c59 | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:49.969212+00 |                  1
+ e31aed6b-25e3-41f4-9ad6-f7ba34b4d987 | book_viewed              | c8fd88ce-84fb-4e91-928b-39b8f72b700e |                                      | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:46.770872+00 |                  1
+ a8b50358-13bd-4e41-a04a-e5237c5385a0 | book_viewed              | c8fd88ce-84fb-4e91-928b-39b8f72b700e |                                      | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:46.711641+00 |                  1
+ 7bd141fa-9857-47d4-afdf-0dc974b27f25 | book_opened              | c8fd88ce-84fb-4e91-928b-39b8f72b700e |                                      | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:46.639372+00 |                  1
+ d777b9de-b294-4aee-8b4b-22b1a6817ebf | book_maturity_recomputed | c8fd88ce-84fb-4e91-928b-39b8f72b700e |                                      | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:46.622665+00 |                  1
+ 49ac766c-2e82-4a91-be58-da0c9d9a85d3 | book_opened              | c8fd88ce-84fb-4e91-928b-39b8f72b700e |                                      | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:46.617354+00 |                  1
+ 9ac4645b-de82-4fa3-92b6-2b8e4c5a1056 | block_type_changed       | c8fd88ce-84fb-4e91-928b-39b8f72b700e | e5b7cf7c-92de-4a55-88bc-218d1b9709ff | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:43.993241+00 |                  1
+ a13693bf-9cfc-4e3f-94b4-2e7b8e6a208d | block_type_changed       | c8fd88ce-84fb-4e91-928b-39b8f72b700e | b822954a-93d6-4f8d-82a9-155348b6d945 | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:41.503649+00 |                  1
+ 3cdb24b1-5f84-41a4-b9cb-d05cfd36c9c5 | block_type_changed       | c8fd88ce-84fb-4e91-928b-39b8f72b700e | d6303108-881d-49a1-80f8-5e6b9741e201 | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:37.630082+00 |                  1
+ 30e67b53-5087-4b19-871b-af0ca83a80bd | block_type_changed       | c8fd88ce-84fb-4e91-928b-39b8f72b700e | 403c0972-6e30-4017-8428-b84daab3f84d | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:36.05864+00  |                  1
+ 923c049d-2470-4f56-97a2-07b14a67f5ae | block_type_changed       | c8fd88ce-84fb-4e91-928b-39b8f72b700e | 495437c3-a879-423c-ab9f-c980e41ff71d | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:32.879328+00 |                  1
+ 0b6efbe8-af8f-4572-a782-4bdcdbe92f03 | book_viewed              | c8fd88ce-84fb-4e91-928b-39b8f72b700e |                                      | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:31.764232+00 |                  1
+ 04a1669b-4c76-4ab6-90f9-514738c6dadb | book_viewed              | c8fd88ce-84fb-4e91-928b-39b8f72b700e |                                      | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:31.702068+00 |                  1
+ 0083992d-e8e6-49ea-87ec-69ebb06753d9 | book_opened              | c8fd88ce-84fb-4e91-928b-39b8f72b700e |                                      | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:31.680471+00 |                  1
+ c1923fea-d3a9-4ec2-aead-3c1716fe2111 | book_viewed              | c8fd88ce-84fb-4e91-928b-39b8f72b700e |                                      | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:31.652404+00 |                  1
+ 8c456d0f-7ddd-417c-8395-d5fc3693d7df | book_maturity_recomputed | c8fd88ce-84fb-4e91-928b-39b8f72b700e |                                      | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:31.608496+00 |                  1
+ 18f3f0d4-cbbd-4dcb-9340-febf29aabcc4 | book_opened              | c8fd88ce-84fb-4e91-928b-39b8f72b700e |                                      | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:31.59421+00  |                  1
+ 89095f1b-a6eb-480d-baab-a44465f39a89 | book_viewed              | c8fd88ce-84fb-4e91-928b-39b8f72b700e |                                      | 550e8400-e29b-41d4-a716-446655440000 | 2026-02-05 03:12:31.564729+00 |                  1
+(20 rows)
+
+
+-- projection status
+       projection_name       |    last_rebuild_started_at    |   last_rebuild_finished_at    | last_rebuild_duration_seconds | last_rebuild_success | last_rebuild_error |          updated_at           
+-----------------------------+-------------------------------+-------------------------------+-------------------------------+----------------------+--------------------+-------------------------------
+ chronicle_events_to_entries | 2026-02-07 04:11:57.279229+00 | 2026-02-07 04:11:57.367599+00 |                       0.08837 | t                    |                    | 2026-02-07 04:11:57.367599+00
+(1 row)
+
+
+-- outbox -> event -> entry sample
+ status |   entity_type   |              entity_id               |        event_type        |                               summary                                
+--------+-----------------+--------------------------------------+--------------------------+----------------------------------------------------------------------
+ done   | chronicle_event | 60d94ef5-1e6c-496c-98a1-10a378c5bdfd | book_viewed              | book_viewed (book=9db82743-db0d-4e35-9367-0271359d2b44)
+ done   | chronicle_event | bb8a9cda-6f71-477a-aa5b-a213f3958c6d | book_maturity_recomputed | book_maturity_recomputed (book=6834bcac-f8e6-4eff-80a8-b8a10036f690)
+ done   | chronicle_event | f45c62a5-cf7c-4fdf-994a-5ba3cf28dc34 | book_maturity_recomputed | book_maturity_recomputed (book=6834bcac-f8e6-4eff-80a8-b8a10036f690)
+ done   | chronicle_event | 5b9ca3c3-b114-43eb-a8ff-3e76b3d9e7cf | book_viewed              | book_viewed (book=9db82743-db0d-4e35-9367-0271359d2b44)
+ done   | chronicle_event | c0191a37-ab34-4e92-b49f-f8a2a44b73cb | book_maturity_recomputed | book_maturity_recomputed (book=6834bcac-f8e6-4eff-80a8-b8a10036f690)
+ done   | chronicle_event | 1c150f24-b6c7-4faf-8e32-59b9a6d293a6 | book_opened              | book_opened (book=9db82743-db0d-4e35-9367-0271359d2b44)
+ done   | chronicle_event | 0260db7a-9703-480e-ad74-469050c026b8 | book_maturity_recomputed | book_maturity_recomputed (book=6834bcac-f8e6-4eff-80a8-b8a10036f690)
+ done   | chronicle_event | 4d16640e-c8f1-4f66-b3d3-bfa83cc57452 | book_opened              | book_opened (book=9db82743-db0d-4e35-9367-0271359d2b44)
+ done   | chronicle_event | 1b7695aa-15b7-41d3-9b85-0de885d788e2 | book_stage_changed       | book_stage_changed (book=b39441ba-394c-4a8d-a9f8-64f8f094e94f)
+ done   | chronicle_event | cee01f9b-56e2-4349-b1a4-2bff04f9d9f5 | book_maturity_recomputed | book_maturity_recomputed (book=6834bcac-f8e6-4eff-80a8-b8a10036f690)
+ done   | chronicle_event | 04d49a81-4fa0-4cd7-96c1-6084606bb66b | book_stage_changed       | book_stage_changed (book=6834bcac-f8e6-4eff-80a8-b8a10036f690)
+ done   | chronicle_event | 6c3e2e19-abe5-4979-9f29-eb1ad6e1b994 | book_maturity_recomputed | book_maturity_recomputed (book=b39441ba-394c-4a8d-a9f8-64f8f094e94f)
+ done   | chronicle_event | ba7f17ba-f287-49e0-b090-af113f49804b | book_maturity_recomputed | book_maturity_recomputed (book=6834bcac-f8e6-4eff-80a8-b8a10036f690)
+ done   | chronicle_event | b908298e-87ec-46e3-bcb7-9a704db307b5 | book_maturity_recomputed | book_maturity_recomputed (book=6834bcac-f8e6-4eff-80a8-b8a10036f690)
+ done   | chronicle_event | 314e38c9-6eff-4870-9898-395ec6721e0e | BookRenamed              | BookRenamed (book=32a0a091-7a7b-443f-abe2-26a51e3b4af2)
+ done   | chronicle_event | 7185ea5b-648a-421b-a15c-b0f72f492866 | book_maturity_recomputed | book_maturity_recomputed (book=9db82743-db0d-4e35-9367-0271359d2b44)
+ done   | chronicle_event | 78a3c0d3-4cea-4908-8a69-a9fc0544906d | book_maturity_recomputed | book_maturity_recomputed (book=6834bcac-f8e6-4eff-80a8-b8a10036f690)
+ done   | chronicle_event | cbe4b456-8c3e-4757-8af9-aec52662485e | structure_task_completed | structure_task_completed (book=6834bcac-f8e6-4eff-80a8-b8a10036f690)
+ done   | chronicle_event | 5936ed25-604d-4673-b97d-1143a6dc7961 | book_maturity_recomputed | book_maturity_recomputed (book=b39441ba-394c-4a8d-a9f8-64f8f094e94f)
+ done   | chronicle_event | 6be76d3c-3697-4e31-9aa0-917d26752924 | book_maturity_recomputed | book_maturity_recomputed (book=9db82743-db0d-4e35-9367-0271359d2b44)
+(20 rows)
+
+
+-- envelope null rates (Phase C)
+ total | correlation_id_null | source_null | actor_kind_null 
+-------+---------------------+-------------+-----------------
+   489 |                  26 |           0 |               0
+(1 row)
+

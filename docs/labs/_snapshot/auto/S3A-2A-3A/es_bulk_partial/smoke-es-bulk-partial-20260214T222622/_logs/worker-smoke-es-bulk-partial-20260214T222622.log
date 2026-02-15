@@ -1,0 +1,11 @@
+D:\Project\wordloom-v3\backend\scripts\legacy\search_outbox_worker.py:52: DeprecationWarning: 'asyncio.WindowsSelectorEventLoopPolicy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+D:\Project\wordloom-v3\backend\scripts\legacy\search_outbox_worker.py:52: DeprecationWarning: 'asyncio.set_event_loop_policy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+[OK] Database: postgresql+psycopg://wordloom:wordloom@localhost:5435/wordloom_test
+{"ts": "2026-02-14T14:26:23.907875+00:00", "level": "WARNING", "logger": "__main__", "message": "[LABS] ES bulk partial fault injection enabled: status=400 (requires OUTBOX_USE_ES_BULK=1 and >=2 items)", "taskName": "Task-1"}
+{"ts": "2026-02-14T14:26:29.787670+00:00", "level": "WARNING", "logger": "opentelemetry.sdk.trace", "message": "Setting attribute on ended span.", "taskName": "Task-1"}
+{"ts": "2026-02-14T14:26:29.787775+00:00", "level": "WARNING", "logger": "opentelemetry.sdk.trace", "message": "Setting attribute on ended span.", "taskName": "Task-1"}
+{"ts": "2026-02-14T14:26:29.787828+00:00", "level": "WARNING", "logger": "opentelemetry.sdk.trace", "message": "Setting attribute on ended span.", "taskName": "Task-1"}
+{"ts": "2026-02-14T14:26:29.787853+00:00", "level": "WARNING", "logger": "opentelemetry.sdk.trace", "message": "Setting attribute on ended span.", "taskName": "Task-1"}
+{"ts": "2026-02-14T14:26:29.787875+00:00", "level": "WARNING", "logger": "opentelemetry.sdk.trace", "message": "Setting attribute on ended span.", "taskName": "Task-1"}

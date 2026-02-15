@@ -77,6 +77,7 @@ export function TagMultiSelect<Chip extends { id?: string; name: string }>(
             <button
               type="button"
               className={styles.chipRemoveButton}
+              data-testid="tag-multiselect-remove"
               onClick={() => onRemoveTag(index)}
               aria-label={t('tags.multiSelect.removeAria', { name: tag.name })}
             >
@@ -92,6 +93,7 @@ export function TagMultiSelect<Chip extends { id?: string; name: string }>(
           onChange={(event) => onInputChange(event.target.value)}
           onKeyDown={onInputKeyDown}
           disabled={inputDisabled}
+          data-testid="tag-multiselect-input"
         />
       </div>
       {helperText && <p className={styles.helperText}>{helperText}</p>}

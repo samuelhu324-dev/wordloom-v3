@@ -5,7 +5,7 @@ infra.event_bus.handlers 模块测试 - 事件处理器实现
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from datetime import datetime, timezone
-from app.shared.base import DomainEvent
+from api.app.shared.base import DomainEvent
 
 
 class BlockCreatedEvent(DomainEvent):
@@ -174,25 +174,26 @@ class TestSearchIndexSyncHandler:
 class TestEventHandlerIntegration:
     """测试事件处理器集成."""
 
-    @pytest.mark.asyncio
-    async def test_all_handlers_registered(self):
-        """测试所有处理器已注册."""
+    def test_all_handlers_registered(self):
+        """测试 search_index_handlers 的 6 个处理器已注册."""
+
+        from api.app.modules.block.domain.events import BlockCreated, BlockUpdated, BlockDeleted
+        from api.app.modules.tag.domain.events import TagCreated, TagRenamed, TagDeleted
         from infra.event_bus.event_handler_registry import EventHandlerRegistry
 
-        registry = EventHandlerRegistry()
+        # Import triggers decorator registration
+        import infra.event_bus.handlers.search_index_handlers  # noqa: F401
 
-        # 应该有6个处理器
-        total_handlers = 0
         for event_type in [
-            BlockCreatedEvent,
-            BlockUpdatedEvent,
-            BlockDeletedEvent,
-            TagCreatedEvent,
-            TagUpdatedEvent,
-            TagDeletedEvent,
+            BlockCreated,
+            BlockUpdated,
+            BlockDeleted,
+            TagCreated,
+            TagRenamed,
+            TagDeleted,
         ]:
-            handlers = registry.get_handlers(event_type)
-            total_handlers += len(handlers)
+            handlers = EventHandlerRegistry.get_handlers_for_event(event_type)
+            assert len(handlers) == 1
 
     @pytest.mark.asyncio
     async def test_handler_error_does_not_break_pipeline(self):

@@ -135,6 +135,9 @@ class GetLibraryRequest:
     """
     library_id: Optional[UUID] = None
     user_id: Optional[UUID] = None
+    # Authorization skeleton: when provided, enforce ownership checks in usecase.
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
@@ -261,6 +264,9 @@ class DeleteLibraryRequest:
     - library_id: UUID of the library to delete
     """
     library_id: UUID
+    # Authorization skeleton: when provided, enforce ownership checks in usecase.
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass

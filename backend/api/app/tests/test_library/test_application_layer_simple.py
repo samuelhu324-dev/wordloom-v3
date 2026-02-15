@@ -26,7 +26,7 @@ from api.app.modules.library.application.ports.input import (
     RestoreLibraryRequest,
     ListBasementBooksRequest,
 )
-from api.app.modules.library.exceptions import LibraryNotFoundError
+from api.app.modules.library.exceptions import LibraryNotFoundError, LibraryForbiddenError
 from api.app.shared.exceptions import IllegalStateError, ResourceNotFoundError
 from api.app.modules.library.domain.library import Library
 from api.app.modules.bookshelf.domain import Bookshelf
@@ -360,6 +360,28 @@ class TestGetLibrary:
             await get_uc.execute(request)
 
     @pytest.mark.asyncio
+    async def test_get_library_forbidden_when_actor_not_owner(self):
+        """✗ Get library forbidden when actor_user_id is not owner."""
+        repo = MockLibraryRepository()
+        bus = MockEventBus()
+        create_uc, _ = _make_create_library_use_case(repo, bus)
+        get_uc = GetLibraryUseCase(repository=repo)
+
+        owner_id = uuid4()
+        other_user_id = uuid4()
+
+        create_resp = await create_uc.execute(CreateLibraryRequest(user_id=owner_id, name="Owned"))
+
+        with pytest.raises(LibraryForbiddenError):
+            await get_uc.execute(
+                GetLibraryRequest(
+                    library_id=create_resp.library_id,
+                    actor_user_id=other_user_id,
+                    enforce_owner_check=True,
+                )
+            )
+
+    @pytest.mark.asyncio
     async def test_get_library_by_user_id_rejected(self):
         """✗ Querying by user ID is deprecated and raises ValueError"""
         repo = MockLibraryRepository()
@@ -429,6 +451,28 @@ class TestDeleteLibrary:
 
         with pytest.raises(LibraryNotFoundError):
             await del_uc.execute(request)
+
+    @pytest.mark.asyncio
+    async def test_delete_library_forbidden_when_actor_not_owner(self):
+        """✗ Delete library forbidden when actor_user_id is not owner."""
+        repo = MockLibraryRepository()
+        bus = MockEventBus()
+        create_uc, _ = _make_create_library_use_case(repo, bus)
+        delete_uc = DeleteLibraryUseCase(repository=repo, event_bus=bus)
+
+        owner_id = uuid4()
+        other_user_id = uuid4()
+
+        create_resp = await create_uc.execute(CreateLibraryRequest(user_id=owner_id, name="Owned"))
+
+        with pytest.raises(LibraryForbiddenError):
+            await delete_uc.execute(
+                DeleteLibraryRequest(
+                    library_id=create_resp.library_id,
+                    actor_user_id=other_user_id,
+                    enforce_owner_check=True,
+                )
+            )
 
 
 # ============================================================================

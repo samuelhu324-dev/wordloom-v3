@@ -1,0 +1,29 @@
+{
+  "scenario": "projection_version",
+  "run_id": "smoke-projection-version-20260214T224229",
+  "ok": true,
+  "why": "ok",
+  "checks": [
+    {
+      "name": "probe v1 projection_version match",
+      "expected": 1,
+      "observed": 1,
+      "ok": true
+    },
+    {
+      "name": "probe v2 projection_version match",
+      "expected": 2,
+      "observed": 2,
+      "ok": true
+    }
+  ],
+  "expected": {
+    "v1": 1,
+    "v2": 2
+  },
+  "observed": {
+    "v1": 1,
+    "v2": 2
+  },
+  "errors": []
+}

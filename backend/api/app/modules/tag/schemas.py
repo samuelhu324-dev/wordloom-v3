@@ -15,7 +15,7 @@ Validation Rules (RULE-018/019/020):
 ✅ parent_tag_id: only for subtags, cannot form cycles
 """
 
-from pydantic import BaseModel, Field, validator, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
@@ -63,15 +63,16 @@ class CreateTagRequest(BaseModel):
         description="Optional description"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "Python",
                 "color": "#FF5733",
                 "icon": "code",
-                "description": "Python programming language"
+                "description": "Python programming language",
             }
         }
+    )
 
 
 class CreateSubtagRequest(BaseModel):
@@ -104,16 +105,17 @@ class CreateSubtagRequest(BaseModel):
         description="Optional description"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "parent_tag_id": "550e8400-e29b-41d4-a716-446655440000",
                 "name": "Django",
                 "color": "#092E20",
                 "icon": "framework",
-                "description": "Web framework under Python"
+                "description": "Web framework under Python",
             }
         }
+    )
 
 
 class UpdateTagRequest(BaseModel):
@@ -145,13 +147,14 @@ class UpdateTagRequest(BaseModel):
         description="New parent tag id (use null to move to top-level)"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "Python 3.12",
-                "color": "#3776AB"
+                "color": "#3776AB",
             }
         }
+    )
 
 
 class AssociateTagRequest(BaseModel):
@@ -166,13 +169,14 @@ class AssociateTagRequest(BaseModel):
         description="ID of the entity to tag"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "entity_type": "book",
-                "entity_id": "550e8400-e29b-41d4-a716-446655440000"
+                "entity_id": "550e8400-e29b-41d4-a716-446655440000",
             }
         }
+    )
 
 
 # ============================================================================
@@ -194,9 +198,9 @@ class TagResponse(BaseModel):
     updated_at: datetime
     deleted_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
                 "id": "550e8400-e29b-41d4-a716-446655440000",
                 "name": "Python",
@@ -208,9 +212,10 @@ class TagResponse(BaseModel):
                 "usage_count": 42,
                 "created_at": "2025-11-13T12:00:00Z",
                 "updated_at": "2025-11-13T12:00:00Z",
-                "deleted_at": None
+                "deleted_at": None,
             }
-        }
+        },
+    )
 
 
 class TagHierarchyResponse(BaseModel):
@@ -224,9 +229,9 @@ class TagHierarchyResponse(BaseModel):
     usage_count: int = 0
     children: List["TagHierarchyResponse"] = Field(default_factory=list)
 
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
                 "id": "550e8400-e29b-41d4-a716-446655440000",
                 "name": "Technology",
@@ -240,11 +245,12 @@ class TagHierarchyResponse(BaseModel):
                         "color": "#FF5733",
                         "level": 1,
                         "usage_count": 42,
-                        "children": []
+                        "children": [],
                     }
-                ]
+                ],
             }
-        }
+        },
+    )
 
 
 class TagAssociationResponse(BaseModel):
@@ -256,17 +262,18 @@ class TagAssociationResponse(BaseModel):
     entity_id: UUID
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
                 "id": "550e8400-e29b-41d4-a716-446655440000",
                 "tag_id": "550e8400-e29b-41d4-a716-446655440001",
                 "entity_type": "book",
                 "entity_id": "550e8400-e29b-41d4-a716-446655440002",
-                "created_at": "2025-11-13T12:00:00Z"
+                "created_at": "2025-11-13T12:00:00Z",
             }
-        }
+        },
+    )
 
 
 class TagListResponse(BaseModel):
@@ -278,8 +285,8 @@ class TagListResponse(BaseModel):
     size: int
     has_more: bool = False
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "items": [
                     {
@@ -291,15 +298,16 @@ class TagListResponse(BaseModel):
                         "usage_count": 42,
                         "created_at": "2025-11-13T12:00:00Z",
                         "updated_at": "2025-11-13T12:00:00Z",
-                        "deleted_at": None
+                        "deleted_at": None,
                     }
                 ],
                 "total": 1,
                 "page": 1,
                 "size": 20,
-                "has_more": False
+                "has_more": False,
             }
         }
+    )
 
 
 class EntityTagsResponse(BaseModel):
@@ -310,8 +318,8 @@ class EntityTagsResponse(BaseModel):
     tags: List[TagResponse]
     count: int
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "entity_type": "book",
                 "entity_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -325,12 +333,13 @@ class EntityTagsResponse(BaseModel):
                         "usage_count": 42,
                         "created_at": "2025-11-13T12:00:00Z",
                         "updated_at": "2025-11-13T12:00:00Z",
-                        "deleted_at": None
+                        "deleted_at": None,
                     }
                 ],
-                "count": 1
+                "count": 1,
             }
         }
+    )
 
 
 # ============================================================================
@@ -344,14 +353,15 @@ class ErrorResponse(BaseModel):
     message: str = Field(..., description="Human-readable error message")
     details: dict = Field(default_factory=dict, description="Additional error details")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "code": "TAG_NOT_FOUND",
                 "message": "Tag 550e8400-e29b-41d4-a716-446655440000 not found",
-                "details": {"tag_id": "550e8400-e29b-41d4-a716-446655440000"}
+                "details": {"tag_id": "550e8400-e29b-41d4-a716-446655440000"},
             }
         }
+    )
 
 
 # Update forward references for recursive models

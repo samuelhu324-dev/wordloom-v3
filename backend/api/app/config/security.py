@@ -13,6 +13,9 @@ from uuid import UUID, uuid4
 import jwt
 from .setting import get_settings
 
+from api.app.shared.actor import Actor
+from api.app.shared.request_context import with_actor_id
+
 
 class SecurityConfig:
     """Centralized security configuration"""
@@ -92,3 +95,15 @@ async def get_current_user_id() -> UUID:
             # 环境变量格式不合法时仍使用默认测试 ID，避免启动失败
             pass
     return UUID("550e8400-e29b-41d4-a716-446655440000")
+
+
+async def get_current_actor() -> Actor:
+    """当前请求的 Actor（认证后的身份载体）。
+
+    目前仍处于开发模式：只提供 user_id。
+    后续接入 JWT 后，这里会解析 token 并填充 workspace_id/roles 等。
+    """
+
+    user_id = await get_current_user_id()
+    with_actor_id(user_id)
+    return Actor(user_id=user_id)

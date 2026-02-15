@@ -14,7 +14,11 @@ Cross-Reference:
 from uuid import UUID
 import logging
 
-from api.app.modules.library.exceptions import LibraryNotFoundError, LibraryAlreadyDeletedError
+from api.app.modules.library.exceptions import (
+    LibraryNotFoundError,
+    LibraryAlreadyDeletedError,
+    LibraryForbiddenError,
+)
 from api.app.modules.library.application.ports.input import (
     DeleteLibraryRequest,
     DeleteLibraryResponse,
@@ -77,6 +81,14 @@ class DeleteLibraryUseCase(IDeleteLibraryUseCase):
         if not library:
             logger.warning(f"Library not found: {library_id}")
             raise LibraryNotFoundError(f"Library {library_id} not found")
+
+        # Authorization (skeleton): allow router to pass actor_user_id for ownership checks.
+        if getattr(request, "enforce_owner_check", True) and getattr(request, "actor_user_id", None) is not None:
+            if library.user_id != request.actor_user_id:
+                raise LibraryForbiddenError(
+                    library_id=str(library.id),
+                    actor_user_id=str(request.actor_user_id),
+                )
 
         # ================================================================
         # Step 2: Check if already deleted

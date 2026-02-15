@@ -66,6 +66,15 @@ async def get_engine():
             # psycopg不支持timeout connect_arg，使用command_timeout代替
             # 移除timeout配置避免psycopg错误
         )
+
+        # Optional tracing: instrument SQLAlchemy after engine is created.
+        try:
+            from infra.observability.tracing import instrument_sqlalchemy_engine
+
+            instrument_sqlalchemy_engine(_engine.sync_engine)
+        except Exception:
+            # Best-effort: tracing is opt-in and must not break DB.
+            pass
     return _engine
 
 
@@ -107,7 +116,12 @@ async def get_db_session():
     """
     factory = await get_session_factory()
     async with factory() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
 async def shutdown_engine():

@@ -1,7 +1,7 @@
 import React, { FormEvent, KeyboardEvent } from 'react';
 import type { BookCoverIconId } from '@/entities/book';
 import type { TagDto } from '@/entities/tag';
-import { Button, Input } from '@/shared/ui';
+import { Input } from '@/shared/ui';
 import styles from '../BookEditDialog.module.css';
 import type { DialogMode, TagSelection } from './types';
 import { MAX_TAGS } from './types';
@@ -10,6 +10,7 @@ import { TagMultiSelect } from '@/features/tag/ui';
 import { useI18n } from '@/i18n/useI18n';
 
 interface BookEditFormProps {
+  formId?: string;
   mode: DialogMode;
   title: string;
   summary: string;
@@ -35,6 +36,7 @@ interface BookEditFormProps {
 }
 
 export const BookEditForm: React.FC<BookEditFormProps> = ({
+  formId,
   mode,
   title,
   summary,
@@ -61,7 +63,7 @@ export const BookEditForm: React.FC<BookEditFormProps> = ({
   const { t } = useI18n();
 
   return (
-    <form className={styles.form} onSubmit={onSubmit}>
+    <form id={formId} className={styles.form} onSubmit={onSubmit}>
       <Input
         label={t('books.dialog.fields.titleLabel')}
         value={title}
@@ -109,12 +111,6 @@ export const BookEditForm: React.FC<BookEditFormProps> = ({
       />
 
       {formError && <span className={styles.errorText}>{formError}</span>}
-
-      <div className={styles.footer}>
-        <Button type="submit" variant="primary" loading={isSaving} disabled={submitDisabled}>
-          {mode === 'edit' ? t('button.save') : t('button.create')}
-        </Button>
-      </div>
     </form>
   );
 };

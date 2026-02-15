@@ -38,6 +38,64 @@ from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel
 
+from api.app.modules.media.domain import EntityTypeForMedia, MediaMimeType
+
+
+# =========================================================================
+# Application Commands (Input DTOs)
+# =========================================================================
+
+
+class UploadImageCommand(BaseModel):
+    filename: str
+    mime_type: MediaMimeType
+    file_size: int
+    storage_key: str
+    user_id: Optional[UUID] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+
+
+class UploadVideoCommand(BaseModel):
+    filename: str
+    mime_type: MediaMimeType
+    file_size: int
+    storage_key: str
+    user_id: Optional[UUID] = None
+    duration_ms: Optional[int] = None
+
+
+class UpdateMediaMetadataCommand(BaseModel):
+    media_id: UUID
+    width: Optional[int] = None
+    height: Optional[int] = None
+    duration_ms: Optional[int] = None
+
+
+class AssociateMediaCommand(BaseModel):
+    media_id: UUID
+    entity_type: EntityTypeForMedia
+    entity_id: UUID
+
+
+class DisassociateMediaCommand(BaseModel):
+    media_id: UUID
+    entity_type: EntityTypeForMedia
+    entity_id: UUID
+
+
+class DeleteMediaCommand(BaseModel):
+    media_id: UUID
+
+
+class RestoreMediaCommand(BaseModel):
+    media_id: UUID
+
+
+class PurgeMediaCommand(BaseModel):
+    media_id: UUID
+    force: bool = False
+
 
 class UploadMediaRequest(BaseModel):
     """Base class: Request to upload new media file"""

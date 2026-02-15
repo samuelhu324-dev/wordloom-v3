@@ -1,0 +1,236 @@
+﻿
+// filepath: d:\Project\Wordloom\backend\storage\assets\checklist\index\libraries-overview-ids.json
+// ...existing code...
+
+[
+  {
+    "id": "LIB-OVW-LoadingVisible",
+    "section": "core",
+    "status": "active",
+    "desc": "Grid/List 能正常加载 Library 列表，并在重新进入页面时沿用用户上次选择的视图模式",
+    "sourceChecklists": ["ck-libraries-overview-regression", "ck-libraries-overview-release"],
+    "notes": "原为 release 检查项，现纳入 regression"
+  },
+  {
+    "id": "LIB-OVW-LibraryClickable",
+    "section": "core",
+    "status": "active",
+    "desc": "点击 Grid 卡片或 List 行能够进入正确的 Library 详情页",
+    "sourceChecklists": ["ck-libraries-overview-regression", "ck-libraries-overview-release"],
+    "notes": ""
+  },
+  {
+    "id": "LIB-OVW-BasementLinkWorks",
+    "section": "core",
+    "status": "active",
+    "desc": "底部 Basement recycle CTA 可点击并跳转到 Basement 页面",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": "覆盖 Deleted books or libraries? 提示区"
+  },
+  {
+    "id": "LIB-OVW-CreateVisible",
+    "section": "core",
+    "status": "active",
+    "desc": "新建 Library 后，无需手动刷新即可在 Overview 中看到新条目",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": "自动化覆盖：frontend/tests/e2e/library-overview.spec.ts :: LIB-OVW-CreateVisible"
+  },
+  {
+    "id": "LIB-OVW-EditPersists",
+    "section": "core",
+    "status": "active",
+    "desc": "编辑 Title/Tags/Description 后，刷新页面内容保持一致",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": ""
+  },
+  {
+    "id": "LIB-OVW-DeleteGone",
+    "section": "core",
+    "status": "active",
+    "desc": "删除 Library 后，Grid 和 List 中都不再出现该条目",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": "当前功能尚未实现，本条暂视为未来目标"
+  },
+  {
+    "id": "LIB-OVW-SearchWorks",
+    "section": "core",
+    "status": "active",
+    "desc": "搜索框输入关键字时基于 Title + Description 过滤列表并返回匹配结果",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": "覆盖 Search libraries… 的可用性"
+  },
+
+  {
+    "id": "LIB-OVW-InfoConsistent",
+    "section": "display",
+    "status": "active",
+    "desc": "同一 Library 在 Grid/List 中的标题、标签、描述整体一致",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": ""
+  },
+  {
+    "id": "LIB-OVW-TagsPlaceholder",
+    "section": "display",
+    "status": "active",
+    "desc": "无 Tags 时展示 “— No tags” 占位并保持布局稳定",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": "自动化覆盖：frontend/tests/e2e/library-overview.spec.ts :: LIB-OVW-TagsPlaceholder"
+  },
+  {
+    "id": "LIB-OVW-DescrEmptySafe",
+    "section": "display",
+    "status": "deprecated",
+    "desc": "Description 为空时，不出现 `undefined`、`null` 或占位符文字",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": "已被 LIB-OVW-DescPlaceholder 取代",
+    "replacedBy": "LIB-OVW-DescPlaceholder"
+  },
+  {
+  "id": "LIB-OVW-DescPlaceholder",
+  "section": "display",
+  "status": "active",
+  "desc": "Description 为空时，展示占位文案 “— No description”",
+  "sourceChecklists": ["ck-libraries-overview-regression"],
+  "notes": "",
+  "replaces": "LIB-OVW-DescrEmptySafe"
+  },
+  {
+    "id": "LIB-OVW-DescrDetailSaved",
+    "section": "display",
+    "status": "active",
+    "desc": "Description 较长时截断和省略号表现正常，不遮挡其他信息",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": ""
+  },
+  {
+    "id": "LIB-OVW-TooltipsVisible",
+    "section": "display",
+    "status": "active",
+    "desc": "卡片上的图标与按钮（含 tooltips）在 Grid 和 List 中都能正常显示与触发",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": ""
+  },
+  {
+    "id": "LIB-OVW-CardHoverActions",
+    "section": "display",
+    "status": "active",
+    "desc": "Hover 卡片时右上角显示 PIN / ARCHIVE / COVER / EDIT / DELETE 图标，顺序与交互一致",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": ""
+  },
+  {
+    "id": "LIB-OVW-StatusMetaAccurate",
+    "section": "display",
+    "status": "active",
+    "desc": "卡片状态栏展示的书本数量、创建/更新信息、浏览次数等元数据准确无误",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": ""
+  },
+  {
+    "id": "LIB-OVW-BasementBookshelfDefault",
+    "section": "display",
+    "status": "active",
+    "desc": "新建 Library 默认包含 Basement Bookshelf，状态栏书架数量至少为 1",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": "Basement 作为特殊 bookshelf 需在指标中体现"
+  },
+
+  {
+    "id": "LIB-OVW-CoverCrop",
+    "section": "cover",
+    "status": "planned",
+    "desc": "有封面时 Grid 显示封面、List 显示头像，采用统一裁剪/比例策略",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": "迁移至未来能力，等待新裁剪规范"
+  },
+  {
+    "id": "LIB-OVW-CoverPlaceholder",
+    "section": "cover",
+    "status": "active",
+    "desc": "无封面时两种视图都展示统一占位图，不闪烁、不留空白",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": ""
+  },
+  {
+    "id": "LIB-OVW-ScrollNoJank",
+    "section": "cover",
+    "status": "active",
+    "desc": "列表滚动时封面/头像不抖动、不突然改变尺寸",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": ""
+  },
+  {
+    "id": "LIB-OVW-CoverSwitchPersist",
+    "section": "cover",
+    "status": "active",
+    "desc": "更新或切换封面图后，刷新页面仍显示新封面，无旧图残留",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": ""
+  },
+  {
+    "id": "LIB-OVW-CoverViewTogglePersist",
+    "section": "cover",
+    "status": "active",
+    "desc": "插入/更新封面图后，在 Grid 与 List 视图之间切换时依然显示最新封面，不回退或丢失",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": "覆盖封面插入后视图切换出现旧图/空白的回归"
+  },
+
+  {
+    "id": "LIB-OVW-StatusFiltersWork",
+    "section": "filter",
+    "status": "active",
+    "desc": "顶部状态栏（Latest activity / Most viewed / Show archived 等）切换后，列表内容与状态匹配",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": ""
+  },
+  {
+    "id": "LIB-OVW-SectionPartitioned",
+    "section": "filter",
+    "status": "active",
+    "desc": "All / Archived 两个分组展示与实际数据一致（Archived 仅显示归档，All 不遗漏）",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": ""
+  },
+  {
+    "id": "LIB-OVW-PinArchiveRealtime",
+    "section": "filter",
+    "status": "active",
+    "desc": "Pin/Unpin、Archive/Restore 操作后立即刷新，徽标与分组归属实时更新，取消后回归 All",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": ""
+  },
+  {
+    "id": "LIB-OVW-NoErrorsInConsole",
+    "section": "quality",
+    "status": "active",
+    "desc": "正常浏览和操作过程中，控制台无未处理 error（与该页面相关）",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": ""
+  },
+  {
+    "id": "LIB-OVW-NoHighLantency",
+    "section": "quality",
+    "status": "active",
+    "desc": "主要列表接口在正常网络下无异常高延迟",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": "拼写保留，与历史 ck 一致"
+  },
+  {
+    "id": "LIB-OVW-HomeScreenDisplay",
+    "section": "quality",
+    "status": "active",
+    "desc": "首次进入页面时，首屏内容在约 3 秒内出现",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": ""
+  },
+  {
+    "id": "LIB-OVW-ViewSwitchLoading",
+    "section": "core",
+    "status": "active",
+    "desc": "在 Grid / List 之间切换时，有合理的加载或过渡状态，不出现长期空白",
+    "sourceChecklists": ["ck-libraries-overview-regression"],
+    "notes": ""
+  }
+]
+

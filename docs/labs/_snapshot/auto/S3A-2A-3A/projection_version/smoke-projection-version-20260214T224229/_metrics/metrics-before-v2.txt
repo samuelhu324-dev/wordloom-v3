@@ -1,0 +1,65 @@
+# HELP python_gc_objects_collected_total Objects collected during gc
+# TYPE python_gc_objects_collected_total counter
+python_gc_objects_collected_total{generation="0"} 0.0
+python_gc_objects_collected_total{generation="1"} 648.0
+python_gc_objects_collected_total{generation="2"} 0.0
+# HELP python_gc_objects_uncollectable_total Uncollectable objects found during GC
+# TYPE python_gc_objects_uncollectable_total counter
+python_gc_objects_uncollectable_total{generation="0"} 0.0
+python_gc_objects_uncollectable_total{generation="1"} 0.0
+python_gc_objects_uncollectable_total{generation="2"} 0.0
+# HELP python_gc_collections_total Number of times this generation was collected
+# TYPE python_gc_collections_total counter
+python_gc_collections_total{generation="0"} 0.0
+python_gc_collections_total{generation="1"} 97.0
+python_gc_collections_total{generation="2"} 0.0
+# HELP python_info Python platform information
+# TYPE python_info gauge
+python_info{implementation="CPython",major="3",minor="14",patchlevel="0",version="3.14.0"} 1.0
+# HELP outbox_produced_total Total number of outbox rows successfully enqueued.
+# TYPE outbox_produced_total counter
+# HELP outbox_processed_total Total number of outbox rows successfully processed by the projection worker.
+# TYPE outbox_processed_total counter
+outbox_processed_total{op="upsert",projection="chronicle_events_to_entries"} 1.0
+# HELP outbox_processed_created Total number of outbox rows successfully processed by the projection worker.
+# TYPE outbox_processed_created gauge
+outbox_processed_created{op="upsert",projection="chronicle_events_to_entries"} 1.7710801670296886e+09
+# HELP outbox_failed_total Total number of outbox rows that failed processing in the projection worker.
+# TYPE outbox_failed_total counter
+# HELP outbox_retry_scheduled_total Total number of outbox rows that were scheduled for retry (pending + next_retry_at set).
+# TYPE outbox_retry_scheduled_total counter
+# HELP outbox_idempotent_noop_total Total number of outbox operations that were a safe no-op (idempotent), e.g. delete on a missing doc.
+# TYPE outbox_idempotent_noop_total counter
+# HELP outbox_terminal_failed_total Total number of outbox rows that transitioned into terminal failed state.
+# TYPE outbox_terminal_failed_total counter
+# HELP outbox_lag_events Current number of unprocessed outbox rows.
+# TYPE outbox_lag_events gauge
+outbox_lag_events{projection="chronicle_events_to_entries"} 5.0
+# HELP outbox_oldest_age_seconds Age of the oldest unprocessed outbox row (seconds).
+# TYPE outbox_oldest_age_seconds gauge
+outbox_oldest_age_seconds{projection="chronicle_events_to_entries"} 638891.505317
+# HELP outbox_inflight_events Current number of outbox rows in processing state (leased by some worker).
+# TYPE outbox_inflight_events gauge
+outbox_inflight_events{projection="chronicle_events_to_entries"} 0.0
+# HELP outbox_stuck_processing_events Current number of outbox rows in processing state that appear stuck (expired lease or exceeded max processing time).
+# TYPE outbox_stuck_processing_events gauge
+outbox_stuck_processing_events{projection="chronicle_events_to_entries"} 0.0
+# HELP outbox_last_success_timestamp_seconds Unix timestamp (seconds) of the last successfully processed outbox row.
+# TYPE outbox_last_success_timestamp_seconds gauge
+outbox_last_success_timestamp_seconds{projection="chronicle_events_to_entries"} 1.771080167023997e+09
+# HELP projection_rebuild_duration_seconds Duration of the last rebuild run (seconds).
+# TYPE projection_rebuild_duration_seconds gauge
+# HELP projection_rebuild_last_finished_timestamp_seconds Unix timestamp (seconds) when the last rebuild finished.
+# TYPE projection_rebuild_last_finished_timestamp_seconds gauge
+# HELP projection_rebuild_last_success Whether the last rebuild run succeeded (1) or failed (0).
+# TYPE projection_rebuild_last_success gauge
+# HELP outbox_es_bulk_requests_total Total number of Elasticsearch bulk requests made by the outbox worker.
+# TYPE outbox_es_bulk_requests_total counter
+# HELP outbox_es_bulk_items_total Total number of outbox items attempted via Elasticsearch bulk requests.
+# TYPE outbox_es_bulk_items_total counter
+# HELP outbox_es_bulk_item_failures_total Total number of failed Elasticsearch bulk items, bucketed by coarse failure class.
+# TYPE outbox_es_bulk_item_failures_total counter
+# HELP outbox_es_bulk_request_duration_seconds Duration of Elasticsearch bulk requests (seconds).
+# TYPE outbox_es_bulk_request_duration_seconds histogram
+# HELP outbox_owner_mismatch_skips_total Count of outbox events skipped because owner != this worker (race / lost claim)
+# TYPE outbox_owner_mismatch_skips_total counter

@@ -10,6 +10,7 @@ This use case handles:
 from uuid import UUID
 
 from ...domain import Media
+from ...application.ports.input import RestoreMediaCommand
 from ...application.ports.output import MediaRepository
 from ...exceptions import (
     MediaNotFoundError,
@@ -23,6 +24,9 @@ class RestoreMediaUseCase:
 
     def __init__(self, repository: MediaRepository):
         self.repository = repository
+
+    async def execute_command(self, command: RestoreMediaCommand) -> Media:
+        return await self.execute(command.media_id)
 
     async def execute(self, media_id: UUID) -> Media:
         """

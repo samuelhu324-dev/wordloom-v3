@@ -16,11 +16,19 @@ const LANGUAGE_OPTIONS: LanguageOption[] = [
 ];
 
 export const LanguageMenu: React.FC = () => {
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const hoverTimerRef = useRef<number | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const { t, lang, setLang } = useI18n();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Avoid hydration mismatch when language is resolved from client storage.
+  const languageLabel = mounted ? t('nav.language') : 'Language';
 
   const clearHoverTimer = () => {
     if (hoverTimerRef.current) {
@@ -84,18 +92,18 @@ export const LanguageMenu: React.FC = () => {
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={t('nav.language')}
+        aria-label={languageLabel}
         className={styles.trigger}
         onClick={() => setOpen(o => !o)}
         onKeyDown={handleKeyDown}
       >
-        {t('nav.language')} <span className={styles.caret} aria-hidden="true">▾</span>
+        {languageLabel} <span className={styles.caret} aria-hidden="true">▾</span>
       </button>
       {open && (
         <div
           ref={menuRef}
           role="menu"
-          aria-label={t('nav.language')}
+          aria-label={languageLabel}
           className={styles.panel}
         >
           <div className={styles.activeBar} />

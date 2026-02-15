@@ -7,6 +7,14 @@ import axios, {
   InternalAxiosRequestConfig,
 } from 'axios';
 
+import { sendQuickLogEvent } from '@/shared/telemetry/quickLogClient';
+import { createCorrelationId, nowMs } from '@/shared/telemetry/correlationId';
+
+type AxiosRequestMeta = {
+  startMs?: number;
+  correlationId?: string;
+};
+
 const normalizeBaseOrigin = (input?: string | null): string => {
   if (!input) {
     return '';
@@ -16,7 +24,11 @@ const normalizeBaseOrigin = (input?: string | null): string => {
 
 const isBrowser = typeof window !== 'undefined';
 const envBaseOrigin = normalizeBaseOrigin(process.env.NEXT_PUBLIC_API_BASE?.trim() || '');
-const DEFAULT_SERVER_BASE = 'http://localhost:30001';
+const DEFAULT_SERVER_BASE = normalizeBaseOrigin(
+  process.env.API_PROXY_TARGET?.trim() ||
+    process.env.NEXT_PUBLIC_API_BASE?.trim() ||
+    'http://localhost:30001'
+);
 
 // 浏览器侧默认走同源（空字符串），由 Next rewrites → API_PROXY_TARGET 处理跨端口代理；
 // 仅在 Storybook/脚本/CI 等脱离 Next 环境时才依赖 NEXT_PUBLIC_API_BASE 或回落到 localhost:30001。
@@ -45,6 +57,18 @@ export const apiClient: AxiosInstance = axios.create({
 // ============ 请求拦截器 ============
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    const headers: any = config.headers || {};
+    const existingCorrelationId = headers['X-Request-Id'] || headers['x-request-id'];
+    const correlationId = (existingCorrelationId as string) || createCorrelationId();
+    headers['X-Request-Id'] = correlationId;
+    config.headers = headers;
+
+    (config as any).meta = {
+      ...(config as any).meta,
+      startMs: nowMs(),
+      correlationId,
+    } satisfies AxiosRequestMeta;
+
     // 添加 JWT Token
     const token = typeof window !== 'undefined' ? localStorage.getItem('wl_token') : null;
     if (token) {
@@ -80,8 +104,53 @@ apiClient.interceptors.request.use(
 
 // ============ 响应拦截器 ============
 apiClient.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (response: AxiosResponse) => {
+    const meta: AxiosRequestMeta | undefined = (response.config as any).meta;
+    const startMs = meta?.startMs;
+    const correlationId = meta?.correlationId || (response.headers?.['x-request-id'] as string | undefined);
+    const endMs = nowMs();
+    const durationMs = startMs ? endMs - startMs : undefined;
+
+    sendQuickLogEvent({
+      type: 'http.client.response',
+      timestamp: Date.now(),
+      data: {
+        correlation_id: correlationId,
+        method: response.config.method,
+        url: response.config.url,
+        status_code: response.status,
+        duration_ms: durationMs,
+      },
+    });
+
+    return response;
+  },
   (error) => {
+    try {
+      const cfg = error?.config;
+      const meta: AxiosRequestMeta | undefined = cfg ? (cfg as any).meta : undefined;
+      const startMs = meta?.startMs;
+      const correlationId = meta?.correlationId;
+      const endMs = nowMs();
+      const durationMs = startMs ? endMs - startMs : undefined;
+
+      sendQuickLogEvent({
+        type: 'http.client.error',
+        timestamp: Date.now(),
+        data: {
+          correlation_id: correlationId,
+          method: cfg?.method,
+          url: cfg?.url,
+          status_code: error?.response?.status,
+          duration_ms: durationMs,
+          error_type: error?.name,
+          error_message: String(error?.message || ''),
+        },
+      });
+    } catch {
+      // Metrics must never break requests.
+    }
+
     // 处理全局错误
     if (error.response?.status === 401) {
       // Token 过期，清理并重定向到登录

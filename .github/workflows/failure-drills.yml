@@ -1,0 +1,88 @@
+name: failure-drills
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: "labs scenario"
+        required: true
+        type: choice
+        options:
+          - es_429_inject
+          - es_write_block_4xx
+          - es_down_connect
+          - collector_down
+          - es_bulk_partial
+          - db_claim_contention
+          - stuck_reclaim
+          - duplicate_delivery
+          - projection_version
+      env_file:
+        description: "Env file path"
+        required: true
+        default: ".env.test"
+        type: string
+      duration:
+        description: "Run duration (seconds)"
+        required: true
+        default: "25"
+        type: string
+      lookback:
+        description: "Jaeger lookback (e.g. 10m, 1h)"
+        required: true
+        default: "30m"
+        type: string
+      keep_last:
+        description: "How many snapshots to keep"
+        required: true
+        default: "20"
+        type: string
+
+jobs:
+  drills:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Start infra (DB/ES/Jaeger)
+        run: |
+          docker compose -f docker-compose.infra.yml up -d
+          docker compose -f docker-compose.devtest-db.yml up -d
+
+      - name: Install backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e backend
+
+      - name: Run → Verify → Export → Clean
+        env:
+          FAULT_SCENARIO: ${{ inputs.scenario }}
+        run: |
+          set -euo pipefail
+          run_id="${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.scenario }}"
+
+          python backend/scripts/cli.py labs run "${{ inputs.scenario }}" \
+            --env-file "${{ inputs.env_file }}" \
+            --duration "${{ inputs.duration }}" \
+            --run-id "$run_id"
+
+          python backend/scripts/cli.py labs verify "${{ inputs.scenario }}" --run-id "$run_id"
+
+          python backend/scripts/cli.py labs export "${{ inputs.scenario }}" \
+            --run-id "$run_id" \
+            --lookback "${{ inputs.lookback }}"
+
+          python backend/scripts/cli.py labs clean "${{ inputs.scenario }}" --keep-last "${{ inputs.keep_last }}"
+
+      - name: Upload evidence bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: labs-evidence-${{ inputs.scenario }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: docs/labs/_snapshot/auto/

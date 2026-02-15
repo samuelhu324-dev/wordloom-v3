@@ -1,0 +1,6 @@
+# App layer (dev)
+# Run from repo root: honcho start -f Procfile.dev
+
+api: bash ./backend/scripts/ops/run_api.sh .env.dev
+worker_search: bash ./backend/scripts/ops/run_worker.sh .env.dev
+ui: bash -lc "cd frontend && npm run dev:dev"

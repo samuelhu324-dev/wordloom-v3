@@ -27,6 +27,14 @@ from api.app.modules.bookshelf.domain import Bookshelf, BookshelfStatus
 class CreateBookshelfRequest(BaseModel):
     """Request to create a new Bookshelf"""
     library_id: UUID = Field(..., description="UUID of the library")
+    actor_user_id: Optional[UUID] = Field(
+        None,
+        description="Actor user id (authorization context)",
+    )
+    enforce_owner_check: bool = Field(
+        True,
+        description="When true and actor_user_id is provided, enforce library ownership checks",
+    )
     name: str = Field(..., min_length=1, max_length=255, description="Bookshelf name")
     description: Optional[str] = Field(None, max_length=1000, description="Optional description")
     tag_ids: Optional[List[UUID]] = Field(
@@ -63,11 +71,27 @@ class CreateBookshelfRequest(BaseModel):
 class GetBookshelfRequest(BaseModel):
     """Request to retrieve a Bookshelf by ID"""
     bookshelf_id: UUID = Field(..., description="UUID of the bookshelf")
+    actor_user_id: Optional[UUID] = Field(
+        None,
+        description="Actor user id (authorization context)",
+    )
+    enforce_owner_check: bool = Field(
+        True,
+        description="When true and actor_user_id is provided, enforce ownership checks",
+    )
 
 
 class ListBookshelvesRequest(BaseModel):
     """Request to list Bookshelves for a library"""
     library_id: UUID = Field(..., description="UUID of the library")
+    actor_user_id: Optional[UUID] = Field(
+        None,
+        description="Actor user id (authorization context)",
+    )
+    enforce_owner_check: bool = Field(
+        True,
+        description="When true and actor_user_id is provided, enforce library ownership checks",
+    )
     skip: int = Field(0, ge=0, description="Pagination skip")
     limit: int = Field(100, ge=1, le=100, description="Pagination limit")
     include_deleted: bool = Field(False, description="Include deleted items")
@@ -76,11 +100,27 @@ class ListBookshelvesRequest(BaseModel):
 class GetBasementRequest(BaseModel):
     """Request to retrieve the Basement bookshelf for a library"""
     library_id: UUID = Field(..., description="UUID of the library")
+    actor_user_id: Optional[UUID] = Field(
+        None,
+        description="Actor user id (authorization context)",
+    )
+    enforce_owner_check: bool = Field(
+        True,
+        description="When true and actor_user_id is provided, enforce library ownership checks",
+    )
 
 
 class DeleteBookshelfRequest(BaseModel):
     """Request to delete (soft delete) a Bookshelf"""
     bookshelf_id: UUID = Field(..., description="UUID of the bookshelf")
+    actor_user_id: Optional[UUID] = Field(
+        None,
+        description="Actor user id (authorization context)",
+    )
+    enforce_owner_check: bool = Field(
+        True,
+        description="When true and actor_user_id is provided, enforce ownership checks",
+    )
 
 
 class RestoreBookshelfRequest(BaseModel):
@@ -109,6 +149,14 @@ class RenameBookshelfRequest(BaseModel):
 class UpdateBookshelfRequest(BaseModel):
     """Request to update a Bookshelf (name and/or description)"""
     bookshelf_id: Optional[UUID] = Field(None, description="UUID of the bookshelf")
+    actor_user_id: Optional[UUID] = Field(
+        None,
+        description="Actor user id (authorization context)",
+    )
+    enforce_owner_check: bool = Field(
+        True,
+        description="When true and actor_user_id is provided, enforce ownership checks",
+    )
     name: Optional[str] = Field(None, min_length=1, max_length=255, description="New name")
     description: Optional[str] = Field(None, max_length=1000, description="New description")
     status: Optional[BookshelfStatus] = Field(
@@ -562,6 +610,14 @@ class BookshelfDashboardRequest(BaseModel):
     """Request payload for Bookshelf dashboard summary list"""
 
     library_id: UUID = Field(..., description="UUID of the library")
+    actor_user_id: Optional[UUID] = Field(
+        None,
+        description="Actor user id (authorization context)",
+    )
+    enforce_owner_check: bool = Field(
+        True,
+        description="When true and actor_user_id is provided, enforce library ownership checks",
+    )
     page: int = Field(1, ge=1, description="Page number (1-indexed)")
     size: int = Field(20, ge=1, le=100, description="Page size")
     sort: BookshelfDashboardSort = Field(

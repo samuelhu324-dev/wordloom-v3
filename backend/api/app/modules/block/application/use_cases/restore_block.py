@@ -8,14 +8,17 @@ This use case handles:
 - Persisting restoration
 """
 
-from uuid import UUID
 import logging
 
-from ...domain import Block
 from ...application.ports.output import BlockRepository
+from api.app.modules.book.application.ports.output import BookRepository
+from api.app.modules.library.application.ports.output import ILibraryRepository
+from ..ports.input import RestoreBlockRequest
 from ...exceptions import (
     BlockNotFoundError,
     BlockOperationError,
+    BlockForbiddenError,
+    DomainException,
 )
 
 logger = logging.getLogger(__name__)
@@ -24,10 +27,39 @@ logger = logging.getLogger(__name__)
 class RestoreBlockUseCase:
     """Restore a soft-deleted block using 3-level Paperballs recovery"""
 
-    def __init__(self, repository: BlockRepository):
+    def __init__(
+        self,
+        repository: BlockRepository,
+        *,
+        book_repository: BookRepository,
+        library_repository: ILibraryRepository,
+    ):
         self.repository = repository
+        self.book_repository = book_repository
+        self.library_repository = library_repository
 
-    async def execute(self, block_id: UUID, book_id: UUID) -> Block:
+    async def _assert_book_owner(self, *, book_id, request: RestoreBlockRequest) -> None:
+        if not getattr(request, "enforce_owner_check", True):
+            return
+        actor_user_id = getattr(request, "actor_user_id", None)
+        if actor_user_id is None:
+            return
+        book = await self.book_repository.get_by_id(book_id)
+        if not book:
+            raise BlockOperationError(f"Book not found: {book_id}")
+        library = await self.library_repository.get_by_id(book.library_id)
+        if not library:
+            raise BlockOperationError(f"Library not found: {book.library_id}")
+        if library.user_id != actor_user_id:
+            raise BlockForbiddenError(
+                "Forbidden: block does not belong to actor",
+                actor_user_id=str(actor_user_id),
+                library_id=str(book.library_id),
+                book_id=str(book_id),
+                block_id=str(request.block_id),
+            )
+
+    async def execute(self, request: RestoreBlockRequest):
         """
         Restore block from Paperballs using 3-level recovery strategy
 
@@ -48,52 +80,36 @@ class RestoreBlockUseCase:
             BlockNotFoundError: If block not found or not deleted
             BlockOperationError: On persistence error
         """
+        block_id = request.block_id
         try:
             logger.info(f"Starting restoration for block {block_id}")
 
-            # Fetch deleted block (should have soft_deleted_at set)
-            block = await self.repository.get_by_id(block_id)
-            if block:
-                logger.error(f"Block {block_id} is not deleted (expected soft_deleted_at)")
+            block = await self.repository.get_any_by_id(block_id)
+            if not block:
+                raise BlockNotFoundError(str(block_id))
+
+            if getattr(block, "soft_deleted_at", None) is None:
                 raise BlockNotFoundError(f"Block {block_id} is not in Paperballs")
 
-            # === NEW: Retrieve Paperballs recovery context ===
-            # Note: get_by_id filters out soft-deleted, so we need a different query
-            # This would typically be implemented as get_deleted_by_id in the repository
-            logger.debug(f"Retrieving Paperballs context for block {block_id}")
+            await self._assert_book_owner(book_id=block.book_id, request=request)
 
-            # For now, assuming the restored block has Paperballs fields available
-            # In production, would fetch from database directly
-            deleted_prev_id = getattr(block, 'deleted_prev_id', None)
-            deleted_next_id = getattr(block, 'deleted_next_id', None)
-            deleted_section_path = getattr(block, 'deleted_section_path', None)
+            deleted_prev_id = getattr(block, "deleted_prev_id", None)
+            deleted_next_id = getattr(block, "deleted_next_id", None)
+            deleted_section_path = getattr(block, "deleted_section_path", None)
 
-            logger.debug(
-                f"Paperballs context retrieved: prev={deleted_prev_id}, "
-                f"next={deleted_next_id}, section={deleted_section_path}"
-            )
-
-            # === NEW: Call 3-level recovery algorithm ===
-            logger.info("Calling 3-level recovery algorithm via Repository")
             restored_block = await self.repository.restore_from_paperballs(
                 block_id=block_id,
-                book_id=book_id,
+                book_id=block.book_id,
                 deleted_prev_id=deleted_prev_id,
                 deleted_next_id=deleted_next_id,
-                deleted_section_path=deleted_section_path
+                deleted_section_path=deleted_section_path,
             )
 
-            # Mark as restored (trigger BlockRestored event)
-            restored_block.mark_restored()
-
-            # Persist restoration
-            final_block = await self.repository.save(restored_block)
-
             logger.info(f"Block {block_id} successfully restored")
-            return final_block
+            return restored_block
 
-        except BlockNotFoundError:
-            raise
         except Exception as e:
+            if isinstance(e, DomainException):
+                raise
             logger.error(f"Failed to restore block {block_id}: {str(e)}")
             raise BlockOperationError(f"Failed to restore block: {str(e)}")

@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { LibraryDto } from '@/entities/library';
 import { Card, Button } from '@/shared/ui';
 import { LibraryTagsRow } from './LibraryTagsRow';
@@ -36,8 +36,14 @@ export const LibraryCardHorizontal: React.FC<LibraryCardHorizontalProps> = ({
   onClick,
 }) => {
   const { t, lang } = useI18n();
-  const coverUrl = library.coverUrl || undefined; // 未来可通过 media 端点填充
-  const descriptionTooltip = library.description?.trim();
+  const [coverUrl, setCoverUrl] = useState<string | null>(library.coverUrl ?? null);
+  useEffect(() => {
+    setCoverUrl(library.coverUrl ?? null);
+  }, [library.coverUrl]);
+
+  const rawDescription = library.description?.trim();
+  const hasDescription = Boolean(rawDescription);
+  const descriptionText = hasDescription ? rawDescription : t('libraries.list.description.empty');
   const tagsPlaceholder = t('libraries.tags.placeholder');
   const pinnedLabel = t('libraries.list.status.pinned');
   const archivedLabel = t('libraries.list.status.archived');
@@ -82,6 +88,7 @@ export const LibraryCardHorizontal: React.FC<LibraryCardHorizontalProps> = ({
             src={coverUrl}
             alt={t('libraries.card.coverAlt', { name: library.name })}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={() => setCoverUrl(null)}
           />
         ) : (
           <span style={{ padding: 'var(--spacing-sm)', textAlign: 'center' }}>{t('libraries.cardHorizontal.noCover')}</span>
@@ -92,7 +99,7 @@ export const LibraryCardHorizontal: React.FC<LibraryCardHorizontalProps> = ({
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--spacing-lg)' }}>
           <div style={{ flex: 1 }}>
-            <h3 style={{ margin: 0 }} title={descriptionTooltip ?? t('libraries.list.description.empty')}>
+            <h3 style={{ margin: 0 }} title={descriptionText}>
               {library.name}
             </h3>
             <LibraryTagsRow
@@ -100,11 +107,15 @@ export const LibraryCardHorizontal: React.FC<LibraryCardHorizontalProps> = ({
               total={library.tag_total_count}
               placeholder={tagsPlaceholder}
             />
-            {descriptionTooltip && (
-              <p style={{ margin: '4px 0 0 0', lineHeight: 1.4, color: 'var(--color-text-secondary)' }}>
-                {descriptionTooltip}
-              </p>
-            )}
+            <p
+              style={{
+                margin: '4px 0 0 0',
+                lineHeight: 1.4,
+                color: hasDescription ? 'var(--color-text-secondary)' : 'var(--color-text-tertiary)',
+              }}
+            >
+              {descriptionText}
+            </p>
             {(library.pinned || library.archived_at) && (
               <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
                 {library.pinned && (

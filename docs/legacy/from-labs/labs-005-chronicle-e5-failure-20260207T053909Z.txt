@@ -1,0 +1,51 @@
+[labs-005/e5] db=postgresql+psycopg://wordloom:wordloom@localhost:5435/wordloom_test
+[labs-005/e5] Pick one real chronicle_event id for transient injection
+[labs-005/e5] good_event_id=c877854a-7c5c-4a83-b946-93f09fdd2778
+[labs-005/e5] Insert 1 deterministic outbox row (invalid op)
+[labs-005/e5] det_outbox_id=2317c9c7-15cb-44c4-997b-e4b5b385eb0a
+[labs-005/e5] Insert 1 transient outbox row (valid op)
+[labs-005/e5] tr_outbox_id=067a7918-5b9f-4f4f-b794-b030f646043b
+[labs-005/e5] Run worker with transient fault injection (should schedule retry)
+INFO:__main__:[chronicle worker] metrics on :9111
+INFO:__main__:[chronicle worker] exiting after OUTBOX_RUN_SECONDS=2.0
+[OK] Database: postgresql+psycopg://wordloom:wordloom@localhost:5435/wordloom_test
+[labs-005/e5] Verify transient row is pending with next_retry_at and reason=unknown_exception
+                  id                  | status  | attempts |   error_reason    | has_next_retry_at 
+--------------------------------------+---------+----------+-------------------+-------------------
+ 067a7918-5b9f-4f4f-b794-b030f646043b | pending |        1 | unknown_exception | t
+(1 row)
+
+[labs-005/e5] Run worker again without injection (should converge to done)
+INFO:__main__:[chronicle worker] metrics on :9111
+INFO:__main__:[chronicle worker] exiting after OUTBOX_RUN_SECONDS=10.0
+[OK] Database: postgresql+psycopg://wordloom:wordloom@localhost:5435/wordloom_test
+[labs-005/e5] Verify transient row is done
+                  id                  | status | attempts | error_reason 
+--------------------------------------+--------+----------+--------------
+ 067a7918-5b9f-4f4f-b794-b030f646043b | done   |        1 | 
+(1 row)
+
+[labs-005/e5] Verify deterministic row is failed (reason=deterministic_exception)
+                  id                  | status | attempts |      error_reason       |             error_snip             
+--------------------------------------+--------+----------+-------------------------+------------------------------------
+ 2317c9c7-15cb-44c4-997b-e4b5b385eb0a | failed |        1 | deterministic_exception | Unknown outbox op: 'not-a-real-op'
+(1 row)
+
+[labs-005/e5] Apply manual fix (change op/entity_id to a valid upsert)
+UPDATE 1
+[labs-005/e5] Replay failed -> pending (writes audit fields)
+[OK] Database: postgresql+psycopg://wordloom:wordloom@localhost:5435/wordloom_test
+Matched failed rows: 1; will replay: 1 (limit=1)
+Replayed rows: 1
+[labs-005/e5] Process replayed row
+INFO:__main__:[chronicle worker] metrics on :9111
+INFO:__main__:[chronicle worker] exiting after OUTBOX_RUN_SECONDS=10.0
+[OK] Database: postgresql+psycopg://wordloom:wordloom@localhost:5435/wordloom_test
+[labs-005/e5] Verify deterministic row is now done and replay audit fields are set
+                  id                  | status | replay_count | last_replayed_by | has_last_replayed_at 
+--------------------------------------+--------+--------------+------------------+----------------------
+ 2317c9c7-15cb-44c4-997b-e4b5b385eb0a | done   |            1 | ops              | t
+(1 row)
+
+[labs-005/e5] OK
+[labs-005/e5] snapshot written: /mnt/d/Project/wordloom-v3/docs/logs/logs/v2-logs/_snapshots/labs-005-chronicle-e5-failure-20260207T053909Z.txt

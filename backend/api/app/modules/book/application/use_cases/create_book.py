@@ -18,15 +18,26 @@ from ...domain import Book
 from ...application.ports.output import BookRepository
 from ...exceptions import (
     BookOperationError,
+    BookForbiddenError,
+    BookLibraryAssociationError,
+    DomainException,
 )
+from api.app.modules.library.application.ports.output import ILibraryRepository
 
 
 class CreateBookUseCase:
     """Create a new book"""
 
-    def __init__(self, repository: BookRepository, event_bus: Optional[EventBus] = None):
+    def __init__(
+        self,
+        repository: BookRepository,
+        event_bus: Optional[EventBus] = None,
+        *,
+        library_repository: Optional[ILibraryRepository] = None,
+    ):
         self.repository = repository
         self.event_bus = event_bus
+        self.library_repository = library_repository
 
     async def execute(
         self,
@@ -35,6 +46,9 @@ class CreateBookUseCase:
         title: str,
         description: Optional[str] = None,
         cover_icon: Optional[str] = None,
+        *,
+        actor_user_id: Optional[UUID] = None,
+        enforce_owner_check: bool = True,
     ) -> Book:
         """
         Create book
@@ -52,6 +66,11 @@ class CreateBookUseCase:
             BookOperationError: On persistence error
         """
         try:
+            await self._enforce_library_owner(
+                library_id,
+                actor_user_id=actor_user_id,
+                enforce_owner_check=enforce_owner_check,
+            )
             book = Book.create(
                 bookshelf_id=bookshelf_id,
                 library_id=library_id,
@@ -64,7 +83,31 @@ class CreateBookUseCase:
             return created_book
 
         except Exception as e:
+            if isinstance(e, DomainException):
+                raise
             raise BookOperationError(f"Failed to create book: {str(e)}")
+
+    async def _enforce_library_owner(
+        self,
+        library_id: UUID,
+        *,
+        actor_user_id: Optional[UUID],
+        enforce_owner_check: bool,
+    ) -> None:
+        if not enforce_owner_check or actor_user_id is None:
+            return
+        if self.library_repository is None:
+            raise BookOperationError("library_repository is required when enforcing owner checks")
+
+        library = await self.library_repository.get_by_id(library_id)
+        if not library:
+            raise BookLibraryAssociationError(library_id=str(library_id), reason="Library not found")
+        if getattr(library, "user_id", None) != actor_user_id:
+            raise BookForbiddenError(
+                library_id=str(library_id),
+                actor_user_id=str(actor_user_id),
+                reason="Actor does not own this library",
+            )
 
     async def _publish_events(self, book: Book) -> None:
         """Publish domain events captured on the aggregate"""

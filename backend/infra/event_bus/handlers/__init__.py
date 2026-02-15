@@ -26,17 +26,27 @@ At Application Startup (main.py):
 After bootstrap, all domain events will automatically route to their handlers.
 """
 
-# Import all handler modules to trigger decorator registration
-# (This should also be done in main.py for clarity)
-try:
-    from . import bookshelf_handler, media_handler, chronicle_handler
-except ImportError as e:
-    # If a handler module has unresolved imports, skip it
-    # This can happen during development
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.warning(f"Could not import handler module: {e}")
+import logging
 
-__all__ = ["bookshelf_handler", "media_handler", "chronicle_handler"]
+logger = logging.getLogger(__name__)
+
+# Import handler modules to trigger @EventHandlerRegistry.register decorators.
+# Important: import each module independently so a broken handler doesn't prevent
+# other handlers (especially search_index_handlers) from being registered.
+
+_handler_module_names = [
+    "search_index_handlers",
+    "bookshelf_handler",
+    "media_handler",
+    "chronicle_handler",
+]
+
+for _mod in _handler_module_names:
+    try:
+        __import__(f"{__name__}.{_mod}")
+    except ImportError as e:
+        logger.warning(f"Could not import handler module: {e}")
+
+__all__ = list(_handler_module_names)
 
 

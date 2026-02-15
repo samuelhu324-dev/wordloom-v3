@@ -17,6 +17,13 @@ export const CHRONICLE_DEFAULT_EVENT_TYPES: ChronicleEventType[] = [
   'book_soft_deleted',
   'book_restored',
   'book_deleted',
+  'book_renamed',
+  'book_updated',
+  'block_created',
+  'block_updated',
+  'block_soft_deleted',
+  'block_restored',
+  'block_type_changed',
   'block_status_changed',
   'book_stage_changed',
   'book_maturity_recomputed',
@@ -28,6 +35,8 @@ export const CHRONICLE_DEFAULT_EVENT_TYPES: ChronicleEventType[] = [
   'wordcount_milestone_reached',
   'todo_promoted_from_block',
   'todo_completed',
+  'tag_added_to_book',
+  'tag_removed_from_book',
 ];
 
 export interface UseChronicleTimelineOptions {

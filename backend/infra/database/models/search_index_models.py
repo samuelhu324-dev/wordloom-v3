@@ -20,7 +20,7 @@ Round-Trip Validation:
 from datetime import datetime, timezone
 from uuid import uuid4
 from sqlalchemy import (
-    Column, String, DateTime, Text, Float,
+    Column, String, DateTime, Text, Float, BigInteger,
     UniqueConstraint, Index
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -70,6 +70,15 @@ class SearchIndexModel(Base):
         nullable=False,
         index=True
     )
+
+    # Scope Key (Projection partition key)
+    # Nullable for legacy rows / entity types that are not library-scoped.
+    library_id = Column(
+        UUID(as_uuid=True),
+        nullable=True,
+        index=True,
+    )
+
     entity_id = Column(
         UUID(as_uuid=True),
         nullable=False,
@@ -106,10 +115,20 @@ class SearchIndexModel(Base):
         default=lambda: datetime.now(timezone.utc)
     )
 
+    # Anti-regression / ordering guard (monotonic per entity)
+    # Derived from event.occurred_at in handlers (microsecond resolution)
+    event_version = Column(
+        BigInteger,
+        nullable=False,
+        default=0,
+        index=True,
+    )
+
     # Constraints
     __table_args__ = (
         UniqueConstraint("entity_type", "entity_id", name="uq_search_index_entity"),
         Index("idx_search_index_type", "entity_type"),
+        Index("idx_search_index_library_type", "library_id", "entity_type"),
         Index("idx_search_index_updated", "updated_at"),
         Index("idx_search_index_entity", "entity_type", "entity_id"),
     )
@@ -123,12 +142,14 @@ class SearchIndexModel(Base):
         return {
             "id": str(self.id),
             "entity_type": self.entity_type,
+            "library_id": str(self.library_id) if self.library_id else None,
             "entity_id": str(self.entity_id),
             "text": self.text,
             "snippet": self.snippet,
             "rank_score": self.rank_score,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "event_version": int(self.event_version) if self.event_version is not None else 0,
         }
 
     @classmethod
@@ -144,12 +165,14 @@ class SearchIndexModel(Base):
         return cls(
             id=data.get("id"),
             entity_type=data["entity_type"],
+            library_id=data.get("library_id"),
             entity_id=data["entity_id"],
             text=data["text"],
             snippet=data.get("snippet"),
             rank_score=data.get("rank_score", 0.0),
             created_at=datetime.fromisoformat(data["created_at"]) if "created_at" in data else datetime.now(timezone.utc),
             updated_at=datetime.fromisoformat(data["updated_at"]) if "updated_at" in data else datetime.now(timezone.utc),
+            event_version=int(data.get("event_version", 0) or 0),
         )
 
     def __repr__(self) -> str:

@@ -31,8 +31,14 @@ from api.app.modules.bookshelf.exceptions import (
 )
 from api.app.modules.bookshelf.schemas import BookshelfDashboardResponse
 
+from api.app.config.security import get_current_actor
+from api.app.shared.actor import Actor
+from api.app.config.setting import get_settings
+
 
 logger = logging.getLogger(__name__)
+
+_settings = get_settings()
 
 router = APIRouter(prefix="", tags=["bookshelves"])
 
@@ -53,12 +59,20 @@ router = APIRouter(prefix="", tags=["bookshelves"])
 )
 async def create_bookshelf(
     request: CreateBookshelfRequest,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """创建新书架"""
     start_time = time.time()
     logger.info(f"[CREATE_BOOKSHELF] START - library_id={request.library_id}, name={request.name}")
     try:
+        enforce_owner_check = not _settings.allow_dev_library_owner_override
+        request = request.model_copy(
+            update={
+                "actor_user_id": actor.user_id,
+                "enforce_owner_check": enforce_owner_check,
+            }
+        )
         use_case = di.get_create_bookshelf_use_case()
         result = await use_case.execute(request)
         elapsed = time.time() - start_time
@@ -89,8 +103,8 @@ async def create_bookshelf(
         elapsed = time.time() - start_time
         logger.warning(f"[CREATE_BOOKSHELF] DOMAIN_ERROR - {str(e)}, elapsed={elapsed:.3f}s")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            status_code=getattr(e, "http_status_code", getattr(e, "http_status", status.HTTP_400_BAD_REQUEST)),
+            detail=getattr(e, "to_dict", lambda: str(e))(),
         )
     except Exception as e:
         elapsed = time.time() - start_time
@@ -125,20 +139,30 @@ async def get_bookshelf_dashboard(
     size: int = Query(20, ge=1, le=100),
     sort: BookshelfDashboardSort = Query(BookshelfDashboardSort.RECENT_ACTIVITY),
     status_filter: BookshelfDashboardFilter = Query(BookshelfDashboardFilter.ACTIVE),
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container),
 ):
     """获取书架运营面板数据"""
 
+    enforce_owner_check = not _settings.allow_dev_library_owner_override
     request = BookshelfDashboardRequest(
         library_id=library_id,
+        actor_user_id=actor.user_id,
+        enforce_owner_check=enforce_owner_check,
         page=page,
         size=size,
         sort=sort,
         status_filter=status_filter,
     )
 
-    use_case = di.get_bookshelf_dashboard_use_case()
-    result = await use_case.execute(request)
+    try:
+        use_case = di.get_bookshelf_dashboard_use_case()
+        result = await use_case.execute(request)
+    except DomainException as e:
+        raise HTTPException(
+            status_code=getattr(e, "http_status_code", getattr(e, "http_status", status.HTTP_400_BAD_REQUEST)),
+            detail=getattr(e, "to_dict", lambda: str(e))(),
+        )
 
     items = [
         {
@@ -212,14 +236,18 @@ async def list_bookshelves(
     library_id: UUID = Query(..., description="Library ID"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """列出所有书架"""
     start_time = time.time()
     logger.info(f"[LIST_BOOKSHELVES] START - library_id={library_id}, skip={skip}, limit={limit}")
     try:
+        enforce_owner_check = not _settings.allow_dev_library_owner_override
         request = ListBookshelvesRequest(
             library_id=library_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=enforce_owner_check,
             skip=skip,
             limit=limit
         )
@@ -255,15 +283,22 @@ async def list_bookshelves(
         elapsed = time.time() - start_time
         logger.warning(f"[LIST_BOOKSHELVES] DOMAIN_ERROR - {str(e)}, elapsed={elapsed:.3f}s")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            status_code=getattr(e, "http_status_code", getattr(e, "http_status", status.HTTP_400_BAD_REQUEST)),
+            detail=getattr(e, "to_dict", lambda: str(e))(),
         )
     except Exception as e:
         elapsed = time.time() - start_time
-        logger.error(f"[LIST_BOOKSHELVES] ERROR - {type(e).__name__}: {str(e)}, elapsed={elapsed:.3f}s", exc_info=True)
+        logger.error(
+            f"[LIST_BOOKSHELVES] ERROR - {type(e).__name__}: {e}; library_id={library_id} skip={skip} limit={limit}, elapsed={elapsed:.3f}s",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error"
+            detail={
+                "error": "Internal server error",
+                "type": type(e).__name__,
+                "message": str(e),
+            },
         )
 
 
@@ -278,13 +313,19 @@ async def list_bookshelves(
 )
 async def get_bookshelf(
     bookshelf_id: UUID,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """获取书架详情"""
     start_time = time.time()
     logger.info(f"[GET_BOOKSHELF] START - bookshelf_id={bookshelf_id}")
     try:
-        request = GetBookshelfRequest(bookshelf_id=bookshelf_id)
+        enforce_owner_check = not _settings.allow_dev_library_owner_override
+        request = GetBookshelfRequest(
+            bookshelf_id=bookshelf_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=enforce_owner_check,
+        )
         use_case = di.get_get_bookshelf_use_case()
         response = await use_case.execute(request)  # Returns GetBookshelfResponse DTO
         elapsed = time.time() - start_time
@@ -313,8 +354,8 @@ async def get_bookshelf(
         elapsed = time.time() - start_time
         logger.warning(f"[GET_BOOKSHELF] DOMAIN_ERROR - {str(e)}, elapsed={elapsed:.3f}s")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            status_code=getattr(e, "http_status_code", getattr(e, "http_status", status.HTTP_400_BAD_REQUEST)),
+            detail=getattr(e, "to_dict", lambda: str(e))(),
         )
     except Exception as e:
         elapsed = time.time() - start_time
@@ -337,13 +378,21 @@ async def get_bookshelf(
 async def update_bookshelf(
     bookshelf_id: UUID,
     request: UpdateBookshelfRequest,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """更新书架"""
     start_time = time.time()
     logger.info(f"[UPDATE_BOOKSHELF] START - bookshelf_id={bookshelf_id}, name={request.name}")
     try:
-        payload = request.model_copy(update={"bookshelf_id": bookshelf_id})
+        enforce_owner_check = not _settings.allow_dev_library_owner_override
+        payload = request.model_copy(
+            update={
+                "bookshelf_id": bookshelf_id,
+                "actor_user_id": actor.user_id,
+                "enforce_owner_check": enforce_owner_check,
+            }
+        )
         use_case = di.get_update_bookshelf_use_case()
         result = await use_case.execute(payload)
         elapsed = time.time() - start_time
@@ -397,13 +446,19 @@ async def update_bookshelf(
 )
 async def delete_bookshelf(
     bookshelf_id: UUID,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """删除书架"""
     start_time = time.time()
     logger.info(f"[DELETE_BOOKSHELF] START - bookshelf_id={bookshelf_id}")
     try:
-        request = DeleteBookshelfRequest(bookshelf_id=bookshelf_id)
+        enforce_owner_check = not _settings.allow_dev_library_owner_override
+        request = DeleteBookshelfRequest(
+            bookshelf_id=bookshelf_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=enforce_owner_check,
+        )
         use_case = di.get_delete_bookshelf_use_case()
         await use_case.execute(request)
         elapsed = time.time() - start_time
@@ -419,8 +474,8 @@ async def delete_bookshelf(
         elapsed = time.time() - start_time
         logger.warning(f"[DELETE_BOOKSHELF] DOMAIN_ERROR - {str(e)}, elapsed={elapsed:.3f}s")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            status_code=getattr(e, "http_status_code", getattr(e, "http_status", status.HTTP_400_BAD_REQUEST)),
+            detail=getattr(e, "to_dict", lambda: str(e))(),
         )
     except Exception as e:
         elapsed = time.time() - start_time
@@ -442,13 +497,19 @@ async def delete_bookshelf(
 )
 async def get_basement(
     library_id: UUID = Query(..., description="Library ID"),
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container)
 ):
     """获取 Basement（特殊书架）"""
     start_time = time.time()
     logger.info(f"[GET_BASEMENT] START - library_id={library_id}")
     try:
-        request = GetBasementRequest(library_id=library_id)
+        enforce_owner_check = not _settings.allow_dev_library_owner_override
+        request = GetBasementRequest(
+            library_id=library_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=enforce_owner_check,
+        )
         use_case = di.get_get_basement_use_case()
         bookshelf = await use_case.execute(request)
         elapsed = time.time() - start_time
@@ -475,8 +536,8 @@ async def get_basement(
         elapsed = time.time() - start_time
         logger.warning(f"[GET_BASEMENT] DOMAIN_ERROR - {str(e)}, elapsed={elapsed:.3f}s")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            status_code=getattr(e, "http_status_code", getattr(e, "http_status", status.HTTP_400_BAD_REQUEST)),
+            detail=getattr(e, "to_dict", lambda: str(e))(),
         )
     except Exception as e:
         elapsed = time.time() - start_time

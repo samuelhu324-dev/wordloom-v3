@@ -26,10 +26,18 @@ const THEME_OPTIONS: ThemeOption[] = [
 export const ThemeMenu: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { t } = useI18n();
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const hoverTimerRef = useRef<number | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Avoid hydration mismatch when language is resolved from client storage.
+  const themeLabel = mounted ? t('nav.theme') : 'Theme';
 
   const handleMouseEnter = () => {
     if (hoverTimerRef.current) window.clearTimeout(hoverTimerRef.current);
@@ -92,18 +100,18 @@ export const ThemeMenu: React.FC = () => {
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={t('nav.theme')}
+        aria-label={themeLabel}
         className={styles.trigger}
         onClick={() => setOpen(prev => !prev)}
         onKeyDown={handleMenuKeyDown}
       >
-        {t('nav.theme')} <span className={styles.caret} aria-hidden="true">▾</span>
+        {themeLabel} <span className={styles.caret} aria-hidden="true">▾</span>
       </button>
       {open && (
         <div
           ref={menuRef}
           role="menu"
-          aria-label={t('nav.theme')}
+          aria-label={themeLabel}
           className={styles.panel}
         >
           <div className={styles.heading}>选择主题</div>

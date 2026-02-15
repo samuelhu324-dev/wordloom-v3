@@ -259,6 +259,32 @@ class BlockInBasementError(BlockException):
         )
 
 
+class BlockForbiddenError(BlockException):
+    """403 - Actor is not allowed to access block resources."""
+
+    code = "BLOCK_FORBIDDEN"
+    http_status = 403
+
+    def __init__(
+        self,
+        message: str = "Forbidden",
+        *,
+        actor_user_id: Optional[str] = None,
+        library_id: Optional[str] = None,
+        book_id: Optional[str] = None,
+        block_id: Optional[str] = None,
+    ):
+        super().__init__(
+            message=message,
+            details={
+                "actor_user_id": actor_user_id,
+                "library_id": library_id,
+                "book_id": book_id,
+                "block_id": block_id,
+            },
+        )
+
+
 class BlockOperationError(BlockException):
     """Generic Block operation failure"""
     code = "BLOCK_OPERATION_ERROR"

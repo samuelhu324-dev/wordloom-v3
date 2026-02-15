@@ -18,14 +18,19 @@ Performance:
 """
 
 import logging
-from typing import List, Optional
+from typing import List
 from uuid import UUID
-from sqlalchemy import and_, func, text
-from sqlalchemy.orm import Session
+
+from sqlalchemy import func, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.app.modules.search.application.ports.output import SearchPort
 from api.app.modules.search.domain import SearchQuery, SearchHit, SearchResult, SearchEntityType
+from api.app.modules.search.application.dtos import BlockSearchHit
+from api.app.modules.search.application.ports.candidate_provider import CandidateProvider
+from api.app.modules.search.application.two_stage_search_service import TwoStageSearchService
 from infra.database.models.search_index_models import SearchIndexModel
+from infra.search.candidate_provider_factory import get_stage1_candidate_provider
 
 logger = logging.getLogger(__name__)
 
@@ -53,13 +58,41 @@ class PostgresSearchAdapter(SearchPort):
       - Simple: Pure SQL SELECT operations
     """
 
-    def __init__(self, db_session: Session):
+    def __init__(self, db_session: AsyncSession):
         """Initialize with database session
 
         Args:
-            db_session: SQLAlchemy session (injected)
+            db_session: SQLAlchemy AsyncSession (injected)
         """
         self.db_session = db_session
+
+    async def search_block_hits_two_stage(
+        self,
+        q: str,
+        book_id: UUID | None = None,
+        limit: int = 20,
+        candidate_limit: int = 200,
+        candidate_provider: CandidateProvider | None = None,
+    ) -> List[BlockSearchHit]:
+        """Two-stage search for blocks with tags.
+
+        Stage 1 (cheap): search in search_index to get candidate block IDs.
+        Stage 2 (strict): join blocks + tag_associations + tags with business filters.
+
+        Notes:
+        - Uses search_index.event_version as ordering key to avoid out-of-order event regression.
+        - Filters out soft-deleted blocks (blocks.soft_deleted_at IS NULL).
+        - Filters out deleted tags (tags.deleted_at IS NULL).
+        """
+
+        provider = candidate_provider or get_stage1_candidate_provider(self.db_session)
+        service = TwoStageSearchService(self.db_session, provider)
+        return await service.search_block_hits(
+            q=q,
+            book_id=book_id,
+            limit=limit,
+            candidate_limit=candidate_limit,
+        )
 
     async def search_blocks(self, query: SearchQuery) -> SearchResult:
         """Search blocks via search_index
@@ -198,35 +231,40 @@ class PostgresSearchAdapter(SearchPort):
             Tuple (total_count, [SearchHit, ...])
         """
         try:
-            # Base query
-            stmt = self.db_session.query(SearchIndexModel).filter(
-                SearchIndexModel.entity_type == entity_type
-            )
+            where_clauses = [SearchIndexModel.entity_type == entity_type]
 
-            # Text search via PostgreSQL tsvector
+            if getattr(query, "library_id", None) is not None:
+                where_clauses.append(SearchIndexModel.library_id == query.library_id)
+
             if query.text:
-                # Build tsvector query: to_tsvector(text) @@ plainto_tsquery(q)
-                tsquery = text(
-                    f"to_tsvector('english', text) @@ plainto_tsquery('english', :q)"
+                where_clauses.append(
+                    text(
+                        "to_tsvector('english', search_index.text) @@ plainto_tsquery('english', :q)"
+                    )
                 )
-                stmt = stmt.filter(tsquery)
 
-            # Get total count
-            total_count = stmt.count()
+            count_stmt = (
+                select(func.count())
+                .select_from(SearchIndexModel)
+                .where(*where_clauses)
+            )
+            total_count = (await self.db_session.execute(count_stmt, {"q": query.text})).scalar_one()
 
-            # Apply ranking and sorting
-            stmt = stmt.order_by(
-                func.ts_rank_cd(
-                    func.to_tsvector(text('english'), SearchIndexModel.text),
-                    func.plainto_tsquery(text('english'), query.text)
-                ).desc()
+            stmt = (
+                select(SearchIndexModel)
+                .where(*where_clauses)
+                .order_by(
+                    func.ts_rank_cd(
+                        func.to_tsvector('english', SearchIndexModel.text),
+                        func.plainto_tsquery('english', query.text),
+                    ).desc()
+                )
+                .limit(query.limit)
+                .offset(query.offset)
             )
 
-            # Apply pagination
-            stmt = stmt.limit(query.limit).offset(query.offset)
-
-            # Execute query
-            rows = stmt.all()
+            result = await self.db_session.execute(stmt, {"q": query.text})
+            rows = result.scalars().all()
 
             # Convert to SearchHit domain objects
             hits = [

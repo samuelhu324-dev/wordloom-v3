@@ -1,0 +1,40 @@
+{
+  "data": [
+    {
+      "name": "outbox.process",
+      "spanKind": "internal"
+    },
+    {
+      "name": "projection.process_batch",
+      "spanKind": "internal"
+    },
+    {
+      "name": "connect",
+      "spanKind": "client"
+    },
+    {
+      "name": "SELECT wordloom_test",
+      "spanKind": "client"
+    },
+    {
+      "name": "UPDATE wordloom_test",
+      "spanKind": "client"
+    },
+    {
+      "name": "INSERT wordloom_test",
+      "spanKind": "client"
+    },
+    {
+      "name": "outbox_worker.loop",
+      "spanKind": "internal"
+    },
+    {
+      "name": "outbox.claim_batch",
+      "spanKind": "internal"
+    }
+  ],
+  "total": 8,
+  "limit": 0,
+  "offset": 0,
+  "errors": null
+}

@@ -42,6 +42,22 @@ interface LibrarySection {
   items: LibraryDto[];
 }
 
+const parseTimestamp = (value?: string | null) => {
+  if (!value) return 0;
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+const sortLibrariesForPresentation = (a: LibraryDto, b: LibraryDto) => {
+  const aPinned = Boolean(a.pinned);
+  const bPinned = Boolean(b.pinned);
+  if (aPinned && !bPinned) return -1;
+  if (!aPinned && bPinned) return 1;
+  const updatedDiff = parseTimestamp(b.updated_at) - parseTimestamp(a.updated_at);
+  if (updatedDiff !== 0) return updatedDiff;
+  return parseTimestamp(b.created_at) - parseTimestamp(a.created_at);
+};
+
 const LIST_VIEW_COVER_SIZE = 96;
 
 const descriptionClampStyle: React.CSSProperties = {
@@ -174,15 +190,18 @@ export const LibraryList: React.FC<LibraryListProps> = ({
   const sections = useMemo<LibrarySection[]>(() => {
     if (!hasLibraries) return [];
 
-    const pinned = visibleLibraries.filter((library) => library.pinned && !library.archived_at);
-    const regular = visibleLibraries.filter((library) => !library.pinned && !library.archived_at);
-    const archivedList = includeArchived
+    const active = visibleLibraries
+      .filter((library) => !library.archived_at)
+      .slice()
+      .sort(sortLibrariesForPresentation);
+    const archivedList = (includeArchived
       ? visibleLibraries.filter((library) => Boolean(library.archived_at))
-      : [];
+      : [])
+      .slice()
+      .sort(sortLibrariesForPresentation);
 
     const list: LibrarySection[] = [];
-    if (pinned.length) list.push({ key: 'pinned', title: t('libraries.list.section.pinned'), items: pinned });
-    if (regular.length) list.push({ key: 'regular', title: t('libraries.list.section.regular'), items: regular });
+    if (active.length) list.push({ key: 'active', title: t('libraries.list.section.all'), items: active });
     if (archivedList.length) list.push({ key: 'archived', title: t('libraries.list.section.archived'), items: archivedList });
     if (!list.length) list.push({ key: 'all', title: t('libraries.list.section.all'), items: visibleLibraries });
     return list;
@@ -194,10 +213,12 @@ export const LibraryList: React.FC<LibraryListProps> = ({
   };
 
   const handleTogglePin = (library: LibraryDto) => {
+    // 立即在前端缓存中体现 pinned 变化，复用 quickUpdate 的缓存写入逻辑
     quickUpdate.mutate({ libraryId: library.id, data: { pinned: !library.pinned } });
   };
 
   const handleToggleArchive = (library: LibraryDto) => {
+    // 立即在前端缓存中体现 archived 变化，复用 quickUpdate 的缓存写入逻辑
     quickUpdate.mutate({ libraryId: library.id, data: { archived: !library.archived_at } });
   };
 
@@ -286,9 +307,8 @@ export const LibraryList: React.FC<LibraryListProps> = ({
               const bookshelvesCount = libraryMetrics.bookshelves;
               const booksCount = libraryMetrics.books;
               const viewsCount = library.views_count ?? 0;
-              const bookshelvesTooltip = bookshelvesCount == null
-                ? t('libraries.list.tooltip.bookshelvesUnknown')
-                : t('libraries.list.tooltip.bookshelves', { count: bookshelvesCount });
+              const resolvedBookshelvesCount = bookshelvesCount == null ? 1 : Math.max(1, bookshelvesCount);
+              const bookshelvesTooltip = t('libraries.list.tooltip.bookshelves', { count: resolvedBookshelvesCount });
               const booksTooltip = booksCount == null
                 ? t('libraries.list.tooltip.booksUnknown')
                 : t('libraries.list.tooltip.books', { count: booksCount });
@@ -390,12 +410,12 @@ export const LibraryList: React.FC<LibraryListProps> = ({
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 4,
-                        opacity: bookshelvesCount == null ? 0.55 : 1,
+                        opacity: 1,
                       }}
                       data-tooltip={bookshelvesTooltip}
                       aria-label={bookshelvesTooltip}
                     >
-                      <LibraryIcon size={14} /> {bookshelvesCount ?? '—'}
+                      <LibraryIcon size={14} /> {resolvedBookshelvesCount}
                     </span>
                     <span
                       className={listStyles.tooltipAnchor}

@@ -20,6 +20,8 @@ import { buildMediaFileUrl } from '@/shared/api';
 import { showToast } from '@/shared/ui/toast';
 import { useUploadBookCover } from '@/features/book/model/hooks';
 import { getBookTheme } from '@/shared/theme/theme-pure';
+import { ImageLoadHandle, reportImageError, reportImageLoaded, startImageLoad } from '@/shared/telemetry/imageMetrics';
+import { UiRequestHandle, emitUiRendered, markUiResponse, startUiRequest } from '@/shared/telemetry/uiRequestMetrics';
 import styles from './BookFlatCard.module.css';
 import { MATURITY_META, STATUS_COLORS } from './bookVisuals';
 import { getCoverIconComponent } from './bookCoverIcons';
@@ -111,6 +113,10 @@ export const BookFlatCard = React.forwardRef<HTMLDivElement, BookFlatCardProps>(
   const { t } = useI18n();
 
   const [localCoverUrl, setLocalCoverUrl] = React.useState<string | null>(null);
+  const [coverSrc, setCoverSrc] = React.useState<string | undefined>(undefined);
+  const coverLoadRef = React.useRef<ImageLoadHandle | null>(null);
+  const coverActionRef = React.useRef<UiRequestHandle | null>(null);
+  const nextCoverCidRef = React.useRef<string | null>(null);
   const previewUrlRef = React.useRef<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const uploadCoverMutation = useUploadBookCover();
@@ -178,6 +184,32 @@ export const BookFlatCard = React.forwardRef<HTMLDivElement, BookFlatCardProps>(
   React.useEffect(() => {
     setLocalCoverUrl(null);
   }, [book?.id, book?.cover_media_id, book?.updated_at, coverUrl]);
+
+  React.useEffect(() => {
+    if (!resolvedCoverUrl) {
+      coverLoadRef.current = null;
+      setCoverSrc(undefined);
+      return;
+    }
+
+    // Local preview (blob/data) should not produce cid-linked metrics.
+    if (resolvedCoverUrl.startsWith('blob:') || resolvedCoverUrl.startsWith('data:')) {
+      coverLoadRef.current = null;
+      setCoverSrc(resolvedCoverUrl);
+      return;
+    }
+
+    // Lazy-loaded images still emit onLoad/onError, so we can measure end-to-end.
+    const nextCid = nextCoverCidRef.current || undefined;
+    const handle = startImageLoad('book.cover.load', resolvedCoverUrl, nextCid);
+    coverLoadRef.current = handle;
+    setCoverSrc(handle.instrumentedUrl);
+
+    // Only reuse the upload correlation id for the very next server image load.
+    if (nextCid) {
+      nextCoverCidRef.current = null;
+    }
+  }, [resolvedCoverUrl, book?.id]);
   const handleTogglePin = React.useCallback(() => {
     if (onTogglePin) {
       onTogglePin(!resolvedPinned);
@@ -221,12 +253,18 @@ export const BookFlatCard = React.forwardRef<HTMLDivElement, BookFlatCardProps>(
       URL.revokeObjectURL(previewUrlRef.current);
       previewUrlRef.current = null;
     }
+
+    const action = startUiRequest('book.cover.update');
+    coverActionRef.current = action;
+    nextCoverCidRef.current = action.correlationId;
+
     const previewUrl = URL.createObjectURL(file);
     previewUrlRef.current = previewUrl;
     setLocalCoverUrl(previewUrl);
 
     try {
-      const updated = await uploadBookCoverAsync({ bookId: book.id, file });
+      const updated = await uploadBookCoverAsync({ bookId: book.id, file, correlationId: action.correlationId });
+      coverActionRef.current = markUiResponse(action);
       if (updated.cover_media_id) {
         const freshUrl = buildMediaFileUrl(updated.cover_media_id, updated.updated_at);
         setLocalCoverUrl(freshUrl);
@@ -238,6 +276,8 @@ export const BookFlatCard = React.forwardRef<HTMLDivElement, BookFlatCardProps>(
       console.error('[BookFlatCard] cover upload failed', error);
       setLocalCoverUrl(null);
       showToast(t('books.toast.coverUploadFailed'));
+      coverActionRef.current = null;
+      nextCoverCidRef.current = null;
     } finally {
       if (previewUrlRef.current) {
         URL.revokeObjectURL(previewUrlRef.current);
@@ -528,7 +568,39 @@ export const BookFlatCard = React.forwardRef<HTMLDivElement, BookFlatCardProps>(
           data-has-icon={showIconInFace ? 'true' : undefined}
         >
           {resolvedCoverUrl ? (
-            <img src={resolvedCoverUrl} alt={coverAlt} loading="lazy" />
+            <img
+              src={coverSrc || resolvedCoverUrl}
+              alt={coverAlt}
+              loading="lazy"
+              onLoad={(e) => {
+                const handle = coverLoadRef.current;
+                if (!handle) return;
+                reportImageLoaded(handle, e.currentTarget, {
+                  entity_type: 'book',
+                  entity_id: book?.id ?? null,
+                });
+
+                const action = coverActionRef.current;
+                if (action && action.correlationId === handle.correlationId) {
+                  void emitUiRendered(action, {
+                    entity_type: 'book',
+                    entity_id: book?.id ?? null,
+                    image_url: handle.instrumentedUrl,
+                  });
+                  coverActionRef.current = null;
+                }
+              }}
+              onError={() => {
+                const handle = coverLoadRef.current;
+                if (handle) {
+                  reportImageError(handle, {
+                    entity_type: 'book',
+                    entity_id: book?.id ?? null,
+                  });
+                }
+                coverActionRef.current = null;
+              }}
+            />
           ) : showIconInFace && CoverIconComponent ? (
             <span className={styles.faceGlyphIcon} aria-hidden>
               <CoverIconComponent size={32} strokeWidth={1.8} />

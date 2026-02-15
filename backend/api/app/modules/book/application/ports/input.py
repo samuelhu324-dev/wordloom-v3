@@ -25,6 +25,8 @@ class CreateBookRequest:
     title: str
     summary: Optional[str] = None
     cover_icon: Optional[str] = None
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
@@ -35,12 +37,16 @@ class ListBooksRequest:
     include_deleted: bool = False
     skip: int = 0
     limit: int = 20
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
 class GetBookRequest:
     """获取 Book 的请求"""
     book_id: UUID
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
@@ -58,6 +64,8 @@ class UpdateBookRequest:
     cover_icon_provided: bool = False
     cover_media_id: Optional[UUID] = None
     cover_media_id_provided: bool = False
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
@@ -70,6 +78,8 @@ class DeleteBookRequest:
     """
     book_id: UUID
     basement_bookshelf_id: UUID
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
@@ -82,6 +92,8 @@ class RestoreBookRequest:
     """
     book_id: UUID
     target_bookshelf_id: UUID
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
@@ -91,6 +103,8 @@ class ListDeletedBooksRequest:
     library_id: Optional[UUID] = None
     skip: int = 0
     limit: int = 20
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
@@ -99,6 +113,8 @@ class MoveBookRequest:
     book_id: UUID
     target_bookshelf_id: UUID
     reason: Optional[str] = None
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass

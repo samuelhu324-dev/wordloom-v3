@@ -17,7 +17,15 @@ from ...domain import Book
 from ..ports.input import ListDeletedBooksRequest
 from api.app.modules.book.schemas import BookDetailResponse, BookPaginatedResponse
 from ..ports.output import BookRepository
-from ...exceptions import BookOperationError
+from ...exceptions import (
+    BookOperationError,
+    BookForbiddenError,
+    BookLibraryAssociationError,
+    DomainException,
+    BookshelfNotFoundError,
+)
+from api.app.modules.library.application.ports.output import ILibraryRepository
+from api.app.modules.bookshelf.application.ports.output import IBookshelfRepository
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.app.modules.book.application.tag_summary_loader import load_book_tags_summary
 from sqlalchemy import select
@@ -45,11 +53,15 @@ class ListDeletedBooksUseCase:
         repository: BookRepository,
         session: Optional[AsyncSession] = None,
         *,
+        library_repository: Optional[ILibraryRepository] = None,
+        bookshelf_repository: Optional[IBookshelfRepository] = None,
         tags_per_book: int = 3,
     ):
         self.repository = repository
         self.session = session
         self._tags_per_book = tags_per_book
+        self.library_repository = library_repository
+        self.bookshelf_repository = bookshelf_repository
 
     async def execute(self, request: ListDeletedBooksRequest) -> BookPaginatedResponse:
         """
@@ -72,6 +84,8 @@ class ListDeletedBooksUseCase:
         """
         try:
             logger.debug(f"ListDeletedBooksUseCase: Querying deleted books, skip={request.skip}, limit={request.limit}")
+
+            await self._enforce_owner_check(request)
 
             # Query repository for deleted books with filters
             deleted_books, total_count = await self.repository.get_deleted_books(
@@ -164,8 +178,38 @@ class ListDeletedBooksUseCase:
             )
 
         except Exception as e:
+            if isinstance(e, DomainException):
+                raise
             logger.error(f"Failed to list deleted books: {e}", exc_info=True)
             raise BookOperationError(f"Failed to list deleted books: {str(e)}")
+
+    async def _enforce_owner_check(self, request: ListDeletedBooksRequest) -> None:
+        if not getattr(request, "enforce_owner_check", True) or getattr(request, "actor_user_id", None) is None:
+            return
+        if self.library_repository is None:
+            raise BookOperationError("library_repository is required when enforcing owner checks")
+
+        library_id = getattr(request, "library_id", None)
+        if library_id is None and getattr(request, "bookshelf_id", None) is not None:
+            if self.bookshelf_repository is None:
+                raise BookOperationError("bookshelf_repository is required to resolve library_id from bookshelf_id")
+            shelf = await self.bookshelf_repository.get_by_id(request.bookshelf_id)
+            if not shelf:
+                raise BookshelfNotFoundError(bookshelf_id=str(request.bookshelf_id))
+            library_id = getattr(shelf, "library_id", None)
+
+        if library_id is None:
+            return
+
+        library = await self.library_repository.get_by_id(library_id)
+        if not library:
+            raise BookLibraryAssociationError(library_id=str(library_id), reason="Library not found")
+        if getattr(library, "user_id", None) != request.actor_user_id:
+            raise BookForbiddenError(
+                library_id=str(library_id),
+                actor_user_id=str(request.actor_user_id),
+                reason="Actor does not own this library",
+            )
 
     async def _load_library_theme_colors(self, library_ids: set[UUID]) -> dict[UUID, Optional[str]]:
         if not self.session or not library_ids:

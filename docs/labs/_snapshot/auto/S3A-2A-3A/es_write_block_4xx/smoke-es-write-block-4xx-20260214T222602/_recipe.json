@@ -1,0 +1,19 @@
+{
+  "lab_id": "S3A-2A-3A",
+  "scenario": "es_write_block_4xx",
+  "run_id": "smoke-es-write-block-4xx-20260214T222602",
+  "created_at": "2026-02-14 22:26:05",
+  "env_file": ".env.test",
+  "service": "wordloom-search-outbox-worker",
+  "es": {
+    "url": "http://localhost:19200",
+    "index": "wordloom-test-search-index",
+    "inject": {
+      "index.blocks.write": true
+    }
+  },
+  "worker": {
+    "duration_s": 12,
+    "metrics_port": 19143
+  }
+}

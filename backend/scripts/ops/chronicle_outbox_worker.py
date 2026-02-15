@@ -1,0 +1,26 @@
+"""Stable shim for the chronicle outbox worker.
+
+The implementation currently lives under backend/scripts/legacy/.
+This file exists to keep historical docs/runbooks working after script taxonomy cutover.
+"""
+
+from __future__ import annotations
+
+import runpy
+import sys
+from pathlib import Path
+
+
+def main() -> None:
+    backend_root = Path(__file__).resolve().parents[1]
+    if str(backend_root) not in sys.path:
+        sys.path.insert(0, str(backend_root))
+
+    legacy_script = Path(__file__).resolve().parents[1] / "legacy" / "chronicle_outbox_worker.py"
+    if not legacy_script.exists():
+        raise SystemExit(f"legacy worker not found: {legacy_script}")
+    runpy.run_path(str(legacy_script), run_name="__main__")
+
+
+if __name__ == "__main__":
+    main()

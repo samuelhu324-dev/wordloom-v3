@@ -13,13 +13,21 @@ from uuid import UUID
 from typing import Optional
 from api.app.modules.library.domain import Library, LibraryName
 from api.app.modules.library.application.ports.output import ILibraryRepository
-from api.app.modules.library.exceptions import LibraryNotFoundError, InvalidLibraryNameError, LibraryException
+from api.app.modules.library.exceptions import (
+    LibraryNotFoundError,
+    InvalidLibraryNameError,
+    LibraryException,
+    LibraryForbiddenError,
+)
 
 
 class UpdateLibraryRequest:
     def __init__(
         self,
         library_id: UUID,
+        *,
+        actor_user_id: Optional[UUID] = None,
+        enforce_owner_check: bool = True,
         name: Optional[str] = None,
         description: Optional[str] = None,
         cover_media_id: Optional[UUID] = None,
@@ -31,6 +39,8 @@ class UpdateLibraryRequest:
         archived: Optional[bool] = None,
     ):
         self.library_id = library_id
+        self.actor_user_id = actor_user_id
+        self.enforce_owner_check = enforce_owner_check
         self.name = name
         self.description = description
         self.cover_media_id = cover_media_id
@@ -86,6 +96,14 @@ class UpdateLibraryUseCase:
         library = await self.repository.get_by_id(request.library_id)
         if not library:
             raise LibraryNotFoundError(str(request.library_id))
+
+        # Authorization (skeleton): enforce before mutating anything.
+        if request.enforce_owner_check and request.actor_user_id is not None:
+            if library.user_id != request.actor_user_id:
+                raise LibraryForbiddenError(
+                    library_id=str(library.id),
+                    actor_user_id=str(request.actor_user_id),
+                )
 
         # Apply updates
         if request.name is not None:

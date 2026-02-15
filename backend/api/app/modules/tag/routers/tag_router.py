@@ -6,6 +6,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 
+from api.app.config.security import get_current_actor
+from api.app.config.setting import get_settings
+from api.app.shared.actor import Actor
 from api.app.dependencies import DIContainer, get_di_container
 from api.app.modules.tag.domain import EntityType
 from api.app.modules.tag.exceptions import (
@@ -35,6 +38,14 @@ from api.app.modules.tag.application.ports.input import (
 
 
 router = APIRouter(prefix="", tags=["Tags"])
+_settings = get_settings()
+
+
+def _raise_domain_http(exc: DomainException) -> None:
+    raise HTTPException(
+        status_code=getattr(exc, "http_status", status.HTTP_400_BAD_REQUEST),
+        detail=exc.to_dict() if hasattr(exc, "to_dict") else str(exc),
+    )
 
 
 def _normalize_entity_type(raw: EntityType | str) -> EntityType:
@@ -85,6 +96,7 @@ def _resolve_association_payload(
 )
 async def create_tag(
     request: CreateTagSchema,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container),
 ):
     """创建新的顶层 Tag。"""
@@ -96,6 +108,8 @@ async def create_tag(
             color=request.color,
             description=request.description,
             icon=request.icon,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
         )
         response: TagResponse = await use_case.execute(dto)
         return asdict(response)
@@ -105,10 +119,7 @@ async def create_tag(
             detail=str(exc),
         ) from exc
     except DomainException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+        _raise_domain_http(exc)
 
 
 @router.post(
@@ -119,6 +130,7 @@ async def create_tag(
 async def create_subtag(
     tag_id: UUID,
     request: CreateSubtagSchema,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container),
 ):
     """创建子标签。"""
@@ -131,6 +143,8 @@ async def create_subtag(
             color=request.color,
             icon=request.icon,
             description=request.description,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
         )
         response: TagResponse = await use_case.execute(dto)
         return asdict(response)
@@ -140,10 +154,7 @@ async def create_subtag(
             detail=str(exc),
         ) from exc
     except DomainException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+        _raise_domain_http(exc)
 
 
 @router.patch(
@@ -153,6 +164,7 @@ async def create_subtag(
 async def update_tag(
     tag_id: UUID,
     request: UpdateTagSchema,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container),
 ):
     """更新 Tag。"""
@@ -167,6 +179,8 @@ async def update_tag(
             description=request.description,
             parent_tag_id=request.parent_tag_id,
             parent_tag_provided='parent_tag_id' in request.model_fields_set,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
         )
         response: TagResponse = await use_case.execute(dto)
         return asdict(response)
@@ -176,10 +190,7 @@ async def update_tag(
             detail=str(exc),
         ) from exc
     except DomainException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+        _raise_domain_http(exc)
 
 
 @router.delete(
@@ -189,13 +200,18 @@ async def update_tag(
 )
 async def delete_tag(
     tag_id: UUID,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container),
 ):
     """软删除 Tag。"""
 
     try:
         use_case = di.get_delete_tag_use_case()
-        dto = DeleteTagRequest(tag_id=tag_id)
+        dto = DeleteTagRequest(
+            tag_id=tag_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+        )
         await use_case.execute(dto)
     except TagNotFoundError as exc:
         raise HTTPException(
@@ -203,10 +219,7 @@ async def delete_tag(
             detail=str(exc),
         ) from exc
     except DomainException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+        _raise_domain_http(exc)
 
 
 @router.post(
@@ -215,13 +228,18 @@ async def delete_tag(
 )
 async def restore_tag(
     tag_id: UUID,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container),
 ):
     """恢复已软删除的 Tag。"""
 
     try:
         use_case = di.get_restore_tag_use_case()
-        dto = RestoreTagRequest(tag_id=tag_id)
+        dto = RestoreTagRequest(
+            tag_id=tag_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+        )
         response: TagResponse = await use_case.execute(dto)
         return asdict(response)
     except TagNotFoundError as exc:
@@ -230,10 +248,7 @@ async def restore_tag(
             detail=str(exc),
         ) from exc
     except DomainException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+        _raise_domain_http(exc)
 
 
 @router.get(
@@ -247,6 +262,7 @@ async def search_tags(
         "name_asc",
         description="Sort order: name_asc | name_desc | usage_desc | created_desc",
     ),
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container),
 ):
     """搜索 Tags。"""
@@ -257,6 +273,8 @@ async def search_tags(
             keyword=(keyword or ""),
             limit=limit,
             order=order,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
         )
         responses: List[TagResponse] = await use_case.execute(dto)
         return {
@@ -264,10 +282,7 @@ async def search_tags(
             "items": [asdict(item) for item in responses],
         }
     except DomainException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+        _raise_domain_http(exc)
 
 
 @router.get(
@@ -276,23 +291,25 @@ async def search_tags(
 )
 async def get_most_used_tags(
     limit: int = Query(10, ge=1, le=50),
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container),
 ):
     """获取最常用标签。"""
 
     try:
         use_case = di.get_get_most_used_tags_use_case()
-        dto = GetMostUsedTagsRequest(limit=limit)
+        dto = GetMostUsedTagsRequest(
+            limit=limit,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+        )
         responses: List[TagResponse] = await use_case.execute(dto)
         return {
             "total": len(responses),
             "items": [asdict(item) for item in responses],
         }
     except DomainException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+        _raise_domain_http(exc)
 
 
 @router.get(
@@ -308,6 +325,7 @@ async def list_tags(
         "name_asc",
         description="Sort order: name_asc | name_desc | usage_desc | created_desc",
     ),
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container),
 ):
     """分页列出标签目录。"""
@@ -320,6 +338,8 @@ async def list_tags(
             include_deleted=include_deleted,
             only_top_level=only_top_level,
             order_by=order,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
         )
         result = await use_case.execute(request)
         return {
@@ -330,10 +350,7 @@ async def list_tags(
             "has_more": result.has_more,
         }
     except DomainException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+        _raise_domain_http(exc)
 
 
 @router.get(
@@ -342,13 +359,19 @@ async def list_tags(
 )
 async def get_tag(
     tag_id: UUID,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container),
 ):
     """根据 ID 获取单个 Tag。"""
 
     try:
         use_case = di.get_search_tags_use_case()
-        dto = SearchTagsRequest(keyword=str(tag_id), limit=1)
+        dto = SearchTagsRequest(
+            keyword=str(tag_id),
+            limit=1,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+        )
         responses: List[TagResponse] = await use_case.execute(dto)
         if not responses:
             raise HTTPException(
@@ -357,10 +380,7 @@ async def get_tag(
             )
         return asdict(responses[0])
     except DomainException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+        _raise_domain_http(exc)
 
 
 @router.post(
@@ -378,6 +398,7 @@ async def associate_tag(
         None,
         description="Optional JSON payload for association (preferred).",
     ),
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container),
 ):
     """关联 Tag 到实体。"""
@@ -389,14 +410,13 @@ async def associate_tag(
             tag_id=tag_id,
             entity_type=normalized_type,
             entity_id=normalized_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
         )
         await use_case.execute(dto)
         return {"message": "Tag associated successfully"}
     except DomainException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+        _raise_domain_http(exc)
 
 
 @router.delete(
@@ -414,6 +434,7 @@ async def disassociate_tag(
         None,
         description="Optional JSON payload mirroring associate request.",
     ),
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container),
 ):
     """取消 Tag 与实体的关联。"""
@@ -425,14 +446,13 @@ async def disassociate_tag(
             tag_id=tag_id,
             entity_type=normalized_type,
             entity_id=normalized_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
         )
         await use_case.execute(dto)
         return {"message": "Tag disassociated successfully"}
     except DomainException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+        _raise_domain_http(exc)
 
 
 __all__ = ["router"]

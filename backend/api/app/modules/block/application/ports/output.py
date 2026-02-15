@@ -27,6 +27,11 @@ class BlockRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_any_by_id(self, block_id: UUID) -> Optional[Block]:
+        """Fetch a block by ID including soft-deleted ones."""
+        pass
+
+    @abstractmethod
     async def delete(self, block_id: UUID) -> None:
         """Delete a block"""
         pass
@@ -45,6 +50,11 @@ class BlockRepository(ABC):
         include_deleted: bool = False,
     ) -> Tuple[List[Block], int]:
         """Get paginated blocks for a book with optional soft-delete filtering"""
+        pass
+
+    @abstractmethod
+    async def get_deleted_blocks(self, book_id: UUID) -> List[Block]:
+        """Get soft-deleted blocks for a book."""
         pass
 
     @abstractmethod

@@ -169,6 +169,15 @@ class MockBookshelfRepository(IBookshelfRepository):
                 return bs
         return None
 
+    async def find_deleted_by_library(self, library_id, limit: int = 100, offset: int = 0) -> List[Bookshelf]:
+        """Return deleted bookshelves for a library (used by some usecases/tests)."""
+        deleted = [
+            bs
+            for bs in self._bookshelves.values()
+            if bs.library_id == library_id and bs.status == BookshelfStatus.DELETED
+        ]
+        return deleted[offset : offset + limit]
+
     async def exists_by_name(self, library_id, name: str) -> bool:
         """Check name uniqueness per library (RULE-006)"""
         key = (library_id, name.strip())

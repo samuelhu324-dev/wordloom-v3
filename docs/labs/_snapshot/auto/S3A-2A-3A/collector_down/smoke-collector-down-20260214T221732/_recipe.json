@@ -1,0 +1,23 @@
+{
+  "lab_id": "S3A-2A-3A",
+  "scenario": "collector_down",
+  "run_id": "smoke-collector-down-20260214T221732",
+  "created_at": "2026-02-14 22:17:33",
+  "env_file": ".env.test",
+  "service": "wordloom-search-outbox-worker",
+  "inject": {
+    "kind": "collector_down",
+    "compose": {
+      "file": "D:\\Project\\wordloom-v3\\docker-compose.infra.yml",
+      "service": "jaeger",
+      "action": "stop"
+    }
+  },
+  "worker": {
+    "duration_s": 8,
+    "metrics_port": 19140
+  },
+  "trigger": {
+    "op": "upsert"
+  }
+}

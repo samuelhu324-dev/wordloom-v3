@@ -1,0 +1,33 @@
+{
+  "scenario": "es_bulk_partial",
+  "run_dir": "D:\\Project\\wordloom-v3\\docs\\labs\\_snapshot\\auto\\S3A-2A-3A\\es_bulk_partial\\smoke-es-bulk-partial-20260214T223811",
+  "checks": {
+    "partial_delta_ge": 1.0,
+    "success_items_delta_ge": 1.0,
+    "failed_items_delta_ge": 1.0,
+    "failed_4xx_delta_ge": 1.0
+  },
+  "observed": {
+    "outbox_es_bulk_requests_total_result_partial": {
+      "before": 0.0,
+      "after": 1.0,
+      "delta": 1.0
+    },
+    "outbox_es_bulk_items_total_success_sum": {
+      "before": 0.0,
+      "after": 1.0,
+      "delta": 1.0
+    },
+    "outbox_es_bulk_items_total_failed_sum": {
+      "before": 0.0,
+      "after": 1.0,
+      "delta": 1.0
+    },
+    "outbox_es_bulk_item_failures_total_failure_class_4xx_sum": {
+      "before": 0.0,
+      "after": 1.0,
+      "delta": 1.0
+    }
+  },
+  "ok": true
+}

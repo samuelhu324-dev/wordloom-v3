@@ -1,0 +1,32 @@
+{
+  "data": [
+    {
+      "name": "outbox_worker.loop",
+      "spanKind": "internal"
+    },
+    {
+      "name": "outbox.claim_batch",
+      "spanKind": "internal"
+    },
+    {
+      "name": "PUT",
+      "spanKind": "client"
+    },
+    {
+      "name": "outbox.process",
+      "spanKind": "internal"
+    },
+    {
+      "name": "projection.process_batch",
+      "spanKind": "internal"
+    },
+    {
+      "name": "DELETE",
+      "spanKind": "client"
+    }
+  ],
+  "total": 6,
+  "limit": 0,
+  "offset": 0,
+  "errors": null
+}

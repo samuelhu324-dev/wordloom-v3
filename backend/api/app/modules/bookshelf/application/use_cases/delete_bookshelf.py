@@ -16,6 +16,7 @@ Design Pattern: UseCase (Application Layer)
 - Handles business rule validation (no Basement deletion)
 - Coordinates event publication
 """
+from uuid import UUID
 
 from api.app.modules.bookshelf.application.ports.input import (
     DeleteBookshelfRequest,
@@ -23,6 +24,14 @@ from api.app.modules.bookshelf.application.ports.input import (
     IDeleteBookshelfUseCase,
 )
 from api.app.modules.bookshelf.application.ports.output import IBookshelfRepository
+from api.app.modules.bookshelf.exceptions import (
+    BasementOperationError,
+    BookshelfForbiddenError,
+    BookshelfLibraryAssociationError,
+    BookshelfNotFoundError,
+    BookshelfOperationError,
+)
+from api.app.modules.library.application.ports.output import ILibraryRepository
 
 
 class DeleteBookshelfUseCase(IDeleteBookshelfUseCase):
@@ -36,7 +45,12 @@ class DeleteBookshelfUseCase(IDeleteBookshelfUseCase):
     5. Return response with updated status
     """
 
-    def __init__(self, repository: IBookshelfRepository):
+    def __init__(
+        self,
+        repository: IBookshelfRepository,
+        *,
+        library_repository: ILibraryRepository | None = None,
+    ):
         """
         Initialize DeleteBookshelfUseCase
 
@@ -44,6 +58,7 @@ class DeleteBookshelfUseCase(IDeleteBookshelfUseCase):
             repository: IBookshelfRepository implementation for persistence
         """
         self.repository = repository
+        self.library_repository = library_repository
 
     async def execute(self, request: DeleteBookshelfRequest) -> DeleteBookshelfResponse:
         """
@@ -65,12 +80,16 @@ class DeleteBookshelfUseCase(IDeleteBookshelfUseCase):
 
         # Step 2: Validate existence
         if not bookshelf:
-            raise ValueError(f"Bookshelf {request.bookshelf_id} not found")
+            raise BookshelfNotFoundError(str(request.bookshelf_id))
+
+        await self._enforce_library_owner(bookshelf.library_id, request)
 
         # Step 3: Validate not Basement (RULE-010)
         if bookshelf.is_basement:
-            raise ValueError(
-                f"Cannot delete Basement bookshelf {request.bookshelf_id} - it serves as recycle bin"
+            raise BasementOperationError(
+                bookshelf_id=str(request.bookshelf_id),
+                operation="delete",
+                reason="Basement bookshelf cannot be deleted",
             )
 
         # Step 4: Call domain method to mark as deleted
@@ -86,3 +105,28 @@ class DeleteBookshelfUseCase(IDeleteBookshelfUseCase):
             status=bookshelf.status.value,
             deleted_at=bookshelf.updated_at.isoformat() if bookshelf.updated_at else "",
         )
+
+    async def _enforce_library_owner(self, library_id: UUID, request: DeleteBookshelfRequest) -> None:
+        if not request.enforce_owner_check or request.actor_user_id is None:
+            return
+        if self.library_repository is None:
+            raise BookshelfOperationError(
+                bookshelf_id=str(request.bookshelf_id),
+                operation="authorize",
+                reason="library_repository is required when enforcing owner checks",
+            )
+
+        library = await self.library_repository.get_by_id(library_id)
+        if not library:
+            raise BookshelfLibraryAssociationError(
+                bookshelf_id=str(request.bookshelf_id),
+                library_id=str(library_id),
+                reason="Library not found",
+            )
+        if getattr(library, "user_id", None) != request.actor_user_id:
+            raise BookshelfForbiddenError(
+                bookshelf_id=str(request.bookshelf_id),
+                library_id=str(library_id),
+                actor_user_id=str(request.actor_user_id),
+                reason="Actor does not own this library",
+            )

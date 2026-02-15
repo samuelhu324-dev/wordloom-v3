@@ -9,20 +9,34 @@ before this module is imported!
 import sys
 import os
 
+# ---------------------------------------------------------------------------
+# Windows async event loop compatibility
+# ---------------------------------------------------------------------------
+# psycopg async cannot run on ProactorEventLoop. Force Selector policy.
+if sys.platform.startswith("win"):
+    try:
+        import asyncio
+
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except Exception:
+        pass
+
 # ============================================================================
 # NOW safe to do regular imports
 # ============================================================================
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import Response
 import logging
 from pathlib import Path
 
+from api.app.config.logging_config import setup_logging
+
 # Setup logging first (before any other imports)
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+setup_logging()
+
+from api.app.middlewares.payload_metrics import PayloadMetricsMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +52,22 @@ app_root = Path(__file__).parent  # app/
 sys.path.insert(0, str(backend_root))  # For infra imports
 sys.path.insert(0, str(api_root))  # For app imports
 sys.path.insert(0, str(app_root))  # For modules imports
+
+# =========================================================================
+# Tracing (OpenTelemetry) - opt-in
+# =========================================================================
+
+try:
+    from infra.observability.tracing import setup_tracing, instrument_httpx
+
+    _tracing_enabled = setup_tracing(default_service_name="wordloom-api")
+    if _tracing_enabled:
+        instrument_httpx()
+        logger.info({"event": "tracing.enabled", "layer": "startup"})
+    else:
+        logger.info({"event": "tracing.disabled", "layer": "startup"})
+except Exception as _tracing_exc:  # noqa: BLE001
+    logger.warning({"event": "tracing.setup_failed", "error": str(_tracing_exc)})
 
 # ============================================================================
 # Import hook for backward compatibility: redirect 'modules' to 'api.app.modules'
@@ -208,6 +238,46 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+try:
+    from infra.observability.tracing import instrument_fastapi
+
+    instrument_fastapi(app)
+except Exception as _instr_exc:  # noqa: BLE001
+    logger.warning({"event": "tracing.fastapi_instrument_failed", "error": str(_instr_exc)})
+
+# =========================================================================
+# Observability Middleware
+# =========================================================================
+
+app.add_middleware(PayloadMetricsMiddleware)
+
+
+@app.on_event("startup")
+async def _startup_env_guard() -> None:
+    # Safety fuse: refuse to start if WORDLOOM_ENV doesn't match the connected DB.
+    # This prevents accidental writes to the wrong database (dev vs test).
+    try:
+        from infra.database.env_guard import assert_expected_database_environment
+        from infra.database.session import get_session_factory
+
+        session_factory = await get_session_factory()
+        async with session_factory() as session:
+            await assert_expected_database_environment(session)
+        logger.info("[ENV_GUARD] Database environment check: OK")
+    except Exception as exc:  # noqa: BLE001
+        logger.error("[ENV_GUARD] Database environment check failed: %s", exc)
+        raise
+
+# =========================================================================
+# Prometheus Metrics Endpoint
+# =========================================================================
+
+@app.get("/metrics", include_in_schema=False)
+async def metrics() -> Response:
+    from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
 # ============================================================================
 # CORS Middleware
 # ============================================================================
@@ -343,16 +413,53 @@ async def shutdown():
 # ============================================================================
 
 from fastapi import Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Log schema validation failures (422) in a machine-readable way."""
+    correlation_id = getattr(request.state, "correlation_id", None)
+    errors = exc.errors()
+
+    logger.info(
+        {
+            "event": "schema.validation_failed",
+            "layer": "exception_handler",
+            "correlation_id": correlation_id,
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": 422,
+            "error_count": len(errors),
+            "errors": errors,
+        }
+    )
+
+    # Keep FastAPI's default response shape for 422.
+    return JSONResponse(status_code=422, content={"detail": errors})
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     """Handle general exceptions"""
     logger.exception(f"Unhandled exception: {exc}")
+
+    trace_id = None
+    try:
+        from opentelemetry import trace as _otel_trace
+
+        _span = _otel_trace.get_current_span()
+        _ctx = _span.get_span_context() if _span is not None else None
+        if _ctx is not None and getattr(_ctx, "is_valid", False):
+            trace_id = f"{_ctx.trace_id:032x}"
+    except Exception:
+        trace_id = None
+
     return JSONResponse(
         status_code=500,
         content={
             "detail": "Internal server error",
             "type": type(exc).__name__,
+            "trace_id": trace_id,
         },
     )

@@ -1,0 +1,29 @@
+{
+  "scenario": "stuck_reclaim",
+  "run_dir": "D:\\Project\\wordloom-v3\\docs\\labs\\_snapshot\\auto\\S3A-2A-3A\\stuck_reclaim\\20260214T211436-stuck_reclaim-4",
+  "checks": {
+    "processed_delta_ge": 1.0,
+    "failed_delta_le": 0.0,
+    "reclaimed_ge": 1
+  },
+  "observed": {
+    "metrics_available": true,
+    "outbox_processed_total": {
+      "before": 5.0,
+      "after": 5.0,
+      "delta": 0.0
+    },
+    "outbox_failed_total": {
+      "before": 0.0,
+      "after": 0.0,
+      "delta": 0.0
+    },
+    "reclaimed": {
+      "count": 5,
+      "log_found": true
+    },
+    "processed_log_count": 5,
+    "worker2_log": "D:\\Project\\wordloom-v3\\docs\\labs\\_snapshot\\auto\\S3A-2A-3A\\stuck_reclaim\\20260214T211436-stuck_reclaim-4\\_logs\\worker2-20260214T211436-stuck_reclaim-4.log"
+  },
+  "ok": true
+}

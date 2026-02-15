@@ -15,6 +15,7 @@ CRITICAL: Event loop policy MUST be set in pytest_configure before any async ope
 import pytest
 import asyncio
 import sys
+import inspect
 
 
 # ============================================================================
@@ -87,8 +88,10 @@ def pytest_collection_modifyitems(config, items):
     Automatically add asyncio marker to async tests
     """
     for item in items:
-        if asyncio.iscoroutinefunction(item.function):
-            item.add_marker(pytest.mark.asyncio)
+        if inspect.iscoroutinefunction(item.function):
+            # Avoid marking tests that are already handled by pytest-anyio.
+            if "anyio" not in item.keywords and "asyncio" not in item.keywords:
+                item.add_marker(pytest.mark.asyncio)
 
 
 # ============================================================================

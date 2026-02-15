@@ -1,0 +1,27 @@
+=== labs-005 snapshot ===
+ts=20260207T050634Z
+mode=e4_pagination
+
+-- entries occurred_at range + total
+        min_occurred_at        |        max_occurred_at        | entries 
+-------------------------------+-------------------------------+---------
+ 2026-02-03 14:15:35.212913+00 | 2026-02-05 08:47:49.041203+00 |     489
+(1 row)
+
+
+-- duplicate occurred_at buckets (shows why (occurred_at,id) tie-breaker is needed)
+          occurred_at          | n 
+-------------------------------+---
+ 2026-02-05 03:12:12.241177+00 | 2
+ 2026-02-04 12:22:51.344196+00 | 2
+ 2026-02-04 08:15:00.919915+00 | 2
+(3 rows)
+
+
+-- cursor pagination check using (occurred_at, id)
+-- Expect: overlap_n = 0
+ page1_n | page2_n | overlap_n 
+---------+---------+-----------
+      20 |      20 |         0
+(1 row)
+

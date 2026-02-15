@@ -1,0 +1,20 @@
+# labs-004 experiment 6 (v4) runtime
+# started_at=2026-02-07T15:14:19+08:00
+# OUTBOX_METRICS_PORT=9109 OUTBOX_HTTP_PORT=9111 OUTBOX_SHUTDOWN_GRACE_SECONDS=10 OUTBOX_REQUIRE_ES_READY=1
+
+[labs-004/v4] Starting search_outbox_worker (metrics=:9109 http=:9111 grace=10s)
+INFO:__main__:Search outbox worker starting: db=postgresql+psycopg://wordloom:wordloom@localhost:5435/wordloom_test, es=http://localhost:9200 index=wordloom-test-search-index, bulk=100, concurrency=1, poll=1.000s, worker_id=w-v4, lease=30s, max_processing=300s
+INFO:__main__:Outbox worker metrics listening on :9109
+INFO:__main__:Outbox runtime endpoints listening on :9111 (/healthz,/readyz)
+INFO:__main__:[ENV_GUARD] Database environment check: OK
+[labs-004/v4] GET /healthz
+{"ok":true,"reason":null,"projection":"search_index_to_elastic","worker_id":"w-v4","state":"RUNNING","stop_requested":false,"stop_reason":null,"last_loop_ago_seconds":0.16990846099906776,"db":{"ok":true,"consecutive_failures":0,"last_error":null}}
+[labs-004/v4] GET /readyz (may be 503 if deps not ready)
+{"ok":true,"reason":null,"projection":"search_index_to_elastic","worker_id":"w-v4","state":"RUNNING","stop_requested":false,"stop_reason":null,"last_loop_ago_seconds":0.18099946999973326,"db":{"ok":true,"consecutive_failures":0,"last_error":null}}
+[labs-004/v4] Sending SIGTERM
+INFO:httpx:HTTP Request: GET http://localhost:9200/ "HTTP/1.1 200 OK"
+INFO:__main__:Stop requested; draining current work only
+[OK] Database: postgresql+psycopg://wordloom:wordloom@localhost:5435/wordloom_test
+[labs-004/v4] OK: worker exited
+
+SNAPSHOT=docs/architecture/runbook/labs/_snapshots/labs-004-v4-runtime-search-worker-20260207T151419.txt

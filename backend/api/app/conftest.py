@@ -17,11 +17,22 @@ Hierarchy:
 - Modules (backend/api/app/modules/*/conftest.py): Domain-specific factories
 """
 
+import os
+import re
 import pytest
 import asyncio
 from typing import AsyncGenerator
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+
+import pytest_asyncio
+
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import event
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+from sqlalchemy.pool import NullPool
 from unittest.mock import MagicMock, AsyncMock
+
+from api.app.config.setting import get_settings
 
 # Base import commented out - will be added when database layer is fully set up
 # from infra.database import Base
@@ -30,6 +41,108 @@ from unittest.mock import MagicMock, AsyncMock
 # ============================================================================
 # Test Database Setup
 # ============================================================================
+
+_DEVTEST_DB_5435_SAFE_RE = re.compile(
+    r"^postgresql(\+psycopg)?://[^@]+@(?:localhost|127\.0\.0\.1):5435/wordloom_test$",
+    re.IGNORECASE,
+)
+
+
+def _resolve_test_database_url() -> str:
+    get_settings.cache_clear()
+    settings = get_settings()
+    url = settings.database_url
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+psycopg://", 1)
+    if url.startswith("postgresql+asyncpg://"):
+        return url.replace("postgresql+asyncpg://", "postgresql+psycopg://", 1)
+    return url
+
+
+def _ensure_devtest_db_5435(url: str) -> None:
+    if not _DEVTEST_DB_5435_SAFE_RE.match(url):
+        raise RuntimeError(
+            "[DEVTEST-DB-5435] Refusing to run DB tests for unsafe DATABASE_URL: "
+            f"{url}. Expected localhost:5435/wordloom_test."
+        )
+
+
+@pytest.fixture(scope="session")
+def _devtest_db_url() -> str:
+    url = _resolve_test_database_url()
+
+    # If user didn't opt-in to DB tests, skip any test that requires db_session.
+    # This prevents accidental use of docker/sandbox or localhost:5432.
+    if not _DEVTEST_DB_5435_SAFE_RE.match(url):
+        pytest.skip(
+            "DB tests require DATABASE_URL pointing to DEVTEST-DB-5435: "
+            "postgresql+psycopg://...@localhost:5435/wordloom_test"
+        )
+
+    _ensure_devtest_db_5435(url)
+    return url
+
+
+@pytest.fixture(scope="session")
+def _devtest_db_migrated(_devtest_db_url: str) -> None:
+    """Run Alembic migrations once per pytest session.
+
+    Safety: pinned to DEVTEST-DB-5435 only.
+    """
+    os.environ["DATABASE_URL"] = _devtest_db_url
+    get_settings.cache_clear()
+
+    # backend/api/app -> backend
+    alembic_ini = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "alembic.ini")
+    )
+    if not os.path.exists(alembic_ini):
+        raise RuntimeError(f"Alembic config not found: {alembic_ini}")
+    cfg = Config(alembic_ini)
+    # env.py also resolves from Settings; setting this is a helpful backstop.
+    cfg.set_main_option("sqlalchemy.url", _devtest_db_url)
+    command.upgrade(cfg, "head")
+
+
+@pytest_asyncio.fixture(scope="session")
+async def db_engine(
+    _devtest_db_url: str, _devtest_db_migrated: None
+) -> AsyncGenerator[AsyncEngine, None]:
+    """AsyncEngine for DEVTEST-DB-5435 test database."""
+    engine = create_async_engine(
+        _devtest_db_url,
+        echo=False,
+        future=True,
+        poolclass=NullPool,
+    )
+    yield engine
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def db_session(db_engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
+    """Per-test transaction with rollback (screenshot1).
+
+    Uses an outer transaction + SAVEPOINT (nested transaction) so code under test
+    can call commit() without breaking test isolation.
+    """
+
+    async with db_engine.connect() as connection:
+        outer_tx = await connection.begin()
+        session = AsyncSession(bind=connection, expire_on_commit=False)
+
+        await session.begin_nested()
+
+        @event.listens_for(session.sync_session, "after_transaction_end")
+        def _restart_savepoint(sess, trans):
+            if trans.nested and not trans._parent.nested:
+                sess.begin_nested()
+
+        try:
+            yield session
+        finally:
+            await session.close()
+            await outer_tx.rollback()
 
 # @pytest.fixture(scope="session")
 # async def test_db_engine(event_loop):

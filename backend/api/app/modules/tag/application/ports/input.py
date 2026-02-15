@@ -30,6 +30,8 @@ class CreateTagRequest:
     color: Optional[str] = None
     icon: Optional[str] = None
     description: Optional[str] = None
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
@@ -40,6 +42,8 @@ class CreateSubtagRequest:
     color: Optional[str] = None
     icon: Optional[str] = None
     description: Optional[str] = None
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
@@ -52,18 +56,24 @@ class UpdateTagRequest:
     description: Optional[str] = None
     parent_tag_id: Optional[UUID] = None
     parent_tag_provided: bool = False
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
 class DeleteTagRequest:
     """删除 Tag 的请求"""
     tag_id: UUID
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
 class RestoreTagRequest:
     """恢复 Tag 的请求"""
     tag_id: UUID
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
@@ -72,6 +82,8 @@ class AssociateTagRequest:
     tag_id: UUID
     entity_type: EntityType
     entity_id: UUID
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
@@ -80,6 +92,8 @@ class DisassociateTagRequest:
     tag_id: UUID
     entity_type: EntityType
     entity_id: UUID
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
@@ -88,12 +102,16 @@ class SearchTagsRequest:
     keyword: str
     limit: int = 20
     order: str = "name_asc"
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
 class GetMostUsedTagsRequest:
     """获取最常用 Tag 的请求"""
     limit: int = 30
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
@@ -104,6 +122,8 @@ class ListTagsRequest:
     include_deleted: bool = False
     only_top_level: bool = True
     order_by: str = "name_asc"
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 # ============================================================================

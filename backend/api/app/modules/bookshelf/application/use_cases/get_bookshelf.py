@@ -10,6 +10,7 @@ Design Pattern: UseCase (Application Layer)
 - No state changes, no events published
 - Simple pass-through from repository to Router
 """
+from uuid import UUID
 
 from api.app.modules.bookshelf.application.ports.input import (
     GetBookshelfRequest,
@@ -17,6 +18,13 @@ from api.app.modules.bookshelf.application.ports.input import (
     IGetBookshelfUseCase,
 )
 from api.app.modules.bookshelf.application.ports.output import IBookshelfRepository
+from api.app.modules.bookshelf.exceptions import (
+    BookshelfForbiddenError,
+    BookshelfLibraryAssociationError,
+    BookshelfNotFoundError,
+    BookshelfOperationError,
+)
+from api.app.modules.library.application.ports.output import ILibraryRepository
 
 
 class GetBookshelfUseCase(IGetBookshelfUseCase):
@@ -28,7 +36,12 @@ class GetBookshelfUseCase(IGetBookshelfUseCase):
     3. Convert domain object to response DTO
     """
 
-    def __init__(self, repository: IBookshelfRepository):
+    def __init__(
+        self,
+        repository: IBookshelfRepository,
+        *,
+        library_repository: ILibraryRepository | None = None,
+    ):
         """
         Initialize GetBookshelfUseCase
 
@@ -36,6 +49,7 @@ class GetBookshelfUseCase(IGetBookshelfUseCase):
             repository: IBookshelfRepository implementation for queries
         """
         self.repository = repository
+        self.library_repository = library_repository
 
     async def execute(self, request: GetBookshelfRequest) -> GetBookshelfResponse:
         """
@@ -57,7 +71,34 @@ class GetBookshelfUseCase(IGetBookshelfUseCase):
 
         # Step 2: Validate existence
         if not bookshelf:
-            raise ValueError(f"Bookshelf {request.bookshelf_id} not found")
+            raise BookshelfNotFoundError(str(request.bookshelf_id))
+
+        await self._enforce_library_owner(bookshelf.library_id, request)
 
         # Step 3: Convert to response DTO and return
         return GetBookshelfResponse.from_domain(bookshelf)
+
+    async def _enforce_library_owner(self, library_id: UUID, request: GetBookshelfRequest) -> None:
+        if not request.enforce_owner_check or request.actor_user_id is None:
+            return
+        if self.library_repository is None:
+            raise BookshelfOperationError(
+                bookshelf_id=str(request.bookshelf_id),
+                operation="authorize",
+                reason="library_repository is required when enforcing owner checks",
+            )
+
+        library = await self.library_repository.get_by_id(library_id)
+        if not library:
+            raise BookshelfLibraryAssociationError(
+                bookshelf_id=str(request.bookshelf_id),
+                library_id=str(library_id),
+                reason="Library not found",
+            )
+        if getattr(library, "user_id", None) != request.actor_user_id:
+            raise BookshelfForbiddenError(
+                bookshelf_id=str(request.bookshelf_id),
+                library_id=str(library_id),
+                actor_user_id=str(request.actor_user_id),
+                reason="Actor does not own this library",
+            )

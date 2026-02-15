@@ -14,10 +14,13 @@ from api.app.modules.bookshelf.application.ports.output import IBookshelfReposit
 from api.app.modules.bookshelf.domain import Bookshelf, BookshelfStatus
 from api.app.modules.bookshelf.exceptions import (
     BookshelfAlreadyExistsError,
+    BookshelfForbiddenError,
+    BookshelfLibraryAssociationError,
     BookshelfNotFoundError,
     BookshelfOperationError,
     BookshelfTagSyncError,
 )
+from api.app.modules.library.application.ports.output import ILibraryRepository
 from api.app.modules.tag.application.ports.output import TagRepository
 from api.app.modules.tag.domain import EntityType
 from api.app.modules.tag.exceptions import TagNotFoundError, TagOperationError
@@ -26,9 +29,16 @@ from api.app.modules.tag.exceptions import TagNotFoundError, TagOperationError
 class UpdateBookshelfUseCase(IUpdateBookshelfUseCase):
     """整合书橱基础信息与标签的更新逻辑"""
 
-    def __init__(self, bookshelf_repository: IBookshelfRepository, tag_repository: TagRepository):
+    def __init__(
+        self,
+        bookshelf_repository: IBookshelfRepository,
+        tag_repository: TagRepository,
+        *,
+        library_repository: Optional[ILibraryRepository] = None,
+    ):
         self.bookshelf_repository = bookshelf_repository
         self.tag_repository = tag_repository
+        self.library_repository = library_repository
 
     async def execute(self, request: UpdateBookshelfRequest) -> UpdateBookshelfResponse:
         bookshelf_id = request.bookshelf_id
@@ -43,6 +53,8 @@ class UpdateBookshelfUseCase(IUpdateBookshelfUseCase):
         if not bookshelf:
             raise BookshelfNotFoundError(str(bookshelf_id))
 
+        await self._enforce_library_owner(bookshelf.library_id, request)
+
         await self._apply_core_updates(bookshelf, request)
         tag_ids, tag_names = await self._sync_tags(bookshelf, request.tag_ids)
 
@@ -51,6 +63,31 @@ class UpdateBookshelfUseCase(IUpdateBookshelfUseCase):
             tag_ids=tag_ids,
             tags_summary=tag_names,
         )
+
+    async def _enforce_library_owner(self, library_id: UUID, request: UpdateBookshelfRequest) -> None:
+        if not request.enforce_owner_check or request.actor_user_id is None:
+            return
+        if self.library_repository is None:
+            raise BookshelfOperationError(
+                bookshelf_id=str(request.bookshelf_id or "<unknown>"),
+                operation="authorize",
+                reason="library_repository is required when enforcing owner checks",
+            )
+
+        library = await self.library_repository.get_by_id(library_id)
+        if not library:
+            raise BookshelfLibraryAssociationError(
+                bookshelf_id=str(request.bookshelf_id or "<unknown>"),
+                library_id=str(library_id),
+                reason="Library not found",
+            )
+        if getattr(library, "user_id", None) != request.actor_user_id:
+            raise BookshelfForbiddenError(
+                bookshelf_id=str(request.bookshelf_id or "<unknown>"),
+                library_id=str(library_id),
+                actor_user_id=str(request.actor_user_id),
+                reason="Actor does not own this library",
+            )
 
     async def _apply_core_updates(
         self,

@@ -1,0 +1,2 @@
+ Container wordloom-v3-jaeger-1  Stopping
+ Container wordloom-v3-jaeger-1  Stopped

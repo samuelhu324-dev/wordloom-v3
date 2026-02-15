@@ -1,0 +1,8 @@
+# labs-004 experiment 6 (v4) runtime
+# started_at=2026-02-07T15:13:46+08:00
+# OUTBOX_METRICS_PORT=9109 OUTBOX_HTTP_PORT=9111 OUTBOX_SHUTDOWN_GRACE_SECONDS=10 OUTBOX_REQUIRE_ES_READY=1
+
+[labs-004/v4] Starting search_outbox_worker (metrics=:9109 http=:9111 grace=10s)
+backend/scripts/ops_labs_004_v4_runtime_search_worker.sh: line 21: python: command not found
+[labs-004/v4] GET /healthz
+curl: (7) Failed to connect to localhost port 9111 after 0 ms: Connection refused

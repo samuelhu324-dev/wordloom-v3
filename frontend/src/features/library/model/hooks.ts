@@ -140,12 +140,24 @@ export function useQuickUpdateLibrary() {
     mutationFn: ({ libraryId, data }: QuickUpdateInput) =>
       libraryApi.updateLibrary(libraryId, data),
     onSuccess: (updatedLibrary) => {
+      // 仅更新基础字段，保留列表/详情中的 tags 以避免被旧值覆盖
       queryClient.setQueriesData({ queryKey: QUERY_KEY }, (oldData: unknown) => {
         if (!Array.isArray(oldData)) return oldData;
-        return oldData.map((item: any) => (item.id === updatedLibrary.id ? updatedLibrary : item));
+        return oldData.map((item: any) => {
+          if (!item || item.id !== updatedLibrary.id) return item;
+          const nextTags = item.tags ?? updatedLibrary.tags;
+          const nextTagTotal = item.tag_total_count ?? updatedLibrary.tag_total_count;
+          return { ...item, ...updatedLibrary, tags: nextTags, tag_total_count: nextTagTotal };
+        });
       });
-      queryClient.setQueryData(QUERY_KEY_DETAIL(updatedLibrary.id), updatedLibrary);
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+
+      queryClient.setQueryData(QUERY_KEY_DETAIL(updatedLibrary.id), (prev: any) => {
+        if (!prev) return updatedLibrary;
+        const nextTags = prev.tags ?? updatedLibrary.tags;
+        const nextTagTotal = prev.tag_total_count ?? updatedLibrary.tag_total_count;
+        return { ...prev, ...updatedLibrary, tags: nextTags, tag_total_count: nextTagTotal };
+      });
+      // 不在这里 invalidate，以免新的列表请求把更新后的 tags 覆盖回旧值
     },
   });
 }
@@ -786,14 +798,18 @@ export function useLibraryTagCatalog(params: UseLibraryTagCatalogParams = {}) {
 
   const shouldFetchGlobalCatalog = normalizedGlobalTargets.length > 0 && enabled;
 
-  const globalTagQuery = useQuery<TagDescriptionsMap | undefined>({
+  const globalTagQuery = useQuery<TagDescriptionsMap | null>({
     queryKey: [
       'global-tag-catalog',
       normalizedGlobalTargets.map((target) => target.normalized).sort().join('|'),
     ],
-    queryFn: () => fetchGlobalTagDescriptions(normalizedGlobalTargets),
+    queryFn: async () => {
+      const data = await fetchGlobalTagDescriptions(normalizedGlobalTargets);
+      return data ?? null;
+    },
     enabled: shouldFetchGlobalCatalog,
     staleTime: staleTimeMs,
+    initialData: null,
   });
 
   const tagDescriptionsMap = React.useMemo(
@@ -846,9 +862,9 @@ export function useLibraryTagCatalog(params: UseLibraryTagCatalogParams = {}) {
 
 async function fetchGlobalTagDescriptions(
   targets: Array<{ label: string; normalized: string }>,
-): Promise<TagDescriptionsMap | undefined> {
+): Promise<TagDescriptionsMap | null> {
   if (!targets.length) {
-    return undefined;
+    return null;
   }
 
   const results = await Promise.all(targets.map(async ({ label, normalized }) => {
@@ -877,5 +893,5 @@ async function fetchGlobalTagDescriptions(
     hasEntries = true;
   });
 
-  return hasEntries ? map : undefined;
+  return hasEntries ? map : null;
 }

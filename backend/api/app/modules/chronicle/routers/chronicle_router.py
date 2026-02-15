@@ -3,6 +3,8 @@ from typing import Optional, List
 from uuid import UUID
 
 from api.app.dependencies import get_di_container, DIContainer
+from api.app.config.security import get_current_actor
+from api.app.shared.actor import Actor
 from ..domain.event_types import ChronicleEventType
 from ..schemas import (
     ChronicleBookOpenedRequest,
@@ -18,11 +20,12 @@ router = APIRouter(prefix="", tags=["Chronicle"])
 @router.post("/book-opened", response_model=ChronicleEventRead)
 async def record_book_opened(
     req: ChronicleBookOpenedRequest,
+    actor: Actor = Depends(get_current_actor),
     di: DIContainer = Depends(get_di_container),
 ):
     # TODO: 速率限制 & 防抖 (后续) / actor_id 来源统一化
     service = di.get_chronicle_recorder_service()
-    event = await service.record_book_opened(book_id=req.book_id, actor_id=req.actor_id)
+    event = await service.record_book_opened(book_id=req.book_id, actor_id=actor.user_id)
     return ChronicleEventRead.from_domain(event)
 
 

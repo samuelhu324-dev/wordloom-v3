@@ -1,0 +1,1829 @@
+﻿{
+    "data":  [
+                 {
+                     "traceID":  "ff694bd603b249173b4e83eaa7c6d561",
+                     "spans":  [
+                                   {
+                                       "traceID":  "ff694bd603b249173b4e83eaa7c6d561",
+                                       "spanID":  "eb6f76c5b16232ef",
+                                       "operationName":  "UPDATE wordloom_test",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892661660,
+                                       "duration":  1663,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.statement",
+                                                        "type":  "string",
+                                                        "value":  "UPDATE search_outbox_events SET owner=%(owner)s::VARCHAR, lease_until=%(lease_until)s::TIMESTAMP WITH TIME ZONE, updated_at=%(updated_at)s::TIMESTAMP WITH TIME ZONE, processing_started_at=%(processing_started_at)s::TIMESTAMP WITH TIME ZONE WHERE (search_outbox_events.processed_at IS NOT NULL OR search_outbox_events.status IN (%(status_1_1)s::VARCHAR, %(status_1_2)s::VARCHAR)) AND (search_outbox_events.owner IS NOT NULL OR search_outbox_events.lease_until IS NOT NULL OR search_outbox_events.processing_started_at IS NOT NULL)"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "de959fde17c9984463606e0f7a476796",
+                     "spans":  [
+                                   {
+                                       "traceID":  "de959fde17c9984463606e0f7a476796",
+                                       "spanID":  "dcc10d59fa7fcd2f",
+                                       "operationName":  "connect",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892665183,
+                                       "duration":  795,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "10eab63c64a7a0fed40de2c12f8e0e7d",
+                     "spans":  [
+                                   {
+                                       "traceID":  "10eab63c64a7a0fed40de2c12f8e0e7d",
+                                       "spanID":  "fd7e75562b61d535",
+                                       "operationName":  "UPDATE wordloom_test",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892666278,
+                                       "duration":  995,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.statement",
+                                                        "type":  "string",
+                                                        "value":  "UPDATE search_outbox_events SET status=%(status)s::VARCHAR, owner=%(owner)s::VARCHAR, lease_until=%(lease_until)s::TIMESTAMP WITH TIME ZONE, updated_at=%(updated_at)s::TIMESTAMP WITH TIME ZONE, processing_started_at=%(processing_started_at)s::TIMESTAMP WITH TIME ZONE WHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.lease_until IS NOT NULL AND search_outbox_events.lease_until \u003c %(lease_until_1)s::TIMESTAMP WITH TIME ZONE OR search_outbox_events.processing_started_at IS NOT NULL AND search_outbox_events.processing_started_at \u003c %(processing_started_at_1)s::TIMESTAMP WITH TIME ZONE)"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "dcd502f57feb2cc0a4eb51d7a0260ca9",
+                     "spans":  [
+                                   {
+                                       "traceID":  "dcd502f57feb2cc0a4eb51d7a0260ca9",
+                                       "spanID":  "0e1224187ba0701f",
+                                       "operationName":  "connect",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892668224,
+                                       "duration":  430,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "a75e2adf8e7efed079bff889897047e4",
+                     "spans":  [
+                                   {
+                                       "traceID":  "a75e2adf8e7efed079bff889897047e4",
+                                       "spanID":  "758d74f4c238f63d",
+                                       "operationName":  "SELECT wordloom_test",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892668916,
+                                       "duration":  900,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.statement",
+                                                        "type":  "string",
+                                                        "value":  "SELECT count(*) AS count_1 \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status IN (%(status_1_1)s::VARCHAR, %(status_1_2)s::VARCHAR, %(status_1_3)s::VARCHAR)"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "9a9909e799c033b441c9f2ca3fd0aefa",
+                     "spans":  [
+                                   {
+                                       "traceID":  "9a9909e799c033b441c9f2ca3fd0aefa",
+                                       "spanID":  "c8ff70933ad617da",
+                                       "operationName":  "SELECT wordloom_test",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892670215,
+                                       "duration":  736,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.statement",
+                                                        "type":  "string",
+                                                        "value":  "SELECT count(*) AS count_1 \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "c90016b85db9340e5806ba903778327e",
+                     "spans":  [
+                                   {
+                                       "traceID":  "c90016b85db9340e5806ba903778327e",
+                                       "spanID":  "2906a081b7c3cd3f",
+                                       "operationName":  "SELECT wordloom_test",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892671820,
+                                       "duration":  1196,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.statement",
+                                                        "type":  "string",
+                                                        "value":  "SELECT count(*) AS count_1 \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.lease_until IS NOT NULL AND search_outbox_events.lease_until \u003c %(lease_until_1)s::TIMESTAMP WITH TIME ZONE OR search_outbox_events.processing_started_at IS NOT NULL AND search_outbox_events.processing_started_at \u003c %(processing_started_at_1)s::TIMESTAMP WITH TIME ZONE)"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "900ec93b612d963b88430fc4632e0afd",
+                     "spans":  [
+                                   {
+                                       "traceID":  "900ec93b612d963b88430fc4632e0afd",
+                                       "spanID":  "6333ec6d1ae55fde",
+                                       "operationName":  "SELECT wordloom_test",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892673972,
+                                       "duration":  955,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.statement",
+                                                        "type":  "string",
+                                                        "value":  "SELECT min(search_outbox_events.created_at) AS min_1 \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status IN (%(status_1_1)s::VARCHAR, %(status_1_2)s::VARCHAR, %(status_1_3)s::VARCHAR)"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "82b3499443077fe6d9f73a1068abebb5",
+                     "spans":  [
+                                   {
+                                       "traceID":  "82b3499443077fe6d9f73a1068abebb5",
+                                       "spanID":  "0c9467ff3e744f39",
+                                       "operationName":  "SELECT wordloom_test",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892675261,
+                                       "duration":  467,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.statement",
+                                                        "type":  "string",
+                                                        "value":  "SELECT projection_status.projection_name, projection_status.last_rebuild_started_at, projection_status.last_rebuild_finished_at, projection_status.last_rebuild_duration_seconds, projection_status.last_rebuild_success, projection_status.last_rebuild_error, projection_status.updated_at \nFROM projection_status \nWHERE projection_status.projection_name = %(projection_name_1)s::VARCHAR"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "ac702f985c456ca173c52d02f46b461a",
+                     "spans":  [
+                                   {
+                                       "traceID":  "ac702f985c456ca173c52d02f46b461a",
+                                       "spanID":  "a813bff6c7fbe751",
+                                       "operationName":  "SELECT wordloom_test",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892676139,
+                                       "duration":  583,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.statement",
+                                                        "type":  "string",
+                                                        "value":  "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at \u003c= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "d5bd1b1808413042b904cd94937b8aef",
+                     "spans":  [
+                                   {
+                                       "traceID":  "d5bd1b1808413042b904cd94937b8aef",
+                                       "spanID":  "997ba7eb80a831ac",
+                                       "operationName":  "outbox_worker.loop",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892872015,
+                                       "duration":  38,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom.search_outbox_worker"
+                                                    },
+                                                    {
+                                                        "key":  "projection",
+                                                        "type":  "string",
+                                                        "value":  "search"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "internal"
+                                                    },
+                                                    {
+                                                        "key":  "wordloom.projection",
+                                                        "type":  "string",
+                                                        "value":  "search_index_to_elastic"
+                                                    },
+                                                    {
+                                                        "key":  "wordloom.worker.id",
+                                                        "type":  "string",
+                                                        "value":  "w-trace-exp2"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "d2662279051bbec770591c70dee09267",
+                     "spans":  [
+                                   {
+                                       "traceID":  "d2662279051bbec770591c70dee09267",
+                                       "spanID":  "cf500caaba249e13",
+                                       "operationName":  "connect",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892872508,
+                                       "duration":  1151,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "82bdbdded73f1d1e81c4849a73f3885c",
+                     "spans":  [
+                                   {
+                                       "traceID":  "82bdbdded73f1d1e81c4849a73f3885c",
+                                       "spanID":  "db3ccdf8bf8e3be0",
+                                       "operationName":  "SELECT wordloom_test",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892873895,
+                                       "duration":  1397,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.statement",
+                                                        "type":  "string",
+                                                        "value":  "SELECT 1"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "38c629cc556f98359a1de81863192244",
+                     "spans":  [
+                                   {
+                                       "traceID":  "38c629cc556f98359a1de81863192244",
+                                       "spanID":  "5fac7756d2d7fe4d",
+                                       "operationName":  "connect",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892876202,
+                                       "duration":  432,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "7188c5afa832cc52ee2583c518f8f437",
+                     "spans":  [
+                                   {
+                                       "traceID":  "7188c5afa832cc52ee2583c518f8f437",
+                                       "spanID":  "9a84ca6550ef8744",
+                                       "operationName":  "SELECT wordloom_test",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892876837,
+                                       "duration":  863,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.statement",
+                                                        "type":  "string",
+                                                        "value":  "SELECT count(*) AS count_1 \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status IN (%(status_1_1)s::VARCHAR, %(status_1_2)s::VARCHAR, %(status_1_3)s::VARCHAR)"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "e5cbe0b256c43f099cc712e6cc7ca77f",
+                     "spans":  [
+                                   {
+                                       "traceID":  "e5cbe0b256c43f099cc712e6cc7ca77f",
+                                       "spanID":  "e2505602d2341f22",
+                                       "operationName":  "SELECT wordloom_test",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892878025,
+                                       "duration":  430,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.statement",
+                                                        "type":  "string",
+                                                        "value":  "SELECT count(*) AS count_1 \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "2dba9d02c26b0a85436cfc70338e6009",
+                     "spans":  [
+                                   {
+                                       "traceID":  "2dba9d02c26b0a85436cfc70338e6009",
+                                       "spanID":  "5b5ede04e85886cf",
+                                       "operationName":  "SELECT wordloom_test",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892878856,
+                                       "duration":  775,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.statement",
+                                                        "type":  "string",
+                                                        "value":  "SELECT count(*) AS count_1 \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.lease_until IS NOT NULL AND search_outbox_events.lease_until \u003c %(lease_until_1)s::TIMESTAMP WITH TIME ZONE OR search_outbox_events.processing_started_at IS NOT NULL AND search_outbox_events.processing_started_at \u003c %(processing_started_at_1)s::TIMESTAMP WITH TIME ZONE)"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "c04e3349ead517cca79c98d789c06f53",
+                     "spans":  [
+                                   {
+                                       "traceID":  "c04e3349ead517cca79c98d789c06f53",
+                                       "spanID":  "cbc8ae0aea1a3a97",
+                                       "operationName":  "SELECT wordloom_test",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892880237,
+                                       "duration":  868,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.statement",
+                                                        "type":  "string",
+                                                        "value":  "SELECT min(search_outbox_events.created_at) AS min_1 \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status IN (%(status_1_1)s::VARCHAR, %(status_1_2)s::VARCHAR, %(status_1_3)s::VARCHAR)"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "758bc10e075e5548dfdcf62dbb28c542",
+                     "spans":  [
+                                   {
+                                       "traceID":  "758bc10e075e5548dfdcf62dbb28c542",
+                                       "spanID":  "a981718cdceb99b4",
+                                       "operationName":  "SELECT wordloom_test",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892881512,
+                                       "duration":  515,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.statement",
+                                                        "type":  "string",
+                                                        "value":  "SELECT projection_status.projection_name, projection_status.last_rebuild_started_at, projection_status.last_rebuild_finished_at, projection_status.last_rebuild_duration_seconds, projection_status.last_rebuild_success, projection_status.last_rebuild_error, projection_status.updated_at \nFROM projection_status \nWHERE projection_status.projection_name = %(projection_name_1)s::VARCHAR"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 },
+                 {
+                     "traceID":  "3d88d045ac8d95746603d06c80493229",
+                     "spans":  [
+                                   {
+                                       "traceID":  "3d88d045ac8d95746603d06c80493229",
+                                       "spanID":  "ea859fc0f5402ec4",
+                                       "operationName":  "outbox.claim_batch",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892882168,
+                                       "duration":  1228,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "batch_size",
+                                                        "type":  "int64",
+                                                        "value":  100
+                                                    },
+                                                    {
+                                                        "key":  "claim_mode",
+                                                        "type":  "string",
+                                                        "value":  "atomic"
+                                                    },
+                                                    {
+                                                        "key":  "claimed",
+                                                        "type":  "int64",
+                                                        "value":  0
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom.search_outbox_worker"
+                                                    },
+                                                    {
+                                                        "key":  "projection",
+                                                        "type":  "string",
+                                                        "value":  "search"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "internal"
+                                                    },
+                                                    {
+                                                        "key":  "wordloom.projection",
+                                                        "type":  "string",
+                                                        "value":  "search_index_to_elastic"
+                                                    },
+                                                    {
+                                                        "key":  "wordloom.worker.id",
+                                                        "type":  "string",
+                                                        "value":  "w-trace-exp2"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   },
+                                   {
+                                       "traceID":  "3d88d045ac8d95746603d06c80493229",
+                                       "spanID":  "47058df01b7a0636",
+                                       "operationName":  "SELECT wordloom_test",
+                                       "references":  [
+                                                          {
+                                                              "refType":  "CHILD_OF",
+                                                              "traceID":  "3d88d045ac8d95746603d06c80493229",
+                                                              "spanID":  "ea859fc0f5402ec4"
+                                                          }
+                                                      ],
+                                       "startTime":  1770531892882497,
+                                       "duration":  770,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.statement",
+                                                        "type":  "string",
+                                                        "value":  "SELECT search_outbox_events.id, search_outbox_events.entity_type, search_outbox_events.entity_id, search_outbox_events.op, search_outbox_events.event_version, search_outbox_events.created_at, search_outbox_events.status, search_outbox_events.owner, search_outbox_events.lease_until, search_outbox_events.attempts, search_outbox_events.next_retry_at, search_outbox_events.updated_at, search_outbox_events.processed_at, search_outbox_events.processing_started_at, search_outbox_events.error_reason, search_outbox_events.error, search_outbox_events.traceparent, search_outbox_events.tracestate, search_outbox_events.replay_count, search_outbox_events.last_replayed_at, search_outbox_events.last_replayed_by, search_outbox_events.last_replayed_reason \nFROM search_outbox_events \nWHERE search_outbox_events.processed_at IS NULL AND search_outbox_events.status = %(status_1)s::VARCHAR AND (search_outbox_events.next_retry_at IS NULL OR search_outbox_events.next_retry_at \u003c= %(next_retry_at_1)s::TIMESTAMP WITH TIME ZONE) ORDER BY search_outbox_events.event_version ASC \n LIMIT %(param_1)s::INTEGER FOR UPDATE SKIP LOCKED"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 }
+             ],
+    "total":  0,
+    "limit":  0,
+    "offset":  0,
+    "errors":  null
+}

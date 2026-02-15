@@ -20,9 +20,12 @@ Usage at startup:
 
 from typing import Dict, Type, Callable, List, Any, TYPE_CHECKING
 import logging
+import inspect
+import importlib
+import os
 
 if TYPE_CHECKING:
-    from app.shared.base import DomainEvent
+    from api.app.shared.base import DomainEvent
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +53,181 @@ class EventHandlerRegistry:
     """
 
     _handlers: Dict[Type["DomainEvent"], List[Callable]] = {}
+
+    @classmethod
+    def _wants_session(cls, handler: Callable) -> bool:
+        try:
+            params = list(inspect.signature(handler).parameters.values())
+        except (TypeError, ValueError):
+            return False
+        return len(params) >= 2
+
+    @classmethod
+    def _get_tx_mode(cls) -> str:
+        """Transaction mode for a single event dispatch.
+
+        Values:
+        - savepoint: single outer transaction; each DB handler runs in begin_nested();
+                    failures roll back to the savepoint and do NOT stop other handlers.
+        - atomic:    single outer transaction; any handler failure aborts remaining handlers
+                    and rolls back the whole event.
+        - none:      do not create a DB session/transaction here.
+
+        Default: savepoint (closest to legacy EventBus behavior: other handlers still run).
+        """
+
+        return os.getenv("WORDLOOM_EVENT_BUS_TX_MODE", "savepoint").strip().lower()
+
+    @classmethod
+    def _make_dispatcher(cls, event_type: Type["DomainEvent"]) -> Callable:
+        """Create the single EventBus subscriber for an event type.
+
+        The dispatcher is responsible for opening an AsyncSession and managing
+        transaction boundaries for all handlers of this event.
+        """
+
+        handlers = list(cls._handlers.get(event_type, []))
+        handlers_with_session = [h for h in handlers if cls._wants_session(h)]
+
+        async def _dispatcher(event):
+            tx_mode = cls._get_tx_mode()
+
+            # If no handler wants DB access (or tx mode disabled), don't create a session.
+            if not handlers_with_session or tx_mode == "none":
+                for handler in handlers:
+                    await handler(event)
+                return
+
+            from infra.database.session import get_session_factory
+
+            session_factory = await get_session_factory()
+            async with session_factory() as session:
+                if tx_mode == "atomic":
+                    try:
+                        async with session.begin():
+                            for handler in handlers:
+                                if cls._wants_session(handler):
+                                    await handler(event, session)
+                                else:
+                                    await handler(event)
+
+                        logger.info(
+                            {
+                                "event": "event_bus.uow",
+                                "event_type": event_type.__name__,
+                                "mode": "atomic",
+                                "outcome": "committed",
+                            }
+                        )
+                    except Exception:
+                        await session.rollback()
+                        logger.info(
+                            {
+                                "event": "event_bus.uow",
+                                "event_type": event_type.__name__,
+                                "mode": "atomic",
+                                "outcome": "rolled_back",
+                            }
+                        )
+                        raise
+
+                    return
+
+                # Default: savepoint mode
+                errors: List[tuple[str, Exception]] = []
+                async with session.begin():
+                    for handler in handlers:
+                        handler_name = getattr(handler, "__name__", str(handler))
+                        if cls._wants_session(handler):
+                            try:
+                                async with session.begin_nested():
+                                    await handler(event, session)
+                            except Exception as exc:
+                                errors.append((handler_name, exc))
+                                logger.error(
+                                    "Event handler failed (savepoint rolled back): %s → %s",
+                                    handler_name,
+                                    event_type.__name__,
+                                    exc_info=True,
+                                )
+                                continue
+                        else:
+                            try:
+                                await handler(event)
+                            except Exception as exc:
+                                errors.append((handler_name, exc))
+                                logger.error(
+                                    "Event handler failed (no DB savepoint available): %s → %s",
+                                    handler_name,
+                                    event_type.__name__,
+                                    exc_info=True,
+                                )
+                                continue
+
+                logger.info(
+                    {
+                        "event": "event_bus.uow",
+                        "event_type": event_type.__name__,
+                        "mode": "savepoint",
+                        "outcome": "committed_with_errors" if errors else "committed",
+                        "error_count": len(errors),
+                    }
+                )
+
+        _dispatcher.__name__ = f"dispatch_{event_type.__name__}"
+        return _dispatcher
+
+    @classmethod
+    def _wrap_for_event_bus(cls, handler: Callable) -> Callable:
+        """Wrap handler with UoW when it declares a DB/session parameter.
+
+        Supported handler signatures:
+        - async def handler(event) -> None
+        - async def handler(event, db_session) -> None
+
+        For the 2-arg form, we open an AsyncSession and manage commit/rollback here.
+        This keeps transaction boundaries out of individual handlers.
+        """
+
+        try:
+            params = list(inspect.signature(handler).parameters.values())
+        except (TypeError, ValueError):
+            params = []
+
+        wants_session = len(params) >= 2
+
+        if not wants_session:
+            return handler
+
+        async def _wrapped(event):
+            # Lazy import to avoid startup import cycles
+            from infra.database.session import get_session_factory
+
+            session_factory = await get_session_factory()
+            async with session_factory() as session:
+                try:
+                    await handler(event, session)
+                    await session.commit()
+                    logger.info(
+                        {
+                            "event": "event_bus.uow",
+                            "handler": getattr(handler, "__name__", str(handler)),
+                            "outcome": "committed",
+                        }
+                    )
+                except Exception:
+                    await session.rollback()
+                    logger.info(
+                        {
+                            "event": "event_bus.uow",
+                            "handler": getattr(handler, "__name__", str(handler)),
+                            "outcome": "rolled_back",
+                        }
+                    )
+                    raise
+
+        _wrapped.__name__ = getattr(handler, "__name__", "wrapped_handler")
+        return _wrapped
 
     @classmethod
     def register(cls, event_type: Type["DomainEvent"]):
@@ -85,15 +263,26 @@ class EventHandlerRegistry:
         - Logs registration summary
         """
         # Import here to avoid circular dependency
-        from app.shared.events import get_event_bus
+        get_event_bus = None
+        for module_name in ("api.app.shared.events", "app.shared.events"):
+            try:
+                module = importlib.import_module(module_name)
+                get_event_bus = getattr(module, "get_event_bus")
+                break
+            except Exception:
+                continue
+
+        if get_event_bus is None:
+            raise ImportError("Could not import get_event_bus from api.app.shared.events or app.shared.events")
 
         event_bus = get_event_bus()
 
         handler_count = 0
         for event_type, handlers in cls._handlers.items():
-            for handler in handlers:
-                event_bus.subscribe(event_type, handler)
-                handler_count += 1
+            # Subscribe a single dispatcher per event type.
+            # This enables single-event single-transaction semantics.
+            event_bus.subscribe(event_type, cls._make_dispatcher(event_type))
+            handler_count += len(handlers)
 
         logger.info(
             f"EventHandlerRegistry bootstrapped: "

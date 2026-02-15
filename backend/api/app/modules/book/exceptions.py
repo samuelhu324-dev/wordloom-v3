@@ -195,6 +195,57 @@ class BookshelfNotFoundError(BookException):
         )
 
 
+class BookLibraryAssociationError(BookException):
+    """Raised when a Book references an invalid/missing Library.
+
+    Typically used by authorization checks or when invariants require a valid library.
+    """
+
+    code = "BOOK_LIBRARY_ASSOCIATION_ERROR"
+    http_status = 422
+
+    def __init__(
+        self,
+        *,
+        library_id: str,
+        reason: str,
+        book_id: Optional[str] = None,
+    ):
+        super().__init__(
+            message=f"Book library association error: {reason}",
+            details={
+                "book_id": book_id,
+                "library_id": library_id,
+                "reason": reason,
+            },
+        )
+
+
+class BookForbiddenError(BookException):
+    """Raised when actor is not authorized to access/modify a Book."""
+
+    code = "BOOK_FORBIDDEN"
+    http_status = 403
+
+    def __init__(
+        self,
+        *,
+        book_id: Optional[str] = None,
+        library_id: Optional[str] = None,
+        actor_user_id: Optional[str] = None,
+        reason: str,
+    ):
+        super().__init__(
+            message=f"Forbidden: {reason}",
+            details={
+                "book_id": book_id,
+                "library_id": library_id,
+                "actor_user_id": actor_user_id,
+                "reason": reason,
+            },
+        )
+
+
 class InvalidBookMoveError(BookException):
     """
     RULE-011: 当尝试将 Book 移到非法目标 Bookshelf 时触发

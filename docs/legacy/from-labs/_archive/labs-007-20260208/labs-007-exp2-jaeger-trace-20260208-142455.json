@@ -1,0 +1,98 @@
+﻿{
+    "data":  [
+                 {
+                     "traceID":  "ff694bd603b249173b4e83eaa7c6d561",
+                     "spans":  [
+                                   {
+                                       "traceID":  "ff694bd603b249173b4e83eaa7c6d561",
+                                       "spanID":  "eb6f76c5b16232ef",
+                                       "operationName":  "UPDATE wordloom_test",
+                                       "references":  [
+
+                                                      ],
+                                       "startTime":  1770531892661660,
+                                       "duration":  1663,
+                                       "tags":  [
+                                                    {
+                                                        "key":  "db.name",
+                                                        "type":  "string",
+                                                        "value":  "wordloom_test"
+                                                    },
+                                                    {
+                                                        "key":  "db.statement",
+                                                        "type":  "string",
+                                                        "value":  "UPDATE search_outbox_events SET owner=%(owner)s::VARCHAR, lease_until=%(lease_until)s::TIMESTAMP WITH TIME ZONE, updated_at=%(updated_at)s::TIMESTAMP WITH TIME ZONE, processing_started_at=%(processing_started_at)s::TIMESTAMP WITH TIME ZONE WHERE (search_outbox_events.processed_at IS NOT NULL OR search_outbox_events.status IN (%(status_1_1)s::VARCHAR, %(status_1_2)s::VARCHAR)) AND (search_outbox_events.owner IS NOT NULL OR search_outbox_events.lease_until IS NOT NULL OR search_outbox_events.processing_started_at IS NOT NULL)"
+                                                    },
+                                                    {
+                                                        "key":  "db.system",
+                                                        "type":  "string",
+                                                        "value":  "postgresql"
+                                                    },
+                                                    {
+                                                        "key":  "db.user",
+                                                        "type":  "string",
+                                                        "value":  "wordloom"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.name",
+                                                        "type":  "string",
+                                                        "value":  "localhost"
+                                                    },
+                                                    {
+                                                        "key":  "net.peer.port",
+                                                        "type":  "int64",
+                                                        "value":  5435
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.name",
+                                                        "type":  "string",
+                                                        "value":  "opentelemetry.instrumentation.sqlalchemy"
+                                                    },
+                                                    {
+                                                        "key":  "otel.scope.version",
+                                                        "type":  "string",
+                                                        "value":  "0.60b1"
+                                                    },
+                                                    {
+                                                        "key":  "span.kind",
+                                                        "type":  "string",
+                                                        "value":  "client"
+                                                    }
+                                                ],
+                                       "logs":  [
+
+                                                ],
+                                       "processID":  "p1",
+                                       "warnings":  null
+                                   }
+                               ],
+                     "processes":  {
+                                       "p1":  {
+                                                  "serviceName":  "wordloom-search-outbox-worker",
+                                                  "tags":  [
+                                                               {
+                                                                   "key":  "telemetry.sdk.language",
+                                                                   "type":  "string",
+                                                                   "value":  "python"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.name",
+                                                                   "type":  "string",
+                                                                   "value":  "opentelemetry"
+                                                               },
+                                                               {
+                                                                   "key":  "telemetry.sdk.version",
+                                                                   "type":  "string",
+                                                                   "value":  "1.39.1"
+                                                               }
+                                                           ]
+                                              }
+                                   },
+                     "warnings":  null
+                 }
+             ],
+    "total":  0,
+    "limit":  0,
+    "offset":  0,
+    "errors":  null
+}

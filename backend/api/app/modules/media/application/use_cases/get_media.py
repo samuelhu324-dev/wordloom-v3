@@ -5,6 +5,8 @@ This use case handles:
 - Returning media domain object
 """
 
+import logging
+import time
 from uuid import UUID
 
 from ...domain import Media
@@ -13,6 +15,10 @@ from ...exceptions import (
     MediaNotFoundError,
     MediaOperationError,
 )
+from api.app.shared.request_context import RequestContext
+
+
+logger = logging.getLogger(__name__)
 
 
 class GetMediaUseCase:
@@ -21,7 +27,7 @@ class GetMediaUseCase:
     def __init__(self, repository: MediaRepository):
         self.repository = repository
 
-    async def execute(self, media_id: UUID) -> Media:
+    async def execute(self, media_id: UUID, ctx: RequestContext | None = None) -> Media:
         """
         Execute get media use case
 
@@ -35,12 +41,56 @@ class GetMediaUseCase:
             MediaNotFoundError: If not found
             MediaOperationError: On query error
         """
+        start = time.perf_counter()
+        correlation_id = getattr(ctx, "correlation_id", None)
+
         try:
-            media = await self.repository.get_by_id(media_id)
+            media = await self.repository.get_by_id(media_id, ctx=ctx)
             if not media:
+                duration_ms = (time.perf_counter() - start) * 1000
+                logger.info(
+                    {
+                        "event": "media.get.usecase.not_found",
+                        "operation": "media.get",
+                        "layer": "usecase",
+                        "outcome": "not_found",
+                        "correlation_id": correlation_id,
+                        "media_id": str(media_id),
+                        "duration_ms": duration_ms,
+                    }
+                )
                 raise MediaNotFoundError(media_id)
+
+            duration_ms = (time.perf_counter() - start) * 1000
+            logger.info(
+                {
+                    "event": "media.get.usecase.success",
+                    "operation": "media.get",
+                    "layer": "usecase",
+                    "outcome": "success",
+                    "correlation_id": correlation_id,
+                    "media_id": str(media_id),
+                    "duration_ms": duration_ms,
+                }
+            )
             return media
+
         except Exception as e:
             if isinstance(e, MediaNotFoundError):
                 raise
-            raise MediaOperationError(f"Failed to get media: {str(e)}")
+
+            duration_ms = (time.perf_counter() - start) * 1000
+            logger.exception(
+                {
+                    "event": "media.get.usecase.failed",
+                    "operation": "media.get",
+                    "layer": "usecase",
+                    "outcome": "error",
+                    "correlation_id": correlation_id,
+                    "media_id": str(media_id),
+                    "duration_ms": duration_ms,
+                    "error_type": type(e).__name__,
+                    "cause_type": type(getattr(e, "__cause__", None)).__name__ if getattr(e, "__cause__", None) else None,
+                }
+            )
+            raise MediaOperationError(f"Failed to get media: {str(e)}") from e

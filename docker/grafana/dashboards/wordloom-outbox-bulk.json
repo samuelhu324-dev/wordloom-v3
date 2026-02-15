@@ -1,0 +1,384 @@
+{
+  "uid": "wordloom-outbox-bulk",
+  "title": "Wordloom • Outbox + ES Bulk",
+  "tags": ["wordloom", "outbox", "elasticsearch", "bulk"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 3,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "env",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "PROMETHEUS"
+        },
+        "query": {
+          "query": "label_values(up{job=~\"wordloom-.*\"}, env)",
+          "refId": "StandardVariableQuery"
+        },
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "refresh": 2,
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        }
+      },
+      {
+        "name": "projection",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "PROMETHEUS"
+        },
+        "query": {
+          "query": "label_values(outbox_es_bulk_requests_total, projection)",
+          "refId": "StandardVariableQuery"
+        },
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "refresh": 2,
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Produced (API) /s",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "ops", "min": 0},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (env) (rate(outbox_produced_total{component=\"api\", env=~\"$env\"}[1m]))",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Processed (Worker) /s by op",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "ops", "min": 0},
+        "overrides": []
+      },
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (env, op) (rate(outbox_processed_total{component=\"worker\", env=~\"$env\"}[1m]))",
+          "legendFormat": "{{env}} {{op}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Failed (Worker) /s",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "ops", "min": 0},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (env) (rate(outbox_failed_total{component=\"worker\", env=~\"$env\"}[1m]))",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Retry scheduled (Worker) /s",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "ops", "min": 0},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (env) (rate(outbox_retry_scheduled_total{component=\"worker\", env=~\"$env\", projection=~\"$projection\"}[1m]))",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Lag events (Worker)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "short", "min": 0},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (env) (outbox_lag_events{component=\"worker\", env=~\"$env\"})",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Terminal failed (Worker) /s",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "ops", "min": 0},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (env) (rate(outbox_terminal_failed_total{component=\"worker\", env=~\"$env\", projection=~\"$projection\"}[1m]))",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Oldest outbox age (Worker)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "s", "min": 0},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (env) (outbox_oldest_age_seconds{component=\"worker\", env=~\"$env\"})",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Inflight events (Worker)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "short", "min": 0},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (env) (outbox_inflight_events{component=\"worker\", env=~\"$env\"})",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Rebuild duration (Search projection)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "s", "min": 0},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (env) (projection_rebuild_duration_seconds{component=\"worker\", env=~\"$env\", projection=~\"$projection\"})",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Rebuild last success (Search projection)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "short", "min": 0, "max": 1},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (env) (projection_rebuild_last_success{component=\"worker\", env=~\"$env\", projection=~\"$projection\"})",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Worker last success time (unix ts)",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "dateTimeAsIso"},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (env) (outbox_last_success_timestamp_seconds{component=\"worker\", env=~\"$env\", projection=~\"$projection\"})",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "ES Bulk request p95 (Worker)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 48},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "s", "min": 0},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le, env) (rate(outbox_es_bulk_request_duration_seconds_bucket{component=\"worker\", env=~\"$env\", projection=~\"$projection\"}[5m])))",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "ES Bulk requests /s by result (Worker)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 48},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "ops", "min": 0},
+        "overrides": []
+      },
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (env, result) (rate(outbox_es_bulk_requests_total{component=\"worker\", env=~\"$env\", projection=~\"$projection\"}[1m]))",
+          "legendFormat": "{{env}} {{result}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Net rate (processed - produced) /s",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 56},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "ops"},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (env) (rate(outbox_processed_total{component=\"worker\", env=~\"$env\"}[1m])) - sum by (env) (rate(outbox_produced_total{component=\"api\", env=~\"$env\"}[1m]))",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "429 ratio (bulk item failures / items)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 56},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "percentunit", "min": 0, "max": 1},
+        "overrides": []
+      },
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (env) (rate(outbox_es_bulk_item_failures_total{component=\"worker\", env=~\"$env\", projection=~\"$projection\", failure_class=\"429\"}[1m])) / clamp_min(sum by (env) (rate(outbox_es_bulk_items_total{component=\"worker\", env=~\"$env\", projection=~\"$projection\"}[1m])), 1e-9)",
+          "legendFormat": "{{env}}"
+        },
+        {
+          "refId": "B",
+          "expr": "vector(0.01)",
+          "legendFormat": "threshold 1%"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "ES Bulk items /s (success vs failed)",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 64},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "ops", "min": 0},
+        "overrides": []
+      },
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (env, op) (rate(outbox_es_bulk_items_total{component=\"worker\", env=~\"$env\", projection=~\"$projection\", result=\"success\"}[1m]))",
+          "legendFormat": "{{env}} {{op}} success"
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (env, op) (rate(outbox_es_bulk_items_total{component=\"worker\", env=~\"$env\", projection=~\"$projection\", result=\"failed\"}[1m]))",
+          "legendFormat": "{{env}} {{op}} failed"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "ES Bulk item failures /s by failure_class (Worker)",
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 72},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "ops", "min": 0},
+        "overrides": []
+      },
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}},
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (env, failure_class) (rate(outbox_es_bulk_item_failures_total{component=\"worker\", env=~\"$env\", projection=~\"$projection\"}[1m]))",
+          "legendFormat": "{{env}} {{failure_class}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Stuck processing events (Worker)",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 81},
+      "datasource": {"type": "prometheus", "uid": "PROMETHEUS"},
+      "fieldConfig": {
+        "defaults": {"unit": "short", "min": 0},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (env) (outbox_stuck_processing_events{component=\"worker\", env=~\"$env\", projection=~\"$projection\"})",
+          "legendFormat": "{{env}}"
+        }
+      ]
+    }
+  ]
+}

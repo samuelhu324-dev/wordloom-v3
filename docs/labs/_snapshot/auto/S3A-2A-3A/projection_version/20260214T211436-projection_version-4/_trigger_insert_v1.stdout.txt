@@ -1,0 +1,1 @@
+{"chronicle_event_id": "a93fcabf-9d94-451f-9985-3d1a370aeb84", "outbox_event_id": "1881d7bd-c306-411d-a671-54aaaf4e72ad", "library_id": "35e62df8-d59e-41f4-b4bb-c5638a262d01", "bookshelf_id": "82d67588-7e77-4a95-a37e-9e66925002a8", "book_id": "4857f904-cc1f-4233-83bf-f79c4f9616bb", "event_type": "labs-009.projection_version", "op": "upsert", "event_version": 1771075443580866}

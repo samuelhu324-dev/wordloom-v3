@@ -6,7 +6,7 @@ from pathlib import Path as FilePath
 from typing import Optional, List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, Path as FastAPIPath, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Path as FastAPIPath, Query, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import ProgrammingError
 
@@ -14,6 +14,11 @@ from sqlalchemy.exc import ProgrammingError
 from api.app.modules.library.application.use_cases.create_library import CreateLibraryUseCase
 from api.app.modules.library.application.use_cases.get_library import GetLibraryUseCase
 from api.app.modules.library.application.use_cases.update_library import UpdateLibraryUseCase, UpdateLibraryRequest
+from api.app.modules.library.application.use_cases.upload_library_cover import (
+    UploadLibraryCoverOutcome,
+    UploadLibraryCoverRequest,
+    UploadLibraryCoverUseCase,
+)
 from api.app.modules.library.application.use_cases.delete_library import DeleteLibraryUseCase
 from api.app.modules.library.application.use_cases.record_library_view import RecordLibraryViewUseCase
 from api.app.modules.library.application.use_cases.list_library_tags import ListLibraryTagsUseCase
@@ -75,7 +80,8 @@ from api.app.modules.media.exceptions import (
 )
 
 # Security
-from api.app.config.security import get_current_user_id
+from api.app.config.security import get_current_actor, get_current_user_id
+from api.app.shared.actor import Actor
 from api.app.config.setting import get_settings
 
 # Storage
@@ -460,11 +466,16 @@ async def record_library_view(
 @router.get("/{library_id}", response_model=LibraryDetailResponse)
 async def get_library(
     library_id: UUID = FastAPIPath(...),
+    actor: Actor = Depends(get_current_actor),
     use_case_bundle: tuple[GetLibraryUseCase, AsyncSession] = Depends(get_get_library_usecase),
 ) -> LibraryDetailResponse:
     try:
         use_case, session = use_case_bundle
-        uc_request = GetLibraryRequest(library_id=library_id)
+        uc_request = GetLibraryRequest(
+            library_id=library_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+        )
         uc_response = await use_case.execute(uc_request)
         tags_map, tag_totals = await _load_library_tags(session, [uc_response.library_id])
         return _build_library_detail_response(
@@ -496,103 +507,158 @@ async def get_user_library(
     summary="上传并设置 Library 封面",
 )
 async def upload_library_cover(
+    request: Request,
     library_id: UUID = FastAPIPath(...),
     file: UploadFile = File(..., description="封面图片文件 (JPEG/PNG/WEBP/GIF)"),
     user_id: UUID = Depends(get_current_user_id),
     di: DIContainer = Depends(get_di_container),
     session: AsyncSession = Depends(get_db_session),
 ) -> LibraryDetailResponse:
-    logger.info(f"[upload_library_cover] START library_id={library_id}, file={file.filename}")
-    try:
-        library_snapshot = await di.get_get_library_use_case().execute(
-            GetLibraryRequest(library_id=library_id)
-        )
-        logger.info(f"[upload_library_cover] Got library snapshot: {library_snapshot}")
-    except LibraryException as exc:
-        logger.exception(f"[upload_library_cover] LibraryException: {exc}")
-        raise _handle_domain_exception(exc)
+    correlation_id = getattr(getattr(request, "state", None), "correlation_id", None)
 
-    if (not _settings.allow_dev_library_owner_override) and library_snapshot.user_id != user_id:
+    def _emit_usecase_outcome(
+        *,
+        outcome: str,
+        status_code: int,
+        media_id: Optional[UUID] = None,
+        error: Optional[object] = None,
+    ) -> None:
+        logger.info(
+            {
+                "event": "usecase.outcome",
+                "operation": "library.cover.bind",
+                "layer": "handler",
+                "outcome": outcome,
+                "status_code": status_code,
+                "correlation_id": correlation_id,
+                "entity_type": "library",
+                "entity_id": str(library_id),
+                "media_id": str(media_id) if media_id else None,
+                "error": error,
+            }
+        )
+
+    logger.info(f"[upload_library_cover] START library_id={library_id}, file={file.filename}")
+    file_bytes = await file.read()
+
+    use_case = UploadLibraryCoverUseCase(
+        get_library_use_case=di.get_get_library_use_case(),
+        upload_image_use_case=di.get_upload_image_use_case(),
+        update_library_use_case=di.get_update_library_use_case(),
+        storage=_library_cover_storage,
+        allow_dev_library_owner_override=_settings.allow_dev_library_owner_override,
+    )
+
+    result = await use_case.execute(
+        UploadLibraryCoverRequest(
+            library_id=library_id,
+            actor_user_id=user_id,
+            file_bytes=file_bytes,
+            original_filename=file.filename,
+            content_type=file.content_type,
+        )
+    )
+
+    if result.outcome == UploadLibraryCoverOutcome.SUCCESS:
+        _emit_usecase_outcome(
+            outcome="success",
+            status_code=status.HTTP_201_CREATED,
+            media_id=result.media_id,
+        )
+        tags_map, tag_totals = await _load_library_tags(session, [library_id])
+        return _build_library_detail_response(
+            result.library,
+            tags_map.get(library_id, []),
+            tag_totals.get(library_id, len(tags_map.get(library_id, []))),
+        )
+
+    if result.outcome == UploadLibraryCoverOutcome.NOT_FOUND:
+        _emit_usecase_outcome(
+            outcome="not_found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            media_id=result.media_id,
+            error=str(result.error) if result.error else None,
+        )
+        if isinstance(result.error, LibraryException):
+            raise _handle_domain_exception(result.error)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Library not found")
+
+    if result.outcome == UploadLibraryCoverOutcome.FORBIDDEN:
+        _emit_usecase_outcome(
+            outcome="forbidden",
+            status_code=status.HTTP_403_FORBIDDEN,
+            media_id=result.media_id,
+        )
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
 
-    file_bytes = await file.read()
-    if not file_bytes:
+    if result.outcome == UploadLibraryCoverOutcome.REJECTED_EMPTY:
+        _emit_usecase_outcome(outcome="validation_failed", status_code=status.HTTP_400_BAD_REQUEST)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="封面文件不能为空")
 
-    try:
-        mime_type = _resolve_media_mime(file)
-        logger.info(f"[upload_library_cover] Resolved MIME type: {mime_type}")
-    except ValueError as e:
-        logger.exception(f"[upload_library_cover] MIME resolve failed: {e}")
+    if result.outcome == UploadLibraryCoverOutcome.REJECTED_MIME:
+        _emit_usecase_outcome(outcome="validation_failed", status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="不支持的图片类型")
 
-    filename = _normalize_filename(file.filename, mime_type)
-    logger.info(f"[upload_library_cover] Normalized filename: {filename}")
-
-    try:
-        storage_key = await _library_cover_storage.save_library_cover(file_bytes, library_id, filename)
-        logger.info(f"[upload_library_cover] Saved to storage_key={storage_key}")
-    except Exception as exc:
-        logger.exception("Failed to persist library cover file: %s", exc)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="无法保存封面文件") from exc
-
-    upload_use_case = di.get_upload_image_use_case()
-    logger.info(f"[upload_library_cover] Got upload_use_case: {upload_use_case}")
-
-    try:
-        logger.info(f"[upload_library_cover] Calling execute with filename={filename}, mime_type={mime_type}, file_size={len(file_bytes)}, storage_key={storage_key}, user_id={library_snapshot.user_id}")
-        media = await upload_use_case.execute(
-            filename=filename,
-            mime_type=mime_type,
-            file_size=len(file_bytes),
-            storage_key=storage_key,
-            user_id=library_snapshot.user_id,
+    if result.outcome == UploadLibraryCoverOutcome.REJECTED_TOO_LARGE:
+        _emit_usecase_outcome(outcome="validation_failed", status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "FILE_SIZE_TOO_LARGE",
+                "message": "封面文件过大",
+                "details": {"max_size": UploadLibraryCoverUseCase.MAX_IMAGE_SIZE},
+            },
         )
-        logger.info(f"[upload_library_cover] Media created: {media.id}")
-    except (InvalidMimeTypeError, FileSizeTooLargeError, InvalidDimensionsError) as exc:
-        logger.exception(f"[upload_library_cover] Validation error: {exc}")
-        await _library_cover_storage.delete_file(storage_key)
-        raise HTTPException(status_code=exc.http_status, detail=exc.to_dict()) from exc
-    except StorageQuotaExceededError as exc:
-        logger.exception(f"[upload_library_cover] Quota error: {exc}")
-        await _library_cover_storage.delete_file(storage_key)
-        raise HTTPException(status_code=exc.http_status, detail=exc.to_dict()) from exc
-    except MediaOperationError as exc:
-        logger.exception(f"[upload_library_cover] Media operation error: {exc}")
-        await _library_cover_storage.delete_file(storage_key)
-        raise HTTPException(status_code=exc.http_status, detail=exc.to_dict()) from exc
-    except Exception as exc:
-        logger.exception(f"[upload_library_cover] Unexpected error: {exc}")
-        await _library_cover_storage.delete_file(storage_key)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="封面上传失败") from exc
 
-    update_use_case = di.get_update_library_use_case()
-
-    try:
-        update_req = UpdateLibraryRequest(
-            library_id=library_id,
-            cover_media_id=media.id,
-            cover_media_id_provided=True,
+    if result.outcome == UploadLibraryCoverOutcome.STORAGE_SAVE_FAILED:
+        _emit_usecase_outcome(
+            outcome="error",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            error="cover_storage_failed",
         )
-        uc_response = await update_use_case.execute(update_req)
-    except LibraryException as exc:
-        raise _handle_domain_exception(exc)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="无法保存封面文件")
 
-    if (not _settings.allow_dev_library_owner_override) and uc_response.user_id != user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+    if result.outcome == UploadLibraryCoverOutcome.MEDIA_VALIDATION_FAILED:
+        _emit_usecase_outcome(
+            outcome="validation_failed",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            error=result.error,
+        )
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=result.error)
 
-    tags_map, tag_totals = await _load_library_tags(session, [library_id])
-    return _build_library_detail_response(
-        uc_response,
-        tags_map.get(library_id, []),
-        tag_totals.get(library_id, len(tags_map.get(library_id, []))),
+    if result.outcome == UploadLibraryCoverOutcome.QUOTA_EXCEEDED:
+        _emit_usecase_outcome(
+            outcome="error",
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            error=result.error,
+        )
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=result.error)
+
+    if result.outcome == UploadLibraryCoverOutcome.UPDATE_FAILED:
+        _emit_usecase_outcome(
+            outcome="error",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            media_id=result.media_id,
+            error=str(result.error) if result.error else None,
+        )
+        if isinstance(result.error, LibraryException):
+            raise _handle_domain_exception(result.error)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="封面绑定失败")
+
+    # MEDIA_OPERATION_FAILED and any other fallback
+    _emit_usecase_outcome(
+        outcome="error",
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        media_id=result.media_id,
+        error=result.error,
     )
+    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="封面上传失败")
 
 @router.patch("/{library_id}", response_model=LibraryDetailResponse)
 async def patch_library(
     library_id: UUID = FastAPIPath(...),
     request: LibraryUpdate = None,
-    user_id: UUID = Depends(get_current_user_id),
+    actor: Actor = Depends(get_current_actor),
     use_case_bundle: tuple[UpdateLibraryUseCase, AsyncSession] = Depends(get_update_library_usecase),
 ) -> LibraryDetailResponse:
     try:
@@ -601,6 +667,8 @@ async def patch_library(
         theme_color_field_provided = bool(request and "theme_color" in request.model_fields_set)
         update_req = UpdateLibraryRequest(
             library_id=library_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
             name=request.name if request else None,
             description=request.description if request else None,
             cover_media_id=request.cover_media_id if cover_media_field_provided else None,
@@ -612,8 +680,6 @@ async def patch_library(
             archived=request.archived if request else None,
         )
         uc_response = await use_case.execute(update_req)
-        if (not _settings.allow_dev_library_owner_override) and uc_response.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
         tags_map, tag_totals = await _load_library_tags(session, [library_id])
         return _build_library_detail_response(
             uc_response,
@@ -711,12 +777,16 @@ async def replace_library_tags(
 @router.delete("/{library_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_library(
     library_id: UUID = FastAPIPath(...),
-    user_id: UUID = Depends(get_current_user_id),
+    actor: Actor = Depends(get_current_actor),
     use_case_bundle: tuple[DeleteLibraryUseCase, AsyncSession] = Depends(get_delete_library_usecase),
 ) -> None:
     try:
         use_case, _session = use_case_bundle
-        uc_request = DeleteLibraryRequest(library_id=library_id)
+        uc_request = DeleteLibraryRequest(
+            library_id=library_id,
+            actor_user_id=actor.user_id,
+            enforce_owner_check=(not _settings.allow_dev_library_owner_override),
+        )
         await use_case.execute(uc_request)
     except LibraryException as exc:
         raise _handle_domain_exception(exc)

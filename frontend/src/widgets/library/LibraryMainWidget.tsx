@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LayoutGrid, List as ListIcon } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
 import {
   useCreateLibrary,
@@ -167,8 +167,12 @@ export const LibraryMainWidget = React.forwardRef<HTMLDivElement, LibraryMainWid
     const handleSaveLibrary = async ({ formValues, tags }: LibraryFormSubmitPayload) => {
       try {
         const normalizedTags = normalizeTagSelections(tags);
-        const previousTagCount = editingLibrary ? editingLibraryTags.length : 0;
+        const initialTagCount = editingLibrary ? (editingLibrary.tag_total_count ?? 0) : 0;
+        const previousTagCount = editingLibrary
+          ? Math.max(initialTagCount, editingLibraryTags.length)
+          : 0;
         let targetLibraryId: string;
+        let resolvedTagIds: string[] | undefined;
 
         if (editingLibrary) {
           await quickUpdateMutation.mutateAsync({ libraryId: editingLibrary.id, data: formValues });
@@ -180,12 +184,40 @@ export const LibraryMainWidget = React.forwardRef<HTMLDivElement, LibraryMainWid
           setTimeout(() => setHighlightedId(null), 800);
         }
 
-        await maybeReplaceLibraryTags({
+        resolvedTagIds = await maybeReplaceLibraryTags({
           libraryId: targetLibraryId,
           normalizedTags,
           previousTagCount,
           isEditing: Boolean(editingLibrary),
         });
+
+        if (resolvedTagIds !== undefined) {
+          const tagSummaries = normalizedTags.length
+            ? normalizedTags.map((tag, idx) => ({
+              id: resolvedTagIds[idx] ?? tag.id ?? `${targetLibraryId}-tag-${idx}`,
+              name: tag.name,
+              color: tag.color || DEFAULT_TAG_COLOR,
+            }))
+            : [];
+
+          patchLibraryCollections(queryClient, targetLibraryId, (item) => ({
+            ...item,
+            tags: tagSummaries,
+            tag_total_count: tagSummaries.length,
+          }));
+
+          queryClient.setQueryData(['libraries', targetLibraryId], (old: any) => {
+            if (!old) return old;
+            return { ...old, tags: tagSummaries, tag_total_count: tagSummaries.length };
+          });
+
+          updateLocalLibrariesCache(targetLibraryId, tagSummaries);
+        }
+
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['libraries'], exact: false }),
+          queryClient.invalidateQueries({ queryKey: ['libraries', targetLibraryId], exact: false }),
+        ]);
 
         showToast(editingLibrary ? t('libraries.toast.updated') : t('libraries.toast.created'));
         setIsFormOpen(false);
@@ -209,14 +241,15 @@ export const LibraryMainWidget = React.forwardRef<HTMLDivElement, LibraryMainWid
       normalizedTags: LibraryFormTagValue[];
       previousTagCount: number;
       isEditing: boolean;
-    }) => {
+    }): Promise<string[] | undefined> => {
       const shouldPersist = isEditing ? previousTagCount > 0 || normalizedTags.length > 0 : normalizedTags.length > 0;
-      if (!shouldPersist) return;
+      if (!shouldPersist) return undefined;
 
       const tagIds = await ensureTagIds(normalizedTags);
-      await replaceLibraryTags(libraryId, tagIds, 25);
+      const replaced = await replaceLibraryTags(libraryId, tagIds, 25);
       queryClient.invalidateQueries({ queryKey: ['libraries'] });
       queryClient.invalidateQueries({ queryKey: ['libraries', libraryId] });
+      return tagIds;
     };
 
     const ensureTagIds = async (tags: LibraryFormTagValue[]): Promise<string[]> => {
@@ -310,7 +343,12 @@ export const LibraryMainWidget = React.forwardRef<HTMLDivElement, LibraryMainWid
                 onKeyDown={handleSearchKey}
                 aria-label={t('libraries.search.ariaLabel')}
               />
-              <Button size="sm" variant="primary" onClick={openCreateForm}>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={openCreateForm}
+                data-testid="library-create-button"
+              >
                 {t('libraries.new')}
               </Button>
             </div>
@@ -412,6 +450,40 @@ function normalizeTagSelections(tags: LibraryFormTagValue[] = []): LibraryFormTa
     if (normalized.length >= TAG_LIMIT) break;
   }
   return normalized;
+}
+
+function updateLocalLibrariesCache(libraryId: string, tags: Array<{ id: string; name: string; color?: string }>) {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem('wl_libraries_cache');
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.data)) return;
+    const nextData = parsed.data.map((item: any) => item?.id === libraryId
+      ? { ...item, tags, tag_total_count: tags.length }
+      : item);
+    localStorage.setItem('wl_libraries_cache', JSON.stringify({ ...parsed, data: nextData }));
+  } catch (_) {}
+}
+
+function patchLibraryCollections(
+  queryClient: QueryClient,
+  libraryId: string,
+  patch: (item: any) => any,
+) {
+  const queries = queryClient.getQueryCache().findAll({ queryKey: ['libraries'], exact: false });
+  queries.forEach((query) => {
+    queryClient.setQueryData(query.queryKey, (old: unknown) => {
+      if (!Array.isArray(old)) return old;
+      let changed = false;
+      const next = old.map((item: any) => {
+        if (item?.id !== libraryId) return item;
+        changed = true;
+        return patch(item);
+      });
+      return changed ? next : old;
+    });
+  });
 }
 
 function mapTagsResponseToFormValues(

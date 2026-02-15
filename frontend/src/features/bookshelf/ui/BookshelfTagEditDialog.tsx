@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useId, useMemo, useState } from 'react';
 import type { BookshelfDashboardItemDto } from '@/entities/bookshelf';
 import { useQuickUpdateBookshelf } from '../model/hooks';
 import { Button, Input, Modal } from '@/shared/ui';
@@ -34,6 +34,7 @@ export const BookshelfTagEditDialog = ({
   onSaved,
 }: BookshelfTagEditDialogProps) => {
   const { t } = useI18n();
+  const formId = useId();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [tagSelections, setTagSelections] = useState<TagSelection[]>([]);
@@ -236,8 +237,15 @@ export const BookshelfTagEditDialog = ({
       showCloseButton
       lockScroll
       headingGap="compact"
+      footer={(
+        <div className={styles.footer}>
+          <Button type="submit" variant="primary" loading={isSaving} disabled={!bookshelf} form={formId}>
+            {t('button.save')}
+          </Button>
+        </div>
+      )}
     >
-      <form className={styles.form} onSubmit={handleSubmit}>
+      <form id={formId} className={styles.form} onSubmit={handleSubmit}>
         <Input
           label={t('bookshelves.tags.dialog.nameLabel')}
           value={name}
@@ -283,12 +291,6 @@ export const BookshelfTagEditDialog = ({
           onRemoveTag={handleRemoveTag}
           onSelectSuggestion={handleAddExistingTag}
         />
-
-        <div className={styles.footer}>
-          <Button type="submit" variant="primary" loading={isSaving} disabled={!bookshelf}>
-            {t('button.save')}
-          </Button>
-        </div>
       </form>
     </Modal>
   );

@@ -1,0 +1,4 @@
+service=wordloom-search-outbox-worker
+required=outbox_worker.loop,outbox.claim_batch,projection.process_batch
+traceID=5b3b39c3caded3acffc5cf684c7e2aaf
+overall=FAIL

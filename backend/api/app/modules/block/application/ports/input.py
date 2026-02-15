@@ -22,6 +22,8 @@ class CreateBlockRequest:
     content: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
     position_after_id: Optional[UUID] = None
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
@@ -31,12 +33,16 @@ class ListBlocksRequest:
     include_deleted: bool = False
     skip: int = 0
     limit: int = 100
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
 class GetBlockRequest:
     """获取 Block 的请求"""
     block_id: UUID
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
@@ -45,6 +51,8 @@ class UpdateBlockRequest:
     block_id: UUID
     content: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
@@ -56,25 +64,34 @@ class ReorderBlocksRequest:
     # Phase2 修正：后端 router 已使用 new_order 字段进行重排日志与 UseCase 参数
     # 添加 new_order 以与 /api/v1/blocks/reorder 契约一致（Decimal 字符串或数值）
     new_order: Optional[str] = None
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
 class DeleteBlockRequest:
     """删除 Block 的请求"""
     block_id: UUID
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
 class RestoreBlockRequest:
     """恢复 Block 的请求"""
     block_id: UUID
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 @dataclass
 class ListDeletedBlocksRequest:
     """列出已删除 Block 的请求"""
+    book_id: UUID
     skip: int = 0
     limit: int = 100
+    actor_user_id: Optional[UUID] = None
+    enforce_owner_check: bool = True
 
 
 # ============================================================================

@@ -166,13 +166,20 @@ export const recalculateBookMaturity = async (
 };
 
 /** Upload cover image for a book (stable-only enforcement handled server-side) */
-export const uploadBookCover = async (bookId: string, file: File): Promise<BookDto> => {
+export const uploadBookCover = async (
+  bookId: string,
+  file: File,
+  correlationId?: string,
+): Promise<BookDto> => {
   const formData = new FormData();
   formData.append('file', file);
 
   try {
     const response = await apiClient.post<BackendBook>(`/books/${bookId}/cover`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...(correlationId ? { 'X-Request-Id': correlationId } : null),
+      },
     });
     return toBookDto(response.data as BackendBook);
   } catch (err) {

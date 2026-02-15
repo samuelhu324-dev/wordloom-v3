@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from api.app.modules.block.application.ports.output import BlockRepository
+from api.app.modules.block.application.ports.input import DeleteBlockRequest
 from api.app.modules.block.application.use_cases.delete_block import DeleteBlockUseCase
 from api.app.modules.block.domain import Block
 
@@ -15,4 +16,5 @@ class SoftDeleteBlockUseCase:
         self._delegate = DeleteBlockUseCase(repository)
 
     async def execute(self, command: SoftDeleteBlockCommand) -> Block:
-        return await self._delegate.execute(block_id=command.block_id, book_id=command.book_id)
+        request = DeleteBlockRequest(block_id=command.block_id)
+        return await self._delegate.execute(request)

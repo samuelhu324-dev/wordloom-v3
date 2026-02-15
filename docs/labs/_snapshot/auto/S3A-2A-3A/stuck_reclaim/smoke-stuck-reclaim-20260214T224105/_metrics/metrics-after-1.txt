@@ -1,0 +1,2 @@
+note: worker1 was killed by controller
+note: observed_claim=False

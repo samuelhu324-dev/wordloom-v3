@@ -96,9 +96,8 @@ class SQLAlchemyLibraryRepository(ILibraryRepository):
                     soft_deleted_at=library.soft_deleted_at,
                 )
                 self.session.add(model)
-            await self.session.commit()
+            await self.session.flush()
         except IntegrityError as e:
-            await self.session.rollback()
             error_str = str(e).lower()
             # Multi-library: user_id uniqueness removed; treat remaining integrity errors generically
             logger.error(f"Integrity error persisting Library: {e}")
@@ -195,12 +194,11 @@ class SQLAlchemyLibraryRepository(ILibraryRepository):
             model = result.scalar_one_or_none()
             if model:
                 await self.session.delete(model)
-                await self.session.commit()
+                await self.session.flush()
                 logger.info(f"Library deleted: {library_id}")
             else:
                 logger.debug(f"Library not found for deletion: {library_id}")
         except Exception as e:
-            await self.session.rollback()
             logger.error(f"Error deleting Library {library_id}: {e}")
             raise
 

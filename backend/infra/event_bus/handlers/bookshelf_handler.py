@@ -12,8 +12,9 @@ All handlers are async functions that implement side effects.
 
 import logging
 from typing import TYPE_CHECKING
-from app.shared.base import DomainEvent
-from backend.infra.event_bus.event_handler_registry import EventHandlerRegistry
+from api.app.shared.base import DomainEvent
+
+from ..event_handler_registry import EventHandlerRegistry
 
 logger = logging.getLogger(__name__)
 
