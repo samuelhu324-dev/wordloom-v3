@@ -59,11 +59,12 @@ jobs:
       - name: Install backend
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e backend
+          python -m pip install -r backend/requirements.txt
 
       - name: Run → Verify → Export → Clean
         env:
           FAULT_SCENARIO: ${{ inputs.scenario }}
+          PYTHONPATH: backend
         run: |
           set -euo pipefail
           run_id="${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.scenario }}"
