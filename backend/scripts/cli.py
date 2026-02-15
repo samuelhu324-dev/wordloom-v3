@@ -128,6 +128,20 @@ def _es_set_index_write_block(*, es_url: str, index: str, enabled: bool) -> tupl
     return _http_json("PUT", url, body={"index": {"blocks": {"write": bool(enabled)}}}, timeout_s=5.0)
 
 
+def _es_create_index_if_missing(*, es_url: str, index: str) -> tuple[int, str]:
+    """Create index if it does not exist.
+
+    Returns (status, payload) from ES.
+    - 200/201: created
+    - 400: already exists (treated as ok by caller)
+    """
+
+    es_url = es_url.strip().rstrip("/")
+    index = index.strip()
+    url = f"{es_url}/{index}"
+    return _http_json("PUT", url, body=None, timeout_s=5.0)
+
+
 def _scrape_metrics_text(*, port: int, timeout_s: float = 2.0) -> str:
     url = f"http://localhost:{int(port)}/metrics"
     req = urllib.request.Request(url=url, headers={"Accept": "text/plain"})
@@ -471,6 +485,18 @@ def _cmd_labs_run_es_write_block_4xx(args: argparse.Namespace) -> int:
 
             # 2) Inject: block writes at the index.
             status, payload = _es_set_index_write_block(es_url=es_url, index=es_index, enabled=True)
+            if status == 404:
+                c_status, c_payload = _es_create_index_if_missing(es_url=es_url, index=es_index)
+                (outdir / "_inject_es_create_index.response.txt").write_text(
+                    f"status={c_status}\n\n{c_payload}\n", encoding="utf-8"
+                )
+                if c_status not in (200, 201, 400):
+                    print(f"[labs run {SCENARIO_ES_WRITE_BLOCK_4XX}] failed to create index: http {c_status}")
+                    worker_proc.terminate()
+                    worker_proc.wait(timeout=30)
+                    return 2
+
+                status, payload = _es_set_index_write_block(es_url=es_url, index=es_index, enabled=True)
             (outdir / "_inject_es_write_block.response.txt").write_text(
                 f"status={status}\n\n{payload}\n", encoding="utf-8"
             )
@@ -481,7 +507,9 @@ def _cmd_labs_run_es_write_block_4xx(args: argparse.Namespace) -> int:
                 return 2
 
             # 3) Trigger: insert a pending outbox event (and ensure a matching search_index row exists).
-            inserter = REPO_ROOT / "backend" / "scripts" / "labs_009_insert_search_outbox_pending.py"
+            inserter = REPO_ROOT / "backend" / "scripts" / "labs" / "labs_009_insert_search_outbox_pending.py"
+            if not inserter.exists():
+                inserter = LEGACY_SCRIPTS_DIR / "labs_009_insert_search_outbox_pending.py"
             trigger_env = env.copy()
             trigger_env.setdefault("OUTBOX_OP", "upsert")
             trigger_env.setdefault("OUTBOX_CREATE_SEARCH_INDEX_ROW", "1")
@@ -701,7 +729,9 @@ def _cmd_labs_run_es_429_inject(args: argparse.Namespace) -> int:
     metrics_before_path = metrics_dir / "metrics-before.txt"
     metrics_after_path = metrics_dir / "metrics-after.txt"
 
-    inserter = REPO_ROOT / "backend" / "scripts" / "labs_009_insert_search_outbox_pending.py"
+    inserter = REPO_ROOT / "backend" / "scripts" / "labs" / "labs_009_insert_search_outbox_pending.py"
+    if not inserter.exists():
+        inserter = LEGACY_SCRIPTS_DIR / "labs_009_insert_search_outbox_pending.py"
 
     start = time.time()
     stopped_by_controller = False
@@ -902,7 +932,9 @@ def _cmd_labs_run_es_down_connect(args: argparse.Namespace) -> int:
     metrics_before_path = metrics_dir / "metrics-before.txt"
     metrics_after_path = metrics_dir / "metrics-after.txt"
 
-    inserter = REPO_ROOT / "backend" / "scripts" / "labs_009_insert_search_outbox_pending.py"
+    inserter = REPO_ROOT / "backend" / "scripts" / "labs" / "labs_009_insert_search_outbox_pending.py"
+    if not inserter.exists():
+        inserter = LEGACY_SCRIPTS_DIR / "labs_009_insert_search_outbox_pending.py"
 
     start = time.time()
     stopped_by_controller = False
@@ -1132,7 +1164,9 @@ def _cmd_labs_run_collector_down(args: argparse.Namespace) -> int:
     metrics_before_path = metrics_dir / "metrics-before.txt"
     metrics_after_path = metrics_dir / "metrics-after.txt"
 
-    inserter = REPO_ROOT / "backend" / "scripts" / "labs_009_insert_search_outbox_pending.py"
+    inserter = REPO_ROOT / "backend" / "scripts" / "labs" / "labs_009_insert_search_outbox_pending.py"
+    if not inserter.exists():
+        inserter = LEGACY_SCRIPTS_DIR / "labs_009_insert_search_outbox_pending.py"
 
     start = time.time()
     stopped_by_controller = False
@@ -1418,7 +1452,9 @@ def _cmd_labs_run_duplicate_delivery(args: argparse.Namespace) -> int:
     metrics_before_path = metrics_dir / "metrics-before.txt"
     metrics_after_path = metrics_dir / "metrics-after.txt"
 
-    inserter = REPO_ROOT / "backend" / "scripts" / "labs_009_insert_search_outbox_pending.py"
+    inserter = REPO_ROOT / "backend" / "scripts" / "labs" / "labs_009_insert_search_outbox_pending.py"
+    if not inserter.exists():
+        inserter = LEGACY_SCRIPTS_DIR / "labs_009_insert_search_outbox_pending.py"
 
     start = time.time()
     stopped_by_controller = False
@@ -1732,7 +1768,9 @@ def _cmd_labs_run_es_bulk_partial(args: argparse.Namespace) -> int:
     metrics_before_path = metrics_dir / "metrics-before.txt"
     metrics_after_path = metrics_dir / "metrics-after.txt"
 
-    inserter = REPO_ROOT / "backend" / "scripts" / "labs_009_insert_search_outbox_pending.py"
+    inserter = REPO_ROOT / "backend" / "scripts" / "labs" / "labs_009_insert_search_outbox_pending.py"
+    if not inserter.exists():
+        inserter = LEGACY_SCRIPTS_DIR / "labs_009_insert_search_outbox_pending.py"
 
     start = time.time()
     stopped_by_controller = False
@@ -2057,7 +2095,9 @@ def _cmd_labs_run_db_claim_contention(args: argparse.Namespace) -> int:
     after_1_path = metrics_dir / "metrics-after-1.txt"
     after_2_path = metrics_dir / "metrics-after-2.txt"
 
-    inserter = REPO_ROOT / "backend" / "scripts" / "labs_009_insert_search_outbox_pending.py"
+    inserter = REPO_ROOT / "backend" / "scripts" / "labs" / "labs_009_insert_search_outbox_pending.py"
+    if not inserter.exists():
+        inserter = LEGACY_SCRIPTS_DIR / "labs_009_insert_search_outbox_pending.py"
 
     start = time.time()
     stopped_by_controller = False
@@ -2356,7 +2396,9 @@ def _cmd_labs_run_stuck_reclaim(args: argparse.Namespace) -> int:
     worker = LEGACY_SCRIPTS_DIR / "search_outbox_worker.py"
     cmd = [_python_exe(), "-u", str(worker)]
 
-    inserter = REPO_ROOT / "backend" / "scripts" / "labs_009_insert_search_outbox_pending.py"
+    inserter = REPO_ROOT / "backend" / "scripts" / "labs" / "labs_009_insert_search_outbox_pending.py"
+    if not inserter.exists():
+        inserter = LEGACY_SCRIPTS_DIR / "labs_009_insert_search_outbox_pending.py"
     outbox_event_ids: list[str] = []
     for i in range(int(args.trigger_count)):
         trigger_env = base_env.copy()
@@ -2880,8 +2922,13 @@ def _cmd_labs_run_projection_version(args: argparse.Namespace) -> int:
     worker = LEGACY_SCRIPTS_DIR / "chronicle_outbox_worker.py"
     cmd = [_python_exe(), "-u", str(worker)]
 
-    inserter = REPO_ROOT / "backend" / "scripts" / "labs_009_insert_chronicle_outbox_pending.py"
-    prober = REPO_ROOT / "backend" / "scripts" / "labs_009_probe_chronicle_entry.py"
+    inserter = REPO_ROOT / "backend" / "scripts" / "labs" / "labs_009_insert_chronicle_outbox_pending.py"
+    if not inserter.exists():
+        inserter = LEGACY_SCRIPTS_DIR / "labs_009_insert_chronicle_outbox_pending.py"
+
+    prober = REPO_ROOT / "backend" / "scripts" / "labs" / "labs_009_probe_chronicle_entry.py"
+    if not prober.exists():
+        prober = LEGACY_SCRIPTS_DIR / "labs_009_probe_chronicle_entry.py"
 
     def _spawn_worker_with_retry(
         *,
