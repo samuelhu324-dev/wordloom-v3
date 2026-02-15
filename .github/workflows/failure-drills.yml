@@ -8,6 +8,7 @@ on:
         required: true
         type: choice
         options:
+          - all
           - es_429_inject
           - es_write_block_4xx
           - es_down_connect
@@ -20,7 +21,7 @@ on:
       env_file:
         description: "Env file path"
         required: true
-        default: ".env.test.example"
+        default: ".env.test"
         type: string
       duration:
         description: "Run duration (seconds)"
@@ -53,13 +54,70 @@ jobs:
 
       - name: Start infra (DB/ES/Jaeger)
         run: |
-          docker compose -f docker-compose.infra.yml up -d
-          docker compose -f docker-compose.devtest-db.yml up -d
+          docker compose -f docker-compose.infra.yml up -d --wait
+          docker compose -f docker-compose.devtest-db.yml up -d --wait
+
+          echo "Waiting for Elasticsearch (http://localhost:19200)"
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:19200 >/dev/null; then
+              echo "Elasticsearch is up"
+              break
+            fi
+            sleep 2
+          done
+
+          echo "Waiting for Postgres (wordloom_test)"
+          DB_CID="$(docker compose -f docker-compose.devtest-db.yml ps -q db_devtest)"
+          if [ -z "$DB_CID" ]; then
+            echo "db_devtest container not found" >&2
+            exit 2
+          fi
+          for i in $(seq 1 60); do
+            if docker exec "$DB_CID" pg_isready -U wordloom -d wordloom_test >/dev/null 2>&1; then
+              echo "Postgres is ready"
+              break
+            fi
+            sleep 2
+          done
 
       - name: Install backend
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt
+
+      - name: Prepare env file (CI)
+        run: |
+          # The runner executes Python on the host, while DB/ES/Jaeger run in docker
+          # with localhost port-maps from docker-compose.*.yml.
+          cat > .env.test << 'EOF'
+          WORDLOOM_ENV=test
+          ENVIRONMENT=ci-test
+          DEBUG=False
+          LOG_LEVEL=WARNING
+
+          API_PORT=30011
+          OUTBOX_METRICS_PORT=9109
+
+          DATABASE_URL=postgresql+psycopg://wordloom:wordloom@localhost:5435/wordloom_test
+
+          SEARCH_STAGE1_PROVIDER=elastic
+          ELASTIC_URL=http://localhost:19200
+          ELASTIC_INDEX=wordloom-test-search-index
+
+          WORDLOOM_TRACING_ENABLED=1
+          OTEL_TRACES_SAMPLER=always_on
+          OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+          OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+          EOF
+
+      - name: Migrate DB (alembic)
+        run: |
+          set -euo pipefail
+          set -a
+          source .env.test
+          set +a
+          cd backend
+          python -m alembic -c alembic.ini upgrade head
 
       - name: Run → Verify → Export → Clean
         env:
@@ -67,20 +125,47 @@ jobs:
           PYTHONPATH: backend
         run: |
           set -euo pipefail
-          run_id="${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.scenario }}"
 
-          python backend/scripts/cli.py labs run "${{ inputs.scenario }}" \
-            --env-file "${{ inputs.env_file }}" \
-            --duration "${{ inputs.duration }}" \
-            --run-id "$run_id"
+          env_file="${{ inputs.env_file }}"
+          if [ ! -f "$env_file" ]; then
+            echo "env_file not found: $env_file" >&2
+            echo "Expected a repo-relative path; using .env.test" >&2
+            env_file=".env.test"
+          fi
 
-          python backend/scripts/cli.py labs verify "${{ inputs.scenario }}" --run-id "$run_id"
+          if [ "${{ inputs.scenario }}" = "all" ]; then
+            scenarios=(
+              es_429_inject
+              es_write_block_4xx
+              es_down_connect
+              collector_down
+              es_bulk_partial
+              db_claim_contention
+              stuck_reclaim
+              duplicate_delivery
+              projection_version
+            )
+          else
+            scenarios=("${{ inputs.scenario }}")
+          fi
 
-          python backend/scripts/cli.py labs export "${{ inputs.scenario }}" \
-            --run-id "$run_id" \
-            --lookback "${{ inputs.lookback }}"
+          for scenario in "${scenarios[@]}"; do
+            run_id="${{ github.run_id }}-${{ github.run_attempt }}-${scenario}"
+            echo "=== scenario=${scenario} run_id=${run_id} ==="
 
-          python backend/scripts/cli.py labs clean "${{ inputs.scenario }}" --keep-last "${{ inputs.keep_last }}"
+            python backend/scripts/cli.py labs run "$scenario" \
+              --env-file "$env_file" \
+              --duration "${{ inputs.duration }}" \
+              --run-id "$run_id"
+
+            python backend/scripts/cli.py labs verify "$scenario" --run-id "$run_id"
+
+            python backend/scripts/cli.py labs export "$scenario" \
+              --run-id "$run_id" \
+              --lookback "${{ inputs.lookback }}"
+
+            python backend/scripts/cli.py labs clean "$scenario" --env-file "$env_file" --keep-last "${{ inputs.keep_last }}"
+          done
 
       - name: Upload evidence bundle
         uses: actions/upload-artifact@v4
