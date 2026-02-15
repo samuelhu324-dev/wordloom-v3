@@ -20,7 +20,7 @@ on:
       env_file:
         description: "Env file path"
         required: true
-        default: ".env.test"
+        default: ".env.test.example"
         type: string
       duration:
         description: "Run duration (seconds)"
